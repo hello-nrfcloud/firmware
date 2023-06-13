@@ -124,7 +124,8 @@ const static struct cloud_data_gnss gnss_data_example = {
 			"\"areaCode\":12,"\
 			"\"mccmnc\":24202,"\
 			"\"cellID\":33703719,"\
-			"\"ipAddress\":\"10.81.183.99\""\
+			"\"ipAddress\":\"10.81.183.99\","\
+			"\"eest\":0"\
 		"}"\
 	"}"\
 "},{"\

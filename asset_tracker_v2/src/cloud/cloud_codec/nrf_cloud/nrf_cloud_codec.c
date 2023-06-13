@@ -269,6 +269,12 @@ static int modem_dynamic_data_add(struct cloud_data_modem_dynamic *data, cJSON *
 		goto exit;
 	}
 
+	err = json_add_number(modem_val_obj, MODEM_ENERGY_ESTIMATE, data->energy_estimate);
+	if (err) {
+		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+		goto exit;
+	}
+
 	*val_obj_ref = modem_val_obj;
 
 	data->queued = false;

@@ -1307,6 +1307,7 @@ static void on_all_states(struct data_msg_data *msg)
 			.rsrp = msg->module.modem.data.modem_dynamic.rsrp,
 			.mcc = msg->module.modem.data.modem_dynamic.mcc,
 			.mnc = msg->module.modem.data.modem_dynamic.mnc,
+			.energy_estimate = msg->module.modem.data.modem_dynamic.energy_estimate,
 			.ts = msg->module.modem.data.modem_dynamic.timestamp,
 			.queued = true
 		};

@@ -221,6 +221,12 @@ int json_common_modem_dynamic_data_add(cJSON *parent,
 		goto exit;
 	}
 
+	err = json_add_number(modem_val_obj, MODEM_ENERGY_ESTIMATE, data->energy_estimate);
+	if (err) {
+		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+		goto exit;
+	}
+
 	json_add_obj(modem_obj, DATA_VALUE, modem_val_obj);
 
 	err = json_add_number(modem_obj, DATA_TIMESTAMP, data->ts);

@@ -187,6 +187,8 @@ struct cloud_data_modem_dynamic {
 	char apn[CONFIG_CLOUD_CODEC_APN_LEN_MAX];
 	/** Mobile Country Code and Mobile Network Code. */
 	char mccmnc[7];
+	/* Energy estimate */
+	uint16_t energy_estimate;
 	/** Flag signifying that the data entry is to be encoded. */
 	bool queued : 1;
 };

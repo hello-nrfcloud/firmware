@@ -358,6 +358,7 @@ void test_encode_modem_dynamic_data_object(void)
 		.mccmnc = "24202",
 		.cell = 33703719,
 		.ip = "10.81.183.99",
+		.energy_estimate = 5,
 		.ts = 1000,
 		.queued = true,
 	};
@@ -412,6 +413,7 @@ void test_encode_modem_dynamic_data_array(void)
 		.mccmnc = "24202",
 		.cell = 33703719,
 		.ip = "10.81.183.99",
+		.energy_estimate = 5,
 		.ts = 1000,
 		.queued = true,
 	};
@@ -900,6 +902,7 @@ void test_encode_batch_data_object(void)
 		[0].mccmnc = "24202",
 		[0].cell = 33703719,
 		[0].ip = "10.81.183.99",
+		[0].energy_estimate = 7,
 		[0].ts = 1000,
 		[0].queued = true,
 		/* Second entry */
@@ -910,6 +913,7 @@ void test_encode_batch_data_object(void)
 		[1].mccmnc = "24202",
 		[1].cell = 33703719,
 		[1].ip = "10.81.183.99",
+		[1].energy_estimate = 6,
 		[1].ts = 1000,
 		[1].queued = true,
 	};

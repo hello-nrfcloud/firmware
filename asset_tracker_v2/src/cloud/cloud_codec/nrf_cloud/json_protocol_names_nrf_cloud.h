@@ -46,6 +46,7 @@
 #define MODEM_MCCMNC	       "mccmnc"
 #define MODEM_CELL_ID	       "cellID"
 #define MODEM_IP_ADDRESS       "ipAddress"
+#define MODEM_ENERGY_ESTIMATE  "eest"
 
 #define CONFIG_DEVICE_MODE		  "activeMode"
 #define CONFIG_ACTIVE_TIMEOUT		  "activeWaitTime"

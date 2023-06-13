@@ -594,6 +594,15 @@ static void populate_event_with_dynamic_modem_data(struct modem_module_event *ev
 
 	event->data.modem_dynamic.mccmnc
 		[sizeof(event->data.modem_dynamic.mccmnc) - 1] = '\0';
+
+	struct lte_lc_conn_eval_params coneval = { 0 };
+	int err = lte_lc_conn_eval_params_get(&coneval);
+
+	if (err) {
+		LOG_ERR("Couldn't get CONEVAL data, err: %d", err);
+	} else {
+		event->data.modem_dynamic.energy_estimate = coneval.energy_estimate;
+	}
 }
 
 static int dynamic_modem_data_get(void)
