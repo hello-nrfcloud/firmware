@@ -196,7 +196,8 @@ void test_enc_batch_data_sensor_timefail(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 1, 0, 0, 0, 0, 0);
+					    NULL,
+					    0, 1, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-EOVERFLOW, ret);
 }
 
@@ -242,7 +243,8 @@ void test_enc_batch_data_sensor_big_values(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 1, 0, 0, 0, 0, 0);
+					    NULL,
+					    0, 1, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENODATA, ret);
 }
 
@@ -278,7 +280,8 @@ void test_enc_batch_data_sensor_add_air_quality_fail(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 1, 0, 0, 0, 0, 0);
+					    NULL,
+					    0, 1, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -317,7 +320,8 @@ void test_enc_batch_data_sensor_add_humidity_fail(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 1, 0, 0, 0, 0, 0);
+					    NULL,
+					    0, 1, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -359,7 +363,8 @@ void test_enc_batch_data_sensor_add_temperature_fail(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 1, 0, 0, 0, 0, 0);
+					    NULL,
+					    0, 1, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -404,7 +409,8 @@ void test_enc_batch_data_sensor_add_pressure_fail(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 1, 0, 0, 0, 0, 0);
+					    NULL,
+					    0, 1, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -424,7 +430,8 @@ void test_enc_batch_data_gnss_no_array(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    1, 0, 0, 0, 0, 0, 0);
+					    NULL,
+					    1, 0, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -452,7 +459,8 @@ void test_enc_batch_data_bat_no_data_obj(void)
 					    NULL,
 					    NULL,
 					    &bat_buf,
-					    0, 0, 0, 0, 0, 0, 1);
+					    NULL,
+					    0, 0, 0, 0, 0, 0, 1, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -478,7 +486,8 @@ void test_enc_batch_data_gnss_no_data_obj(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    1, 0, 0, 0, 0, 0, 0);
+					    NULL,
+					    1, 0, 0, 0, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 }
 
@@ -504,7 +513,8 @@ void test_enc_batch_data_ui_no_data_obj(void)
 					    &ui_buf,
 					    NULL,
 					    NULL,
-					    0, 0, 0, 0, 1, 0, 0);
+					    NULL,
+					    0, 0, 0, 0, 1, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 	TEST_ASSERT_TRUE(ui_buf.queued);
 }
@@ -532,7 +542,8 @@ void test_enc_batch_data_modem_dyn_no_data_obj(void)
 					    NULL,
 					    NULL,
 					    NULL,
-					    0, 0, 0, 1, 0, 0, 0);
+					    NULL,
+					    0, 0, 0, 1, 0, 0, 0, 0);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 	TEST_ASSERT_TRUE(modem_dyn_buf.queued);
 }

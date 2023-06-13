@@ -35,6 +35,17 @@
 extern "C" {
 #endif
 
+struct cloud_data_solar {
+	/* V */
+	float voltage;
+	/* mA */
+	float current;
+	/** Timestamp. UNIX milliseconds. */
+	int64_t ts;
+	/** Flag signifying that the data entry is to be encoded. */
+	bool queued : 1;
+};
+
 /** @brief Structure containing battery data published to cloud. */
 struct cloud_data_battery {
 	/** Battery fuel gauge percentage. */
@@ -409,7 +420,8 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf);
+			    struct cloud_data_battery *bat_buf,
+			    struct cloud_data_solar *sol_buf);
 
 /**
  * @brief Encode UI data.
@@ -472,13 +484,15 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
+				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count);
+				  size_t bat_buf_count,
+				  size_t sol_buf_count);
 
 void cloud_codec_populate_sensor_buffer(
 				struct cloud_data_sensors *sensor_buffer,
@@ -500,6 +514,11 @@ void cloud_codec_populate_impact_buffer(
 void cloud_codec_populate_bat_buffer(struct cloud_data_battery *bat_buffer,
 				     struct cloud_data_battery *new_bat_data,
 				     int *head_bat_buf,
+				     size_t buffer_count);
+
+void cloud_codec_populate_sol_buffer(struct cloud_data_solar *sol_buffer,
+				     struct cloud_data_solar *new_sol_data,
+				     int *head_sol_buf,
 				     size_t buffer_count);
 
 void cloud_codec_populate_gnss_buffer(struct cloud_data_gnss *gnss_buffer,

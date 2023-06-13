@@ -382,6 +382,7 @@ void test_enc_data_empty(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_data(&codec,
 				&gnss_buf,
@@ -390,7 +391,8 @@ void test_enc_data_empty(void)
 				&modem_dyn_buf,
 				&ui_buf,
 				&impact_buf,
-				&bat_buf);
+				&bat_buf,
+				&sol_buf);
 	TEST_ASSERT_EQUAL(-ENOTSUP, ret);
 	TEST_ASSERT_EQUAL(NULL, codec.buf);
 }
@@ -405,6 +407,7 @@ void test_enc_batch_data_empty(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -414,7 +417,8 @@ void test_enc_batch_data_empty(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				0, 0, 0, 0, 0, 0, 0);
+				&sol_buf,
+				0, 0, 0, 0, 0, 0, 0, 0);
 
 	TEST_ASSERT_EQUAL(-ENODATA, ret);
 	TEST_ASSERT_EQUAL(NULL, codec.buf);
@@ -430,6 +434,7 @@ void test_enc_batch_data_single_empty_element(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -439,7 +444,8 @@ void test_enc_batch_data_single_empty_element(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(-ENODATA, ret);
 	TEST_ASSERT_EQUAL(NULL, codec.buf);
 }
@@ -454,6 +460,7 @@ void test_enc_batch_data_single_battery(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = bat_data_example;
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -463,7 +470,8 @@ void test_enc_batch_data_single_battery(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(EXIT_SUCCESS, ret);
 	TEST_ASSERT_EQUAL(0, strncmp(BAT_BATCH_EXAMPLE, codec.buf, strlen(BAT_BATCH_EXAMPLE)));
 	TEST_ASSERT_FALSE(bat_buf.queued);
@@ -483,6 +491,7 @@ void test_enc_batch_data_single_battery_too_big(void)
 		.bat_ts = 1563968747123,
 		.queued = true,
 	};
+	struct cloud_data_solar sol_buf = {0};
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
 				&sensor_buf,
@@ -491,7 +500,8 @@ void test_enc_batch_data_single_battery_too_big(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 	TEST_ASSERT_TRUE(bat_buf.queued);
 }
@@ -506,6 +516,7 @@ void test_enc_batch_data_gnss(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -515,7 +526,8 @@ void test_enc_batch_data_gnss(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(EXIT_SUCCESS, ret);
 	TEST_ASSERT_EQUAL_STRING(GNSS_BATCH_EXAMPLE, codec.buf);
 	TEST_ASSERT_FALSE(gnss_buf.queued);
@@ -531,6 +543,7 @@ void test_enc_batch_data_modem_dynamic(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -540,11 +553,10 @@ void test_enc_batch_data_modem_dynamic(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(EXIT_SUCCESS, ret);
-	TEST_ASSERT_EQUAL(0, strncmp(MODEM_DYNAMIC_BATCH_EXAMPLE,
-				     codec.buf,
-				     strlen(MODEM_DYNAMIC_BATCH_EXAMPLE)));
+	TEST_ASSERT_EQUAL_STRING(MODEM_DYNAMIC_BATCH_EXAMPLE, codec.buf);
 	TEST_ASSERT_FALSE(modem_dyn_buf.queued);
 }
 
@@ -558,6 +570,7 @@ void test_enc_batch_data_modem_dynamic_rsrp_too_small(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	modem_dyn_buf.rsrp = INT16_MIN;
 	ret = cloud_codec_encode_batch_data(&codec,
@@ -568,7 +581,8 @@ void test_enc_batch_data_modem_dynamic_rsrp_too_small(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 	TEST_ASSERT_FALSE(modem_dyn_buf.queued);
 }
@@ -583,6 +597,7 @@ void test_enc_batch_data_sensor(void)
 	struct cloud_data_ui ui_buf = {0};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -592,7 +607,8 @@ void test_enc_batch_data_sensor(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(EXIT_SUCCESS, ret);
 	TEST_ASSERT_EQUAL(0, strncmp(SENSORS_BATCH_EXAMPLE,
 			  codec.buf, strlen(SENSORS_BATCH_EXAMPLE)));
@@ -612,6 +628,7 @@ void test_enc_batch_data_ui_toobig(void)
 	};
 	struct cloud_data_impact impact_buf = {0};
 	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
 
 	ret = cloud_codec_encode_batch_data(&codec,
 				&gnss_buf,
@@ -621,7 +638,8 @@ void test_enc_batch_data_ui_toobig(void)
 				&ui_buf,
 				&impact_buf,
 				&bat_buf,
-				1, 1, 1, 1, 1, 1, 1);
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(-ENOMEM, ret);
 	TEST_ASSERT_TRUE(ui_buf.queued);
 }

@@ -307,7 +307,8 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf)
+			    struct cloud_data_battery *bat_buf,
+			    struct cloud_data_solar *sol_buf)
 {
 	int err;
 	char *buffer;
@@ -387,6 +388,16 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 	err = json_common_battery_data_add(rep_obj, bat_buf,
 					   JSON_COMMON_ADD_DATA_TO_OBJECT,
 					   DATA_BATTERY,
+					   NULL);
+	if (err == 0) {
+		object_added = true;
+	} else if (err != -ENODATA) {
+		goto add_object;
+	}
+
+	err = json_common_solar_data_add(rep_obj, sol_buf,
+					   JSON_COMMON_ADD_DATA_TO_OBJECT,
+					   DATA_SOLAR,
 					   NULL);
 	if (err == 0) {
 		object_added = true;
@@ -528,13 +539,15 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
+				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count)
+				  size_t bat_buf_count,
+				  size_t sol_buf_count)
 {
 	int err;
 	char *buffer;
@@ -604,6 +617,15 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 	err = json_common_batch_data_add(root_obj, JSON_COMMON_BATTERY,
 					 bat_buf, bat_buf_count,
 					 DATA_BATTERY);
+	if (err == 0) {
+		object_added = true;
+	} else if (err != -ENODATA) {
+		goto exit;
+	}
+
+	err = json_common_batch_data_add(root_obj, JSON_COMMON_SOLAR,
+					 sol_buf, sol_buf_count,
+					 DATA_SOLAR);
 	if (err == 0) {
 		object_added = true;
 	} else if (err != -ENODATA) {

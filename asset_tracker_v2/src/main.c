@@ -371,6 +371,7 @@ static void data_get(void)
 	app_module_event->data_list[count++] = APP_DATA_MODEM_DYNAMIC;
 	app_module_event->data_list[count++] = APP_DATA_BATTERY;
 	app_module_event->data_list[count++] = APP_DATA_ENVIRONMENTAL;
+	app_module_event->data_list[count++] = APP_DATA_SOLAR;
 
 	if (!modem_static_sampled) {
 		app_module_event->data_list[count++] = APP_DATA_MODEM_STATIC;

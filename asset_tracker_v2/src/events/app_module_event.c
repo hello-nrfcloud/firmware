@@ -14,6 +14,8 @@ static char *type2str(enum app_module_data_type type)
 	switch (type) {
 	case APP_DATA_ENVIRONMENTAL:
 		return "ENV";
+	case APP_DATA_SOLAR:
+		return "SOLAR";
 	case APP_DATA_MOVEMENT:
 		return "MOVE";
 	case APP_DATA_MODEM_STATIC:

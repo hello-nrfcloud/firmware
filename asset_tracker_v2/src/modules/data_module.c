@@ -66,6 +66,7 @@ static enum state_type {
  */
 static struct cloud_data_gnss gnss_buf[CONFIG_DATA_GNSS_BUFFER_COUNT];
 static struct cloud_data_sensors sensors_buf[CONFIG_DATA_SENSOR_BUFFER_COUNT];
+static struct cloud_data_solar sol_buf[2];
 static struct cloud_data_ui ui_buf[CONFIG_DATA_UI_BUFFER_COUNT];
 static struct cloud_data_impact impact_buf[CONFIG_DATA_IMPACT_BUFFER_COUNT];
 static struct cloud_data_battery bat_buf[CONFIG_DATA_BATTERY_BUFFER_COUNT];
@@ -84,6 +85,7 @@ static struct cloud_data_modem_static modem_stat;
 /* Head of ringbuffers. */
 static int head_gnss_buf;
 static int head_sensor_buf;
+static int head_sol_buf;
 static int head_modem_dyn_buf;
 static int head_ui_buf;
 static int head_impact_buf;
@@ -610,7 +612,8 @@ static void data_encode(void)
 					      &modem_dyn_buf[head_modem_dyn_buf],
 					      &ui_buf[head_ui_buf],
 					      &impact_buf[head_impact_buf],
-					      &bat_buf[head_bat_buf]);
+					      &bat_buf[head_bat_buf],
+					      &sol_buf[head_sol_buf]);
 		switch (err) {
 		case 0:
 			LOG_DBG("Data encoded successfully");
@@ -641,13 +644,15 @@ static void data_encode(void)
 						    ui_buf,
 						    impact_buf,
 						    bat_buf,
+						    sol_buf,
 						    ARRAY_SIZE(gnss_buf),
 						    ARRAY_SIZE(sensors_buf),
 						    MODEM_STATIC_ARRAY_SIZE,
 						    ARRAY_SIZE(modem_dyn_buf),
 						    ARRAY_SIZE(ui_buf),
 						    ARRAY_SIZE(impact_buf),
-						    ARRAY_SIZE(bat_buf));
+						    ARRAY_SIZE(bat_buf),
+						    ARRAY_SIZE(sol_buf));
 		switch (err) {
 		case 0:
 			LOG_DBG("Batch data encoded successfully");
@@ -1366,6 +1371,21 @@ static void on_all_states(struct data_msg_data *msg)
 						   ARRAY_SIZE(sensors_buf));
 
 		requested_data_status_set(APP_DATA_ENVIRONMENTAL);
+	}
+
+	if (IS_EVENT(msg, sensor, SENSOR_EVT_SOLAR_DATA_READY)) {
+		struct cloud_data_solar new_sol_data = {
+			.voltage = msg->module.sensor.data.solar.voltage,
+			.current = msg->module.sensor.data.solar.current,
+			.ts = msg->module.sensor.data.solar.timestamp,
+			.queued = true
+		};
+
+		cloud_codec_populate_sol_buffer(sol_buf,
+						&new_sol_data,
+						&head_sol_buf,
+						ARRAY_SIZE(sol_buf));
+		requested_data_status_set(APP_DATA_SOLAR);
 	}
 
 	if (IS_EVENT(msg, sensor, SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED)) {

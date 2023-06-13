@@ -39,6 +39,7 @@ enum json_common_buffer_type {
 	JSON_COMMON_GNSS,
 	JSON_COMMON_SENSOR,
 	JSON_COMMON_BATTERY,
+	JSON_COMMON_SOLAR,
 
 	JSON_COMMON_COUNT
 };
@@ -261,6 +262,27 @@ int json_common_pgps_request_data_add(cJSON *parent, struct cloud_data_pgps_requ
  */
 int json_common_battery_data_add(cJSON *parent,
 				 struct cloud_data_battery *data,
+				 enum json_common_op_code op,
+				 const char *object_label,
+				 cJSON **parent_ref);
+
+/**
+ * @brief Encode and add solar data to the parent object.
+ * 
+ * @param[out] parent Pointer to object that the encoded data is added to.
+ * @param[in] data Pointer to data that is to be encoded.
+ * @param[in] op Operation that is to be carried out.
+ * @param[in] object_label Name of the encoded object.
+ * @param[out] parent_ref Reference to an unallocated parent object pointer. Used when getting the
+ *			  pointer to the encoded data object when setting
+ *			  JSON_COMMON_GET_POINTER_TO_OBJECT as the opcode. The cJSON object pointed
+ *			  to after this function call must be manually freed after use.
+ *
+ * @return 0 on success. -ENODATA if the passed in data is not valid. Otherwise a negative error
+ *         code is returned.
+ */
+int json_common_solar_data_add(cJSON *parent,
+				 struct cloud_data_solar *data,
 				 enum json_common_op_code op,
 				 const char *object_label,
 				 cJSON **parent_ref);

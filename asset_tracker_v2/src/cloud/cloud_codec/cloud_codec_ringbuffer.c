@@ -110,6 +110,27 @@ void cloud_codec_populate_bat_buffer(struct cloud_data_battery *bat_buffer,
 		buffer_count - 1);
 }
 
+void cloud_codec_populate_sol_buffer(struct cloud_data_solar *sol_buffer,
+				     struct cloud_data_solar *new_sol_data,
+				     int *head_sol_buf,
+				     size_t buffer_count)
+{
+	if (!new_sol_data->queued) {
+		return;
+	}
+
+	/* Go to start of buffer if end is reached. */
+	*head_sol_buf += 1;
+	if (*head_sol_buf == buffer_count) {
+		*head_sol_buf = 0;
+	}
+
+	sol_buffer[*head_sol_buf] = *new_sol_data;
+
+	LOG_DBG("Entry: %d of %d in solar buffer filled", *head_sol_buf,
+		buffer_count - 1);
+}
+
 void cloud_codec_populate_gnss_buffer(struct cloud_data_gnss *gnss_buffer,
 				    struct cloud_data_gnss *new_gnss_data,
 				    int *head_gnss_buf,

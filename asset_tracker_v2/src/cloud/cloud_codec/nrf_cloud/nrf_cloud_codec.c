@@ -33,6 +33,7 @@ enum batch_data_type {
 	MODEM_DYNAMIC,
 	BATTERY,
 	IMPACT,
+	SOLAR,
 };
 
 /* Function that checks the version number of the incoming message and determines if it has already
@@ -678,6 +679,36 @@ static int add_batch_data(cJSON *array, enum batch_data_type type, void *buf, si
 			data[i].queued = false;
 			break;
 		}
+		case SOLAR: {
+			int err, len;
+			char current[10];
+			struct cloud_data_solar *data = (struct cloud_data_solar *)buf;
+
+			if (data[i].queued == false) {
+				break;
+			}
+
+			err = date_time_uptime_to_unix_time_ms(&data[i].ts);
+			if (err) {
+				LOG_ERR("date_time_uptime_to_unix_time_ms, error: %d", err);
+				return -EOVERFLOW;
+			}
+
+			len = snprintk(current, sizeof(current), "%.6f", data[i].current*1000);
+			if ((len < 0) || (len >= sizeof(current))) {
+				LOG_ERR("Cannot convert current to string, buffer too small");
+				return -ENOMEM;
+			}
+
+			err = add_data(array, NULL, APP_ID_SOLAR, current, &data[i].ts,
+				       data[i].queued, NULL, false);
+			if (err && err != -ENODATA) {
+				return err;
+			}
+
+			data[i].queued = false;
+			break;
+		}
 		default:
 			LOG_ERR("Unknown batch data type");
 			return -EINVAL;
@@ -907,7 +938,8 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf)
+			    struct cloud_data_battery *bat_buf,
+			    struct cloud_data_solar *sol_buf)
 {
 	/* Encoding of the latest buffer entries is not supported.
 	 * Only batch encoding is supported.
@@ -1043,13 +1075,15 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
+				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count)
+				  size_t bat_buf_count,
+				  size_t sol_buf_count)
 {
 	ARG_UNUSED(modem_stat_buf);
 
@@ -1095,6 +1129,12 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 	err = add_batch_data(root_array, MODEM_DYNAMIC, modem_dyn_buf, modem_dyn_buf_count);
 	if (err) {
 		LOG_ERR("Failed adding dynamic modem data to array, error: %d", err);
+		goto exit;
+	}
+
+	err = add_batch_data(root_array, SOLAR, sol_buf, sol_buf_count);
+	if (err) {
+		LOG_ERR("Failed adding solar data to array, error: %d", err);
 		goto exit;
 	}
 

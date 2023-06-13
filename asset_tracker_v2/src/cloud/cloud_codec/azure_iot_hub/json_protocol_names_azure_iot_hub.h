@@ -45,6 +45,8 @@
 #define DATA_CONFIG	    "cfg"
 #define DATA_VERSION	    "version"
 #define DATA_IMPACT	    "impact"
+#define DATA_SOLAR	    "sol"
+#define DATA_SOLAR_GAIN	    "gain"
 
 #define DATA_MOVEMENT   "acc"
 #define DATA_MOVEMENT_X "x"
