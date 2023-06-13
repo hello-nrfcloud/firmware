@@ -1,34 +1,9 @@
-# nRF Connect SDK example application
+# Thingy:91 Out-of-Box Experience Application
 
-This repository contains an nRF Connect SDK example application. The main
-purpose of this repository is to serve as a reference on how to structure nRF Connect
-SDK based applications. Some of the features demonstrated in this example are:
+![Build and Release](https://github.com/maxd-nordic/thingy-oob-experience-firmware/workflows/Build/badge.svg)
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
-- Basic [Zephyr application][app_dev] skeleton
-- [Zephyr workspace applications][workspace_app]
-- [West T2 topology][west_t2]
-- [Custom boards][board_porting]
-- Custom [devicetree bindings][bindings]
-- Out-of-tree [drivers][drivers]
-- Out-of-tree libraries
-- Example CI configuration (using Github Actions)
-- Custom [west extension][west_ext]
-
-This repository is versioned together with the [nRF Connect SDK main tree][sdk-nrf]. This
-means that every time that nRF Connect SDK is tagged, this repository is tagged as well
-with the same version number, and the [manifest](west.yml) entry for `zephyr`
-will point to the corresponding nRF Connect SDK tag. For example, the `ncs-example-application`
-v2.3.0 will point to nRF Connect SDK v2.3.0. Note that the `main` branch always
-points to the development branch of nRF Connect SDK, also `main`.
-
-[app_dev]: https://docs.zephyrproject.org/latest/develop/application/index.html
-[workspace_app]: https://docs.zephyrproject.org/latest/develop/application/index.html#zephyr-workspace-app
-[west_t2]: https://docs.zephyrproject.org/latest/develop/west/workspaces.html#west-t2
-[board_porting]: https://docs.zephyrproject.org/latest/guides/porting/board_porting.html
-[bindings]: https://docs.zephyrproject.org/latest/guides/dts/bindings.html
-[drivers]: https://docs.zephyrproject.org/latest/reference/drivers/index.html
-[sdk-nrf]: https://github.com/nrfconnect/sdk-nrf
-[west_ext]: https://docs.zephyrproject.org/latest/develop/west/extensions.html
+This project is based on the [NCS Example Application](https://github.com/nrfconnect/ncs-example-application).
 
 ## Getting started
 
@@ -38,15 +13,15 @@ Follow the official
 
 ### Initialization
 
-The first step is to initialize the workspace folder (``my-workspace``) where
-the ``example-application`` and all nRF Connect SDK modules will be cloned. Run the following
+The first step is to initialize the workspace folder (``thingy-oob``) where
+the ``thingy-oob-experience-firmware`` project and all nRF Connect SDK modules will be cloned. Run the following
 command:
 
 ```shell
-# initialize my-workspace for the ncs-example-application (main branch)
-west init -m https://github.com/nrfconnect/ncs-example-application --mr main my-workspace
+# initialize thingy-oob workspace
+west init -m https://github.com/maxd-nordic/thingy-oob-experience-firmware --mr main thingy-oob
 # update nRF Connect SDK modules
-cd my-workspace
+cd thingy-oob
 west update
 ```
 
@@ -55,24 +30,20 @@ west update
 To build the application, run the following command:
 
 ```shell
-west build -b $BOARD app
+west build -b thingy91_nrf9160_ns asset_tracker_v2
 ```
 
-where `$BOARD` is the target board.
-
-You can use the `custom_plank` board found in this repository. Note that you can use
-Zephyr and nRF Connect SDK sample boards if an appropriate overlay is provided (see `app/boards`).
-
-A sample debug configuration is also provided. To apply it, run the following
-command:
+If you are using the Powerfoyle solar shield, you can enable power monitoring capabilities by using this build command:
 
 ```shell
-west build -b $BOARD app -- -DOVERLAY_CONFIG=debug.conf
+west build -b thingy91_nrf9160_ns asset_tracker_v2 -- -DSHIELD=powerfoyle
 ```
 
-You can also use it together with the `rtt.conf` file if using Segger RTT. Once
-you have built the application, run the following command to flash it:
+When using an external debugger, you can flash using this command:
 
 ```shell
 west flash
 ```
+
+Please refer to the official [Asset Tracker V2 documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/2.4.0/nrf/applications/asset_tracker_v2/doc/asset_tracker_v2_description.html) for details.
+
