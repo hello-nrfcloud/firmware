@@ -4,6 +4,7 @@
 manifest:
   self:
     west-commands: scripts/west-commands.yml
+    path: project
 
   remotes:
     - name: ncs
@@ -13,5 +14,5 @@ manifest:
     - name: nrf
       remote: ncs
       repo-path: sdk-nrf
-      revision: main
+      revision: v2.4.0
       import: true

@@ -5,33 +5,33 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: zephyrprojectrtos/ci:latest
+    container: zephyrprojectrtos/ci:v0.26.4
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          path: example-application
+          path: project
 
       - name: Initialize
-        working-directory: example-application
+        working-directory: project
         run: |
           west init -l .
           west update
 
       - name: Build firmware
-        working-directory: example-application
+        working-directory: project/asset_tracker_v2
         run: |
-          west build -b custom_plank app
+          west build -b thingy91_nrf9160_ns
 
       - name: Twister Tests
-        working-directory: example-application
+        working-directory: project/asset_tracker_v2
         run: |
-          ../zephyr/scripts/twister -G --board-root boards/ --testsuite-root ./tests/
+          ../../zephyr/scripts/twister -G  --testsuite-root ./tests/
 
       - name: Archive firmware
         uses: actions/upload-artifact@v2
         with:
           name: firmware
-          path: example-application/build/zephyr/zephyr.*
+          path: project/build/zephyr/zephyr.*
