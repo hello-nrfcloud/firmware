@@ -9,6 +9,11 @@ jobs:
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
+      - name: Install Ruby
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby
+
       - name: Checkout
         uses: actions/checkout@v2
         with:
