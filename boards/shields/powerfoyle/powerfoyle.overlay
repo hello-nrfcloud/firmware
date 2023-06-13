@@ -1,0 +1,13 @@
+&i2c2 {
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+
+	ina3221: ina3221@40 {
+		compatible = "ti,ina3221";
+		reg = <0x40>;
+		shunt-resistors = < 4700 1000 1000 >;
+		enable-channel = < 1 0 0 >;
+		conv-time-bus = < 7 >;
+		conv-time-shunt = < 7 >;
+		avg-mode = < 2 >;
+	};
+};
