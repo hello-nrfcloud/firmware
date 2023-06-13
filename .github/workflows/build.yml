@@ -30,8 +30,23 @@ jobs:
         run: |
           ../../zephyr/scripts/twister -G  --testsuite-root ./tests/
 
+      - name: Archive test result
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: twister
+          path: project/asset_tracker_v2/twister-out
+
       - name: Archive firmware
+        if: success() || failure()
         uses: actions/upload-artifact@v2
         with:
           name: firmware
-          path: project/build/zephyr/zephyr.*
+          path: |
+            project/asset_tracker_v2/build/zephyr/zephyr.elf
+            project/asset_tracker_v2/build/zephyr/merged.hex
+            project/asset_tracker_v2/build/zephyr/app_update.bin
+            project/asset_tracker_v2/build/zephyr/app_signed.hex
+            project/asset_tracker_v2/build/zephyr/zephyr.dts
+            project/asset_tracker_v2/build/zephyr/.config
+
