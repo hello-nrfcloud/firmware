@@ -1,10 +1,44 @@
-name: Build
+name: Build, Test, Release
 
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+# generate date string to be embedded in builds
+  date-string:
+    name: Generate date string
+    runs-on: ubuntu-22.04
+    outputs:
+      dateAsString: ${{ steps.dateAsString.outputs.dateAsString }}
+    steps:
+      - run: echo "$(date +'%Y%m%d%H%M%S')"
+      - name: Generate date string
+        id: dateAsString
+        run: echo "dateAsString=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+# generate version string to be embedded in builds
+  release-version:
+    name: Determine next release version
+
+    runs-on: ubuntu-22.04
+
+    outputs:
+      nextRelease: ${{ steps.version.outputs.nextRelease }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Determine next release version
+        uses: nordicsemiconductor/cloud-get-next-version-action@saga
+        id: version
+        with:
+          branch: saga
+          defaultVersion: "0.0.0-development-${{ github.sha }}"
+
+      - run: echo ${{ steps.version.outputs.nextRelease }}
+
+  test:
+    name: Run Twister tests
+    runs-on: ubuntu-22.04
     container: zephyrprojectrtos/ci:v0.26.4
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
@@ -15,7 +49,7 @@ jobs:
           sudo apt-get install -y ruby
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: project
 
@@ -25,11 +59,6 @@ jobs:
           west init -l .
           west update
 
-      - name: Build firmware
-        working-directory: project/asset_tracker_v2
-        run: |
-          west build -b thingy91_nrf9160_ns
-
       - name: Twister Tests
         working-directory: project/asset_tracker_v2
         run: |
@@ -37,16 +66,124 @@ jobs:
 
       - name: Archive test result
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: twister
           path: project/asset_tracker_v2/twister-out
 
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    container: zephyrprojectrtos/ci:v0.26.4
+    needs: [release-version, date-string]
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
+      AWS_BROKER_HOSTNAME: iot.thingy.rocks
+
+# list variants to build
+    strategy:
+      matrix:
+        configuration:
+          - thingy91
+          - thingy91.debug
+          - thingy91.low-power.memfault
+          - thingy91.solar
+          - thingy91.solar.debug
+          - thingy91.solar.low-power.memfault
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: project
+
+      - name: Initialize
+        working-directory: project
+        run: |
+          west init -l .
+          west update
+
+# configure build {
+
+      - name: Build for Thingy:91
+        if: contains(matrix.configuration, 'thingy91')
+        run: echo 'BOARD=thingy91_nrf9160_ns' >> $GITHUB_ENV
+
+      - name: Build for nRF9160-DK
+        if: contains(matrix.configuration, 'nrf9160dk')
+        run: echo 'BOARD=nrf9160dk_nrf9160_ns' >> $GITHUB_ENV
+
+      - name: Add KConfig options unconditionally
+        working-directory: project/asset_tracker_v2
+        run: |
+          APP_VERSION=${{ needs.release-version.outputs.nextRelease }}+${{ matrix.configuration }}
+          echo "CONFIG_ASSET_TRACKER_V2_APP_VERSION=\"${APP_VERSION}\"" >> firmware.conf
+          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
+          echo "CONFIG_DATA_DEVICE_MODE_ACTIVE=y" >> firmware.conf
+          echo "CONFIG_LTE_PSM_REQ_RAT=\"00000000\"" >> firmware.conf
+          echo "CONFIG_CLOUD_CLIENT_ID_IMEI_PREFIX=\"oob-\"" >> firmware.conf
+          echo "CONFIG_NRF_CLOUD_SEC_TAG=42" >> firmware.conf
+
+      - name: Configure Memfault
+        if: contains(matrix.configuration, 'memfault')
+        working-directory: project/asset_tracker_v2
+        run: |
+          echo "CONFIG_DEBUG_MODULE_MEMFAULT_USE_EXTERNAL_TRANSPORT=y" >> overlay-memfault.conf
+          echo "CONFIG_DEBUG_MODULE_MEMFAULT_HEARTBEAT_INTERVAL_SEC=3600" >> overlay-memfault.conf
+          echo "CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y" >> overlay-memfault.conf
+          echo "CONFIG_MEMFAULT_NCS_FW_VERSION=\"${{ env.APP_VERSION }}\"" >> overlay-memfault.conf
+          echo "CONFIG_MEMFAULT_NCS_FW_TYPE=\"atv2\"" >> overlay-memfault.conf
+          echo "CONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"" >> overlay-memfault.conf
+          echo MEMFAULT_OVERLAY=overlay-memfault.conf >> $GITHUB_ENV
+
+      - name: Configure Low-Power
+        working-directory: project/asset_tracker_v2
+        if: contains(matrix.configuration, 'low-power')
+        run: echo CONFIG_OVERLAY=overlay-low-power.conf >> $GITHUB_ENV
+
+      - name: Configure Debug
+        working-directory: project/asset_tracker_v2
+        if: contains(matrix.configuration, 'debug')
+        run: |
+          echo CONFIG_OVERLAY=overlay-debug.conf >> $GITHUB_ENV
+          echo "CONFIG_NRF_MODEM_LIB_TRACE=y" >> firmware.conf
+
+      - name: Configure Solar Shield
+        working-directory: project/asset_tracker_v2
+        if: contains(matrix.configuration, 'solar')
+        run: |
+          echo EXTRA_ARGS="-DSHIELD=powerfoyle" >> $GITHUB_ENV
+
+# }
+
+      - name: Build firmware
+        working-directory: project/asset_tracker_v2
+        run: |
+          west build -b ${{ env.BOARD }} \
+          -p always -- \
+          ${{ env.EXTRA_ARGS }} \
+          -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};firmware.conf"
+
+      - name: Upload symbols file to Memfault
+        if: contains(matrix.configuration, 'memfault')
+        working-directory: project/asset_tracker_v2
+        run: |
+          pip3 install memfault-cli
+          memfault \
+            --org-token ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }} \
+            --org ${{ secrets.MEMFAULT_ORGANIZATION_SLUG }} \
+            --project ${{ secrets.MEMFAULT_PROJECT_SLUG }} \
+            upload-mcu-symbols \
+            --software-type atv2 \
+            --software-version ${{ env.APP_VERSION }} \
+            build/zephyr/zephyr.elf
+
       - name: Archive firmware
         if: success() || failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: firmware
+          name: ${{ matrix.configuration }}-${{
+            needs.date-string.outputs.dateAsString }}-${{ github.sha }}
           path: |
             project/asset_tracker_v2/build/zephyr/zephyr.elf
             project/asset_tracker_v2/build/zephyr/merged.hex
@@ -55,3 +192,25 @@ jobs:
             project/asset_tracker_v2/build/zephyr/zephyr.dts
             project/asset_tracker_v2/build/zephyr/.config
 
+  release:
+    name: Release
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' || github.event_name ==
+      'repository_dispatch')
+
+    needs: [build, test]
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+
+      - run: npx semantic-release

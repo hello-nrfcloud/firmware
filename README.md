@@ -1,6 +1,6 @@
 # Thingy:91 Out-of-Box Experience Application
 
-![Build and Release](https://github.com/maxd-nordic/thingy-oob-experience-firmware/workflows/Build/badge.svg)
+![Build and Release](https://github.com/maxd-nordic/thingy-oob-experience-firmware/workflows/Build%2C%20Test%2C%20Release/badge.svg)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 This project is based on the [NCS Example Application](https://github.com/nrfconnect/ncs-example-application).

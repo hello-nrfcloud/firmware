@@ -6,5 +6,142 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "remoteTags": true,
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91-*/merged.hex",
+              "name": "thingy91-asset_tracker_v2-${nextRelease.gitTag}.hex",
+              "label": "App with Bootloader HEX file (thingy91)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91-*/app_signed.hex",
+              "name": "thingy91-asset_tracker_v2-${nextRelease.gitTag}-fwupd.hex",
+              "label": "Firmware Update Image HEX file (thingy91)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91-*/app_update.bin",
+              "name": "thingy91-asset_tracker_v2-${nextRelease.gitTag}-fwupd.bin",
+              "label": "Firmware Update Image BIN file (thingy91)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91-*/zephyr.elf",
+              "name": "thingy91-asset_tracker_v2-${nextRelease.gitTag}-symbols.elf",
+              "label": "App Symbols ELF file (thingy91)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.debug-*/merged.hex",
+              "name": "thingy91-asset_tracker_v2-debug-${nextRelease.gitTag}.hex",
+              "label": "App with Bootloader HEX file (thingy91, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.debug-*/app_signed.hex",
+              "name": "thingy91-asset_tracker_v2-debug-${nextRelease.gitTag}-fwupd.hex",
+              "label": "Firmware Update Image HEX file (thingy91, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.debug-*/app_update.bin",
+              "name": "thingy91-asset_tracker_v2-debug-${nextRelease.gitTag}-fwupd.bin",
+              "label": "Firmware Update Image BIN file (thingy91, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.debug-*/zephyr.elf",
+              "name": "thingy91-asset_tracker_v2-debug-${nextRelease.gitTag}-symbols.elf",
+              "label": "App Symbols ELF file (thingy91, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.low-power.memfault-*/merged.hex",
+              "name": "thingy91-asset_tracker_v2-low-power-memfault-${nextRelease.gitTag}.hex",
+              "label": "App with Bootloader HEX file (thingy91, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.low-power.memfault-*/app_signed.hex",
+              "name": "thingy91-asset_tracker_v2-low-power-memfault-${nextRelease.gitTag}-fwupd.hex",
+              "label": "Firmware Update Image HEX file (thingy91, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.low-power.memfault-*/app_update.bin",
+              "name": "thingy91-asset_tracker_v2-low-power-memfault-${nextRelease.gitTag}-fwupd.bin",
+              "label": "Firmware Update Image BIN file (thingy91, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.low-power.memfault-*/zephyr.elf",
+              "name": "thingy91-asset_tracker_v2-low-power-memfault-${nextRelease.gitTag}-symbols.elf",
+              "label": "App Symbols ELF file (thingy91, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar-*/merged.hex",
+              "name": "thingy91-asset_tracker_v2-solar-${nextRelease.gitTag}.hex",
+              "label": "App with Bootloader HEX file (thingy91, solar)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar-*/app_signed.hex",
+              "name": "thingy91-asset_tracker_v2-solar-${nextRelease.gitTag}-fwupd.hex",
+              "label": "Firmware Update Image HEX file (thingy91, solar)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar-*/app_update.bin",
+              "name": "thingy91-asset_tracker_v2-solar-${nextRelease.gitTag}-fwupd.bin",
+              "label": "Firmware Update Image BIN file (thingy91, solar)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar-*/zephyr.elf",
+              "name": "thingy91-asset_tracker_v2-solar-${nextRelease.gitTag}-symbols.elf",
+              "label": "App Symbols ELF file (thingy91, solar)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.debug-*/merged.hex",
+              "name": "thingy91-asset_tracker_v2-solar-debug-${nextRelease.gitTag}.hex",
+              "label": "App with Bootloader HEX file (thingy91, solar, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.debug-*/app_signed.hex",
+              "name": "thingy91-asset_tracker_v2-solar-debug-${nextRelease.gitTag}-fwupd.hex",
+              "label": "Firmware Update Image HEX file (thingy91, solar, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.debug-*/app_update.bin",
+              "name": "thingy91-asset_tracker_v2-solar-debug-${nextRelease.gitTag}-fwupd.bin",
+              "label": "Firmware Update Image BIN file (thingy91, solar, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.debug-*/zephyr.elf",
+              "name": "thingy91-asset_tracker_v2-solar-debug-${nextRelease.gitTag}-symbols.elf",
+              "label": "App Symbols ELF file (thingy91, solar, debug)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.low-power.memfault-*/merged.hex",
+              "name": "thingy91-asset_tracker_v2-solar-low-power-memfault-${nextRelease.gitTag}.hex",
+              "label": "App with Bootloader HEX file (thingy91, solar, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.low-power.memfault-*/app_signed.hex",
+              "name": "thingy91-asset_tracker_v2-solar-low-power-memfault-${nextRelease.gitTag}-fwupd.hex",
+              "label": "Firmware Update Image HEX file (thingy91, solar, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.low-power.memfault-*/app_update.bin",
+              "name": "thingy91-asset_tracker_v2-solar-low-power-memfault-${nextRelease.gitTag}-fwupd.bin",
+              "label": "Firmware Update Image BIN file (thingy91, solar, low-power, memfault)"
+            },
+            {
+              "path": "/home/runner/work/thingy-oob-experience-firmware/thingy-oob-experience-firmware/thingy91.solar.low-power.memfault-*/zephyr.elf",
+              "name": "thingy91-asset_tracker_v2-solar-low-power-memfault-${nextRelease.gitTag}-symbols.elf",
+              "label": "App Symbols ELF file (thingy91, solar, low-power, memfault)"
+            }
+          ]
+        }
+      ]
+    ]
   }
 }
