@@ -3,7 +3,7 @@ name: Build, Test, Release
 on: [push, pull_request]
 
 jobs:
-# generate date string to be embedded in builds
+  # generate date string to be embedded in builds
   date-string:
     name: Generate date string
     runs-on: ubuntu-22.04
@@ -15,7 +15,7 @@ jobs:
         id: dateAsString
         run: echo "dateAsString=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
 
-# generate version string to be embedded in builds
+  # generate version string to be embedded in builds
   release-version:
     name: Determine next release version
 
@@ -80,7 +80,7 @@ jobs:
       CMAKE_PREFIX_PATH: /opt/toolchains
       AWS_BROKER_HOSTNAME: iot.thingy.rocks
 
-# list variants to build
+    # list variants to build
     strategy:
       matrix:
         configuration:
@@ -103,7 +103,7 @@ jobs:
           west init -l .
           west update
 
-# configure build {
+      # configure build {
 
       - name: Build for Thingy:91
         if: contains(matrix.configuration, 'thingy91')
@@ -156,7 +156,7 @@ jobs:
         run: |
           echo EXTRA_ARGS="-DSHIELD=powerfoyle" >> $GITHUB_ENV
 
-# }
+      # }
 
       - name: Build firmware
         working-directory: project/asset_tracker_v2
@@ -167,9 +167,10 @@ jobs:
           -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};firmware.conf"
 
       - name: Upload symbols file to Memfault
-        if: contains(matrix.configuration, 'memfault') && github.ref == 'refs/heads/main' &&
-          (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
-          github.event_name == 'repository_dispatch')
+        if:
+          contains(matrix.configuration, 'memfault') && github.ref ==
+          'refs/heads/saga' && (github.event_name == 'push' || github.event_name
+          == 'workflow_dispatch' || github.event_name == 'repository_dispatch')
         working-directory: project/asset_tracker_v2
         run: |
           pip3 install memfault-cli
@@ -186,7 +187,8 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.configuration }}-${{
+          name:
+            ${{ matrix.configuration }}-${{
             needs.date-string.outputs.dateAsString }}-${{ github.sha }}
           path: |
             project/asset_tracker_v2/build/zephyr/zephyr.elf
@@ -199,7 +201,8 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-22.04
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' ||
+    if:
+      github.ref == 'refs/heads/saga' && (github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' || github.event_name ==
       'repository_dispatch')
 
