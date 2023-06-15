@@ -1,15 +1,46 @@
 {
-  "devDependencies": {
-    "cz-conventional-changelog": "^3.3.0"
+  "name": "@nordicsemiconductor/bifravst-firmware",
+  "version": "0.0.0-development",
+  "description": "Firmware for devices connecting to nRF Cloud for the out-of-box experience",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bifravst/Muninn-firmware.git"
   },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
+  "bugs": {
+    "url": "https://github.com/bifravst/Muninn-firmware/issues"
+  },
+  "homepage": "https://github.com/bifravst/Muninn-firmware#readme",
+  "keywords": [
+    "Muninn",
+    "iot",
+    "firmware",
+    "nrf-connect-sdk",
+    "nrf-cloud",
+    "thingy91"
+  ],
+  "type": "module",
+  "scripts": {
+    "prepare": "husky install && check-node-version --package"
+  },
+  "author": "Nordic Semiconductor ASA | nordicsemi.no",
+  "license": "Nordic-5-Clause",
+  "devDependencies": {
+    "@nordicsemiconductor/asset-tracker-cloud-code-style": "11.0.146",
+    "check-node-version": "4.2.1"
+  },
+  "lint-staged": {
+    "*.{yml,md,js,json}": [
+      "prettier --write"
+    ]
+  },
+  "prettier": "@nordicsemiconductor/asset-tracker-cloud-code-style/.prettierrc",
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
   },
   "release": {
     "branches": [
-      "main"
+      "saga"
     ],
     "remoteTags": true,
     "plugins": [
@@ -143,5 +174,8 @@
         }
       ]
     ]
+  },
+  "dependencies": {
+    "husky": "8.0.3"
   }
 }
