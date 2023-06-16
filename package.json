@@ -25,7 +25,7 @@
   "author": "Nordic Semiconductor ASA | nordicsemi.no",
   "license": "Nordic-5-Clause",
   "devDependencies": {
-    "@nordicsemiconductor/asset-tracker-cloud-code-style": "11.0.146",
+    "@nordicsemiconductor/asset-tracker-cloud-code-style": "11.0.186",
     "@octokit/rest": "19.0.11",
     "check-node-version": "4.2.1",
     "yazl": "2.5.1"
