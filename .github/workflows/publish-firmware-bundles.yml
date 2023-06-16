@@ -1,8 +1,6 @@
 name: Publish firmware bundles to nRF Cloud
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:

@@ -2,6 +2,11 @@ name: Build, Test, Release
 
 on: [push, pull_request]
 
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
 jobs:
   # generate date string to be embedded in builds
   date-string:
@@ -221,3 +226,10 @@ jobs:
           node-version: "18.x"
 
       - run: npx semantic-release
+        id: semantic-release
+
+      - name: Trigger deployment workflow
+        if: steps.semantic-release.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish-firmware-bundles.yml
