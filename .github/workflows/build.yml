@@ -231,5 +231,5 @@ jobs:
       - name: Trigger deployment workflow
         if: steps.semantic-release.outcome == 'success'
         env:
-          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run publish-firmware-bundles.yml
