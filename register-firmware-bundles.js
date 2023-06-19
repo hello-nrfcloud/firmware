@@ -11,7 +11,7 @@ const octokit = new Octokit({
 
 const releases = await octokit.rest.repos.listReleases({
 	owner: 'bifravst',
-	repo: 'Muninn-firmware',
+	repo: 'firmware',
 })
 
 const latestRelease = releases.data[0]
@@ -40,7 +40,7 @@ for (const asset of latestRelease.assets.filter(({ name }) =>
 	const fwversion = `${release}${
 		configuration !== undefined ? `-${configuration}` : ''
 	}`
-	const fwName = `Muninn Firmware ${fwversion}`
+	const fwName = `hello.nrfcloud.com Firmware ${fwversion}`
 	console.log(fwName)
 	const manifest = {
 		name: fwName,

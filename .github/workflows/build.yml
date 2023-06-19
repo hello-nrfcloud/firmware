@@ -85,6 +85,8 @@ jobs:
       CMAKE_PREFIX_PATH: /opt/toolchains
       AWS_BROKER_HOSTNAME: iot.thingy.rocks
 
+    environment: production
+
     # list variants to build
     strategy:
       matrix:
@@ -140,7 +142,7 @@ jobs:
           echo "CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y" >> overlay-memfault.conf
           echo "CONFIG_MEMFAULT_NCS_FW_VERSION=\"${{ env.APP_VERSION }}\"" >> overlay-memfault.conf
           echo "CONFIG_MEMFAULT_NCS_FW_TYPE=\"atv2\"" >> overlay-memfault.conf
-          echo "CONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"" >> overlay-memfault.conf
+          echo "CONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ vars.MEMFAULT_PROJECT_KEY }}\"" >> overlay-memfault.conf
           echo MEMFAULT_OVERLAY=overlay-memfault.conf >> $GITHUB_ENV
 
       - name: Configure Low-Power
@@ -181,8 +183,8 @@ jobs:
           pip3 install memfault-cli
           memfault \
             --org-token ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }} \
-            --org ${{ secrets.MEMFAULT_ORGANIZATION_SLUG }} \
-            --project ${{ secrets.MEMFAULT_PROJECT_SLUG }} \
+            --org ${{ vars.MEMFAULT_ORGANIZATION_SLUG }} \
+            --project ${{ vars.MEMFAULT_PROJECT_SLUG }} \
             upload-mcu-symbols \
             --software-type atv2 \
             --software-version ${{ env.APP_VERSION }} \
@@ -214,7 +216,7 @@ jobs:
     needs: [build, test]
 
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ vars.GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v3
@@ -231,5 +233,5 @@ jobs:
       - name: Trigger deployment workflow
         if: steps.semantic-release.outcome == 'success'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ vars.GITHUB_TOKEN }}
         run: gh workflow run publish-firmware-bundles.yml
