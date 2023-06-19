@@ -215,9 +215,6 @@ jobs:
 
     needs: [build, test]
 
-    env:
-      GITHUB_TOKEN: ${{ vars.GITHUB_TOKEN }}
-
     steps:
       - uses: actions/checkout@v3
 
@@ -233,5 +230,5 @@ jobs:
       - name: Trigger deployment workflow
         if: steps.semantic-release.outcome == 'success'
         env:
-          GITHUB_TOKEN: ${{ vars.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
         run: gh workflow run publish-firmware-bundles.yml
