@@ -174,6 +174,7 @@ jobs:
           -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};firmware.conf"
 
       - name: Upload symbols file to Memfault
+        continue-on-error: true
         if:
           contains(matrix.configuration, 'memfault') && github.ref ==
           'refs/heads/saga' && (github.event_name == 'push' || github.event_name
