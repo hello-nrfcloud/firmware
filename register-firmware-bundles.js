@@ -26,7 +26,7 @@ const release = latestRelease.tag_name
 console.log('Release', release)
 
 const nameRegEx = new RegExp(
-	`^thingy91-asset_tracker_v2-((?<configuration>.+)-)?${release}-fwupd\.bin$`,
+	`^hello-nrfcloud-thingy91-((?<configuration>.+)-)?${release}-fwupd\.bin$`,
 )
 
 for (const asset of latestRelease.assets.filter(({ name }) =>
