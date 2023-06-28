@@ -233,7 +233,7 @@ jobs:
       github.event_name == 'workflow_dispatch' || github.event_name ==
       'repository_dispatch')
 
-    needs: [build, test]
+    needs: [build, test, release-version]
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -252,4 +252,6 @@ jobs:
 
       - name: Trigger deployment workflow
         if: steps.semantic-release.outcome == 'success'
-        run: gh workflow run publish-firmware-bundles.yml
+        run:
+          gh workflow run publish-firmware-bundles.yml --raw-field release=v${{
+          needs.release-version.outputs.nextRelease }}

@@ -10,7 +10,9 @@ const [, owner, repo] = new URL(pJSON.repository.url).pathname
 	.replace('.git', '')
 	.split('/')
 
-const isDryRun = process.argv.includes('--dry-run')
+const version = process.argv[process.argv.length - 1]
+
+console.log(`Publishing release version`, version)
 
 const octokit = new Octokit({
 	auth: process.env.GITHUB_TOKEN,
@@ -18,24 +20,23 @@ const octokit = new Octokit({
 
 console.log(`Repository: ${owner}/${repo}`)
 
-const releases = await octokit.rest.repos.listReleases({ repo, owner })
+const { data: release } = await octokit.rest.repos.getReleaseByTag({
+	repo,
+	owner,
+	tag: version,
+})
 
-const latestRelease = releases.data[0]
-
-if (latestRelease === undefined) {
-	console.error(`No release found!`)
+if (release === undefined) {
+	console.error(`Release for ${version} not found!`)
+	console.debug(`Got: ${releases.map(({ name }) => name).join(', ')}!`)
 	process.exit(1)
 }
 
-const release = latestRelease.tag_name
-
-console.log('Release', release)
-
 const nameRegEx = new RegExp(
-	`^hello-nrfcloud-thingy91-((?<configuration>.+)-)?${release}-fwupd\.bin$`,
+	`^hello-nrfcloud-thingy91-((?<configuration>.+)-)?${release.tag_name}-fwupd\.bin$`,
 )
 
-for (const asset of latestRelease.assets.filter(({ name }) =>
+for (const asset of release.assets.filter(({ name }) =>
 	name.endsWith('-fwupd.bin'),
 )) {
 	const { url, name, label, size } = asset
@@ -43,7 +44,7 @@ for (const asset of latestRelease.assets.filter(({ name }) =>
 		groups: { configuration },
 	} = nameRegEx.exec(name)
 
-	const fwversion = `${release}${
+	const fwversion = `${release.tag_name}${
 		configuration !== undefined ? `-${configuration}` : ''
 	}`
 	const fwName = `hello.nrfcloud.com ${fwversion}`

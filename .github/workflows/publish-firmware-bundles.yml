@@ -2,6 +2,11 @@ name: Publish firmware bundles to nRF Cloud
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: Release version to publish, e.g. "v1.1.0"
 
 jobs:
   publish:
@@ -27,7 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit
 
-      - run: node .github/workflows/register-firmware-bundles.js
+      - run:
+          node .github/workflows/register-firmware-bundles.js ${{ inputs.version
+          }}
         env:
           NRF_CLOUD_API_KEY: ${{ secrets.NRF_CLOUD_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
