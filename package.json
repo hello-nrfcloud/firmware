@@ -74,102 +74,102 @@
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-debug-${nextRelease.gitTag}.hex",
+              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}.hex",
               "label": "App with Bootloader HEX file (thingy91, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-debug-${nextRelease.gitTag}-fwupd.hex",
+              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}-fwupd.hex",
               "label": "Firmware Update Image HEX file (thingy91, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-debug-${nextRelease.gitTag}-fwupd.bin",
+              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}-fwupd.bin",
               "label": "Firmware Update Image BIN file (thingy91, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-debug-${nextRelease.gitTag}-symbols.elf",
+              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}-symbols.elf",
               "label": "App Symbols ELF file (thingy91, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-low-power-memfault-${nextRelease.gitTag}.hex",
+              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}.hex",
               "label": "App with Bootloader HEX file (thingy91, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-low-power-memfault-${nextRelease.gitTag}-fwupd.hex",
+              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}-fwupd.hex",
               "label": "Firmware Update Image HEX file (thingy91, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-low-power-memfault-${nextRelease.gitTag}-fwupd.bin",
+              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}-fwupd.bin",
               "label": "Firmware Update Image BIN file (thingy91, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-low-power-memfault-${nextRelease.gitTag}-symbols.elf",
+              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}-symbols.elf",
               "label": "App Symbols ELF file (thingy91, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-solar-${nextRelease.gitTag}.hex",
+              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}.hex",
               "label": "App with Bootloader HEX file (thingy91, solar)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-solar-${nextRelease.gitTag}-fwupd.hex",
+              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}-fwupd.hex",
               "label": "Firmware Update Image HEX file (thingy91, solar)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-solar-${nextRelease.gitTag}-fwupd.bin",
+              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}-fwupd.bin",
               "label": "Firmware Update Image BIN file (thingy91, solar)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-solar-${nextRelease.gitTag}-symbols.elf",
+              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}-symbols.elf",
               "label": "App Symbols ELF file (thingy91, solar)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-solar-debug-${nextRelease.gitTag}.hex",
+              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}.hex",
               "label": "App with Bootloader HEX file (thingy91, solar, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-solar-debug-${nextRelease.gitTag}-fwupd.hex",
+              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}-fwupd.hex",
               "label": "Firmware Update Image HEX file (thingy91, solar, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-solar-debug-${nextRelease.gitTag}-fwupd.bin",
+              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}-fwupd.bin",
               "label": "Firmware Update Image BIN file (thingy91, solar, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-solar-debug-${nextRelease.gitTag}-symbols.elf",
+              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}-symbols.elf",
               "label": "App Symbols ELF file (thingy91, solar, debug)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-solar-low-power-memfault-${nextRelease.gitTag}.hex",
+              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}.hex",
               "label": "App with Bootloader HEX file (thingy91, solar, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-solar-low-power-memfault-${nextRelease.gitTag}-fwupd.hex",
+              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}-fwupd.hex",
               "label": "Firmware Update Image HEX file (thingy91, solar, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-solar-low-power-memfault-${nextRelease.gitTag}-fwupd.bin",
+              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}-fwupd.bin",
               "label": "Firmware Update Image BIN file (thingy91, solar, low-power, memfault)"
             },
             {
               "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-solar-low-power-memfault-${nextRelease.gitTag}-symbols.elf",
+              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}-symbols.elf",
               "label": "App Symbols ELF file (thingy91, solar, low-power, memfault)"
             }
           ]
