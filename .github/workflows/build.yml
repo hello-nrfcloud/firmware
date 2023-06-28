@@ -1,6 +1,16 @@
 name: Build, Test, Release
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - "**.js"
+      - "**.json"
+      - .github/workflows/publish-firmware-bundles.yml
+  pull_request:
+    paths-ignore:
+      - "**.js"
+      - "**.json"
+  workflow_dispatch:
 
 permissions:
   contents: write
