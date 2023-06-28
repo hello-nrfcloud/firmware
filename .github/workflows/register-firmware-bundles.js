@@ -4,15 +4,21 @@ import { mkdtemp, readFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import yazl from 'yazl'
+import pJSON from '../../package.json' assert { type: 'json' }
+
+const [, owner, repo] = new URL(pJSON.repository.url).pathname
+	.replace('.git', '')
+	.split('/')
+
+const isDryRun = process.argv.includes('--dry-run')
 
 const octokit = new Octokit({
 	auth: process.env.GITHUB_TOKEN,
 })
 
-const releases = await octokit.rest.repos.listReleases({
-	owner: 'bifravst',
-	repo: 'firmware',
-})
+console.log(`Repository: ${owner}/${repo}`)
+
+const releases = await octokit.rest.repos.listReleases({ repo, owner })
 
 const latestRelease = releases.data[0]
 
@@ -40,7 +46,7 @@ for (const asset of latestRelease.assets.filter(({ name }) =>
 	const fwversion = `${release}${
 		configuration !== undefined ? `-${configuration}` : ''
 	}`
-	const fwName = `hello.nrfcloud.com Firmware ${fwversion}`
+	const fwName = `hello.nrfcloud.com ${fwversion}`
 	console.log(fwName)
 	const manifest = {
 		name: fwName,
