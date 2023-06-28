@@ -102,11 +102,11 @@ jobs:
       matrix:
         configuration:
           - thingy91
-          - thingy91.debug
-          - thingy91.low-power.memfault
-          - thingy91.solar
-          - thingy91.solar.debug
-          - thingy91.solar.low-power.memfault
+          - thingy91.dbg
+          - thingy91.lp.mmflt
+          - thingy91.sol
+          - thingy91.sol.dbg
+          - thingy91.sol.lp.mmflt
 
     steps:
       - name: Checkout
@@ -144,7 +144,7 @@ jobs:
           echo "CONFIG_DATA_ACTIVE_TIMEOUT_SECONDS=60" >> firmware.conf
 
       - name: Configure Memfault
-        if: contains(matrix.configuration, 'memfault')
+        if: contains(matrix.configuration, 'mmflt')
         working-directory: project/asset_tracker_v2
         run: |
           echo "CONFIG_DEBUG_MODULE_MEMFAULT_USE_EXTERNAL_TRANSPORT=y" >> overlay-memfault.conf
@@ -157,19 +157,19 @@ jobs:
 
       - name: Configure Low-Power
         working-directory: project/asset_tracker_v2
-        if: contains(matrix.configuration, 'low-power')
+        if: contains(matrix.configuration, 'lp')
         run: echo CONFIG_OVERLAY=overlay-low-power.conf >> $GITHUB_ENV
 
       - name: Configure Debug
         working-directory: project/asset_tracker_v2
-        if: contains(matrix.configuration, 'debug')
+        if: contains(matrix.configuration, 'dbg')
         run: |
           echo CONFIG_OVERLAY=overlay-debug.conf >> $GITHUB_ENV
           echo "CONFIG_NRF_MODEM_LIB_TRACE=y" >> firmware.conf
 
       - name: Configure Solar Shield
         working-directory: project/asset_tracker_v2
-        if: contains(matrix.configuration, 'solar')
+        if: contains(matrix.configuration, 'sol')
         run: |
           echo EXTRA_ARGS="-DSHIELD=powerfoyle" >> $GITHUB_ENV
 
@@ -195,7 +195,7 @@ jobs:
       - name: Upload symbols file to Memfault
         continue-on-error: true
         if:
-          contains(matrix.configuration, 'memfault') && github.ref ==
+          contains(matrix.configuration, 'mmflt') && github.ref ==
           'refs/heads/saga' && (github.event_name == 'push' || github.event_name
           == 'workflow_dispatch' || github.event_name == 'repository_dispatch')
         working-directory: project/asset_tracker_v2

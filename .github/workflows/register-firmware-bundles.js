@@ -105,9 +105,9 @@ for (const asset of latestRelease.assets.filter(({ name }) =>
 
 	if (createFirmwareRes.status !== 200) {
 		console.error(
-			`Failed to upload firmware bundle: ${await createFirmwareRes.body()}`,
+			`Failed to upload firmware bundle: ${await createFirmwareRes.text()}`,
 		)
 	} else {
-		console.log(JSON.stringify(await res.json(), null, 2))
+		console.log(JSON.stringify(await createFirmwareRes.json(), null, 2))
 	}
 }
