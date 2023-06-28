@@ -163,6 +163,15 @@ jobs:
         run: |
           echo EXTRA_ARGS="-DSHIELD=powerfoyle" >> $GITHUB_ENV
 
+      - name: enable BSEC library to support Bosch BME680 Environmental sensor
+        if: contains(matrix.configuration, 'thingy91')
+        working-directory: nrf/ext
+        run: |
+          wget -q ${{ secrets.BSEC_ARCHIVE_URL }} -O bsec.zip
+          unzip -q bsec.zip
+          ls BSEC_1.4.8.0_Generic_Release_updated_v3
+          echo BSEC_OVERLAY=overlay-bsec.conf >> $GITHUB_ENV
+
       # }
 
       - name: Build firmware
@@ -171,7 +180,7 @@ jobs:
           west build -b ${{ env.BOARD }} \
           -p always -- \
           ${{ env.EXTRA_ARGS }} \
-          -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};firmware.conf"
+          -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf"
 
       - name: Upload symbols file to Memfault
         continue-on-error: true
