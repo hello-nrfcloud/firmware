@@ -1,8 +1,10 @@
 import { Octokit } from '@octokit/rest'
-import { createWriteStream } from 'node:fs'
+import fs, { createWriteStream } from 'node:fs'
 import { mkdtemp, readFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { Readable } from 'stream'
+import { finished } from 'stream/promises'
 import yazl from 'yazl'
 import pJSON from '../../package.json' assert { type: 'json' }
 
@@ -70,17 +72,21 @@ for (const asset of release.assets.filter(({ name }) =>
 		},
 	})
 
-	const contents = await res.text()
-
 	const zipfile = new yazl.ZipFile()
-
-	zipfile.addBuffer(Buffer.from(contents, 'binary'), name)
 	zipfile.addBuffer(
 		Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8'),
 		'manifest.json',
 	)
 
 	const tempDir = await mkdtemp(path.join(os.tmpdir(), name))
+	const fwFile = path.join(tempDir, 'firmware.bin')
+
+	const body = Readable.fromWeb(res.body)
+	const download_write_stream = fs.createWriteStream(fwFile)
+	await finished(body.pipe(download_write_stream))
+
+	zipfile.addFile(fwFile, name)
+
 	const zipFileName = path.join(tempDir, `${name}.zip`)
 
 	await new Promise((resolve) => {
