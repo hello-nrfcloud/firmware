@@ -253,5 +253,5 @@ jobs:
       - name: Trigger deployment workflow
         if: steps.semantic-release.outcome == 'success'
         run:
-          gh workflow run publish-firmware-bundles.yml --raw-field release=v${{
+          gh workflow run publish-firmware-bundles.yml --raw-field version=v${{
           needs.release-version.outputs.nextRelease }}
