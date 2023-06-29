@@ -600,6 +600,7 @@ static void populate_event_with_dynamic_modem_data(struct modem_module_event *ev
 
 	if (err) {
 		LOG_ERR("Couldn't get CONEVAL data, err: %d", err);
+		event->data.modem_dynamic.energy_estimate = 0;
 	} else {
 		event->data.modem_dynamic.energy_estimate = coneval.energy_estimate;
 	}

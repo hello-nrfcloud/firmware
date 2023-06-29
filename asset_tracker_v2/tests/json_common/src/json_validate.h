@@ -69,6 +69,23 @@
 					"}"							\
 				"}"
 
+
+#define TEST_VALIDATE_MODEM_DYNAMIC_JSON_SCHEMA_NO_EEST							\
+				"{"								\
+					"\"roam\":{"						\
+						"\"v\":{"					\
+							"\"band\":3,"				\
+							"\"nw\":\"NB-IoT\","			\
+							"\"rsrp\":-8,"				\
+							"\"area\":12,"				\
+							"\"mccmnc\":24202,"			\
+							"\"cell\":33703719,"			\
+							"\"ip\":\"10.81.183.99\""		\
+						"},"						\
+						"\"ts\":1563968747123"				\
+					"}"							\
+				"}"
+
 #define TEST_VALIDATE_MODEM_STATIC_JSON_SCHEMA							\
 				"{"								\
 					"\"dev\":{"						\

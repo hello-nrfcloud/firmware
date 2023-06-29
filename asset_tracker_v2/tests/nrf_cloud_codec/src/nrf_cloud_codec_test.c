@@ -125,7 +125,30 @@ const static struct cloud_data_gnss gnss_data_example = {
 			"\"mccmnc\":24202,"\
 			"\"cellID\":33703719,"\
 			"\"ipAddress\":\"10.81.183.99\","\
-			"\"eest\":0"\
+			"\"eest\":5"\
+		"}"\
+	"}"\
+"},{"\
+	"\"appId\":\"RSRP\","\
+	"\"messageType\":\"DATA\","\
+	"\"ts\":1563968747123,"\
+	"\"data\":\"-8\""\
+"}]"
+
+#define MODEM_DYNAMIC_BATCH_EXAMPLE_NO_EEST \
+"[{"\
+	"\"appId\":\"DEVICE\","\
+	"\"messageType\":\"DATA\","\
+	"\"ts\":1563968747123,"\
+	"\"data\":{"\
+		"\"networkInfo\":{"\
+			"\"currentBand\":3,"\
+			"\"networkMode\":\"NB-IoT\","\
+			"\"rsrp\":-8,"\
+			"\"areaCode\":12,"\
+			"\"mccmnc\":24202,"\
+			"\"cellID\":33703719,"\
+			"\"ipAddress\":\"10.81.183.99\""\
 		"}"\
 	"}"\
 "},{"\
@@ -144,6 +167,7 @@ const static struct cloud_data_modem_dynamic modem_dyn_data_example = {
 	.cell = 33703719,
 	.ip = "10.81.183.99",
 	.ts = 1000,
+	.energy_estimate = 5,
 	.queued = true,
 };
 
@@ -558,6 +582,34 @@ void test_enc_batch_data_modem_dynamic(void)
 				1, 1, 1, 1, 1, 1, 1, 1);
 	TEST_ASSERT_EQUAL(EXIT_SUCCESS, ret);
 	TEST_ASSERT_EQUAL_STRING(MODEM_DYNAMIC_BATCH_EXAMPLE, codec.buf);
+	TEST_ASSERT_FALSE(modem_dyn_buf.queued);
+}
+
+void test_enc_batch_data_modem_dynamic_no_eest(void)
+{
+	struct cloud_data_gnss gnss_buf = {0};
+	struct cloud_data_sensors sensor_buf = {0};
+	struct cloud_data_modem_static modem_stat_buf = {0};
+	struct cloud_data_modem_dynamic modem_dyn_buf = modem_dyn_data_example;
+	struct cloud_data_ui ui_buf = {0};
+	struct cloud_data_impact impact_buf = {0};
+	struct cloud_data_battery bat_buf = {0};
+	struct cloud_data_solar sol_buf = {0};
+
+	modem_dyn_buf.energy_estimate = 0;
+
+	ret = cloud_codec_encode_batch_data(&codec,
+				&gnss_buf,
+				&sensor_buf,
+				&modem_stat_buf,
+				&modem_dyn_buf,
+				&ui_buf,
+				&impact_buf,
+				&bat_buf,
+				&sol_buf,
+				1, 1, 1, 1, 1, 1, 1, 1);
+	TEST_ASSERT_EQUAL(EXIT_SUCCESS, ret);
+	TEST_ASSERT_EQUAL_STRING(MODEM_DYNAMIC_BATCH_EXAMPLE_NO_EEST, codec.buf);
 	TEST_ASSERT_FALSE(modem_dyn_buf.queued);
 }
 

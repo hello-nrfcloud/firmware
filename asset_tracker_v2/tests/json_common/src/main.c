@@ -347,6 +347,33 @@ void test_encode_environmental_data_array(void)
 
 /* Modem dynamic */
 
+void test_encode_modem_dynamic_data_object_no_eest(void)
+{
+	int ret;
+	struct cloud_data_modem_dynamic data = {
+		.band = 3,
+		.nw_mode = LTE_LC_LTE_MODE_NBIOT,
+		.rsrp = -8,
+		.area = 12,
+		.mccmnc = "24202",
+		.cell = 33703719,
+		.ip = "10.81.183.99",
+		.energy_estimate = 0,
+		.ts = 1000,
+		.queued = true,
+	};
+	ret = json_common_modem_dynamic_data_add(dummy.root_obj,
+						 &data,
+						 JSON_COMMON_ADD_DATA_TO_OBJECT,
+						 DATA_MODEM_DYNAMIC,
+						 NULL);
+	TEST_ASSERT_EQUAL(0, ret);
+
+	ret = encoded_output_check(dummy.root_obj, TEST_VALIDATE_MODEM_DYNAMIC_JSON_SCHEMA_NO_EEST,
+				   data.queued);
+	TEST_ASSERT_EQUAL(0, ret);
+}
+
 void test_encode_modem_dynamic_data_object(void)
 {
 	int ret;
