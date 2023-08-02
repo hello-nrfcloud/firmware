@@ -1,0 +1,41 @@
+name: Build Docker container
+
+on:
+  push:
+    paths:
+      - Dockerfile
+      - .github/workflows/build-docker-container.yaml
+      - west.yml
+
+permissions:
+  packages: write
+  contents: read
+
+env:
+  IMAGE_NAME: hello-nrfcloud-firmware
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Authenticate against Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+      
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build Docker
+        run: docker buildx build -t $IMAGE_NAME .
+
+      - name: Publish Docker image
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [ "$VERSION" == "saga" ] && VERSION=latest
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
