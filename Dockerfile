@@ -9,7 +9,7 @@ RUN apt-get -y update && \
     apt-get -y install \
         wget
 
-RUN wget https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil && mv nrfutil /usr/local/bin && chmod +x /usr/local/bin/nrfutil
+RUN wget -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil && mv nrfutil /usr/local/bin && chmod +x /usr/local/bin/nrfutil
 
 RUN nrfutil install toolchain-manager
 
