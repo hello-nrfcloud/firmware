@@ -5,6 +5,7 @@ on:
     paths:
       - Dockerfile
       - .github/workflows/build-docker-container.yaml
+      - west.yml
 
 jobs:
   build:
