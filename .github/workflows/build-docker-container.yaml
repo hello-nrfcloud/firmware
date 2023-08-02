@@ -1,0 +1,26 @@
+name: Build Docker container
+
+on:
+  push:
+    paths:
+      - Dockerfile
+      - .github/workflows/build-docker-container.yaml
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Authenticate against Container Registry
+        run: echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u hello-nrfcloud-ci --password-stdin
+      
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build and push Docker image
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: hello-nrfcloud/firmware:latest
