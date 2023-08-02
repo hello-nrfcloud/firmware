@@ -23,8 +23,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          tags: hello-nrfcloud/firmware:latest
+      - name: Build Docker
+        run: docker buildx build -t hello-nrfcloud/firmware:latest .
+
+      - name: Publish Docker image
+        run: docker push ghcr.io/hello-nrfcloud/firmware:latest
