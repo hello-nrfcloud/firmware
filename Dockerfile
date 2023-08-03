@@ -22,4 +22,6 @@ WORKDIR /workdir
 RUN nrfutil toolchain-manager launch /bin/bash -- -c 'west init -l . && west update'
 
 # Launch into build environment
-ENTRYPOINT [ "nrfutil", "toolchain-manager", "launch", "/bin/bash" ]
+# Currently this is not supported in GitHub Actions
+# See https://github.com/actions/runner/issues/1964
+# ENTRYPOINT [ "nrfutil", "toolchain-manager", "launch", "/bin/bash" ]
