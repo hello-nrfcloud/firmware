@@ -6,21 +6,20 @@ on:
       - "**.js"
       - "**.json"
       - .github/workflows/publish-firmware-bundles.yml
-      - .github/workflows/build-docker-container.yaml
-      - Dockerfile
   pull_request:
     paths-ignore:
       - "**.js"
       - "**.json"
-      - .github/workflows/build-docker-container.yaml
-      - Dockerfile
   workflow_dispatch:
 
 permissions:
   contents: write
   issues: write
   actions: write
-  packages: read
+  packages: write
+
+env:
+  IMAGE_NAME: hello-nrfcloud-firmware
 
 jobs:
   # generate date string to be embedded in builds
@@ -55,6 +54,50 @@ jobs:
           defaultVersion: "0.0.0-development-${{ github.sha }}"
 
       - run: echo ${{ steps.version.outputs.nextRelease }}
+
+  docker:
+    name: Prepare docker image
+    runs-on: ubuntu-22.04
+
+    outputs:
+      docker_image: ${{ steps.docker-image-tag.outputs.docker_image }}
+
+    steps:
+      - name: Authenticate against Container Registry
+        run:
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $
+          --password-stdin
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Only rebuild the docker image of the contents of the files change that
+      # determine what goes into the Docker image
+      - name: Determine Docker image name and tag
+        id: docker-image-tag
+        run: |
+          IMAGE_VERSION=`cat Dockerfile west.yml | sha256sum | awk '{ print $1 }' | tr -d '\n'`
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          echo "docker_image=${IMAGE_ID}:${IMAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "IMAGE_ID=${IMAGE_ID}" >> $GITHUB_ENV
+          echo "IMAGE_VERSION=${IMAGE_VERSION}" >> $GITHUB_ENV
+
+      - name: Check if Docker image exists
+        id: check-docker-image
+        continue-on-error: true
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+        run: docker manifest inspect $IMAGE_ID:$IMAGE_VERSION
+
+      - name: Build Docker
+        if: steps.check-docker-image.outcome == 'failure'
+        run: docker buildx build -t $IMAGE_NAME .
+
+      - name: Publish Docker image
+        if: steps.check-docker-image.outcome == 'failure'
+        run: |
+          docker tag $IMAGE_NAME $IMAGE_ID:$IMAGE_VERSION
+          docker push $IMAGE_ID:$IMAGE_VERSION
 
   test:
     name: Run Twister tests
@@ -95,11 +138,11 @@ jobs:
     name: Build
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/${{ github.repository_owner }}/hello-nrfcloud-firmware
+      image: ${{ needs.docker.outputs.docker_image }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    needs: [release-version, date-string]
+    needs: [release-version, date-string, docker]
     env:
       AWS_BROKER_HOSTNAME: iot.thingy.rocks
 
