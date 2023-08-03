@@ -167,8 +167,6 @@ jobs:
           nrfutil list
           nrfutil toolchain-manager list
 
-      - run: id
-
       # configure build {
 
       - name: Build for Thingy:91
@@ -233,9 +231,16 @@ jobs:
 
       # }
 
+      - run: |
+          pwd
+          ls -la
+          printenv
+
       - name: Build firmware
         working-directory: project/asset_tracker_v2
-        shell: project/.github/workflows/toolchain-shell.sh {0}
+        shell:
+          /__w/firmware/firmware/project/.github/workflows/toolchain-shell.sh
+          {0}
         run: |
           west build -b ${{ env.BOARD }} \
           -p always -- \
