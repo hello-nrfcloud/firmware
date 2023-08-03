@@ -9,15 +9,17 @@ RUN apt-get -y update && \
     apt-get -y install \
         wget
 
-RUN wget -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil && mv nrfutil /usr/local/bin && chmod +x /usr/local/bin/nrfutil
-
-RUN nrfutil install toolchain-manager
-
-RUN nrfutil toolchain-manager install --ncs-version ${NCS_VERSION}
-
-ADD . /workdir
-
-WORKDIR /workdir
+# Install toolchain
+RUN wget -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil && \
+    mv nrfutil /usr/local/bin && \
+    chmod +x /usr/local/bin/nrfutil && \
+    nrfutil install toolchain-manager && \
+    nrfutil toolchain-manager install --ncs-version ${NCS_VERSION}
 
 # Prepare image with a ready to use build environment
+ADD . /workdir
+WORKDIR /workdir
 RUN nrfutil toolchain-manager launch /bin/bash -- -c 'west init -l . && west update'
+
+# Launch into build environment
+ENTRYPOINT [ "nrfutil", "toolchain-manager", "launch", "/bin/bash" ]

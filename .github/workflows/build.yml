@@ -6,16 +6,21 @@ on:
       - "**.js"
       - "**.json"
       - .github/workflows/publish-firmware-bundles.yml
+      - .github/workflows/build-docker-container.yaml
+      - Dockerfile
   pull_request:
     paths-ignore:
       - "**.js"
       - "**.json"
+      - .github/workflows/build-docker-container.yaml
+      - Dockerfile
   workflow_dispatch:
 
 permissions:
   contents: write
   issues: write
   actions: write
+  packages: read
 
 jobs:
   # generate date string to be embedded in builds
@@ -89,10 +94,13 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-22.04
-    container: zephyrprojectrtos/ci:v0.26.4
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/hello-nrfcloud-firmware
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     needs: [release-version, date-string]
     env:
-      CMAKE_PREFIX_PATH: /opt/toolchains
       AWS_BROKER_HOSTNAME: iot.thingy.rocks
 
     environment: production
@@ -113,12 +121,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: project
-
-      - name: Initialize
-        working-directory: project
-        run: |
-          west init -l .
-          west update
 
       # configure build {
 
