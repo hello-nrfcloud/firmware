@@ -6,16 +6,17 @@ on:
       - "**.js"
       - "**.json"
       - .github/workflows/publish-firmware-bundles.yml
-  pull_request:
-    paths-ignore:
-      - "**.js"
-      - "**.json"
   workflow_dispatch:
 
 permissions:
   contents: write
   issues: write
   actions: write
+  packages: write
+
+env:
+  BUILD_IMAGE_NAME: hello-nrfcloud-firmware
+  TWISTER_IMAGE_NAME: hello-nrfcloud-firmware-twister
 
 jobs:
   # generate date string to be embedded in builds
@@ -51,33 +52,115 @@ jobs:
 
       - run: echo ${{ steps.version.outputs.nextRelease }}
 
+  docker:
+    name: Prepare docker image
+    runs-on: ubuntu-22.04
+
+    outputs:
+      docker_image: ${{ steps.docker-image-tag.outputs.docker_image }}
+
+    steps:
+      - name: Authenticate against Container Registry
+        run:
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $
+          --password-stdin
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Only rebuild the docker image of the contents of the files change that
+      # determine what goes into the Docker image
+      - name: Determine Docker image name and tag
+        id: docker-image-tag
+        run: |
+          IMAGE_VERSION=`cat Dockerfile west.yml | sha256sum | awk '{ print $1 }' | tr -d '\n'`
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$BUILD_IMAGE_NAME
+          echo "docker_image=${IMAGE_ID}:${IMAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "IMAGE_ID=${IMAGE_ID}" >> $GITHUB_ENV
+          echo "IMAGE_VERSION=${IMAGE_VERSION}" >> $GITHUB_ENV
+
+      - name: Check if Docker image exists
+        id: check-docker-image
+        continue-on-error: true
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+        run: docker manifest inspect $IMAGE_ID:$IMAGE_VERSION
+
+      - name: Build Docker
+        if: steps.check-docker-image.outcome == 'failure'
+        run: docker buildx build -t $BUILD_IMAGE_NAME .
+
+      - name: Publish Docker image
+        if: steps.check-docker-image.outcome == 'failure'
+        run: |
+          docker tag $BUILD_IMAGE_NAME $IMAGE_ID:$IMAGE_VERSION
+          docker push $IMAGE_ID:$IMAGE_VERSION
+
+  docker-twister:
+    name: Prepare docker image for Twister
+    runs-on: ubuntu-22.04
+
+    outputs:
+      docker_image: ${{ steps.docker-image-tag.outputs.docker_image }}
+
+    steps:
+      - name: Authenticate against Container Registry
+        run:
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $
+          --password-stdin
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Only rebuild the docker image of the contents of the files change that
+      # determine what goes into the Docker image
+      - name: Determine Docker image name and tag
+        id: docker-image-tag
+        run: |
+          TWISTER_IMAGE_VERSION=`cat Dockerfile.twister | sha256sum | awk '{ print $1 }' | tr -d '\n'`
+          TWISTER_IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$TWISTER_IMAGE_NAME
+          echo "docker_image=${TWISTER_IMAGE_ID}:${TWISTER_IMAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "TWISTER_IMAGE_ID=${TWISTER_IMAGE_ID}" >> $GITHUB_ENV
+          echo "TWISTER_IMAGE_VERSION=${TWISTER_IMAGE_VERSION}" >> $GITHUB_ENV
+
+      - name: Check if Docker image exists
+        id: check-docker-image
+        continue-on-error: true
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+        run: docker manifest inspect $TWISTER_IMAGE_ID:$TWISTER_IMAGE_VERSION
+
+      - name: Build Docker
+        if: steps.check-docker-image.outcome == 'failure'
+        run: docker buildx build -t $TWISTER_IMAGE_NAME -f Dockerfile.twister .
+
+      - name: Publish Docker image
+        if: steps.check-docker-image.outcome == 'failure'
+        run: |
+          docker tag $TWISTER_IMAGE_NAME $TWISTER_IMAGE_ID:$TWISTER_IMAGE_VERSION
+          docker push $TWISTER_IMAGE_ID:$TWISTER_IMAGE_VERSION
+
   test:
     name: Run Twister tests
     runs-on: ubuntu-22.04
-    container: zephyrprojectrtos/ci:v0.26.4
+    needs: [docker-twister]
+    container:
+      image: ${{ needs.docker-twister.outputs.docker_image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
-      - name: Install Ruby
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ruby
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
           path: project
 
-      - name: Initialize
-        working-directory: project
-        run: |
-          west init -l .
-          west update
-
       - name: Twister Tests
         working-directory: project/asset_tracker_v2
         run: |
-          ../../zephyr/scripts/twister -G  --testsuite-root ./tests/
+          /zephyr/scripts/twister -G  --testsuite-root ./tests/
 
       - name: Archive test result
         if: failure()
@@ -89,10 +172,13 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-22.04
-    container: zephyrprojectrtos/ci:v0.26.4
-    needs: [release-version, date-string]
+    container:
+      image: ${{ needs.docker.outputs.docker_image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    needs: [release-version, date-string, docker]
     env:
-      CMAKE_PREFIX_PATH: /opt/toolchains
       AWS_BROKER_HOSTNAME: iot.thingy.rocks
 
     environment: production
@@ -114,11 +200,11 @@ jobs:
         with:
           path: project
 
-      - name: Initialize
-        working-directory: project
+      - name: Set up nrfutil
         run: |
-          west init -l .
-          west update
+          ln -s /root/.nrfutil $HOME/.nrfutil
+          nrfutil list
+          nrfutil toolchain-manager list
 
       # configure build {
 
@@ -175,7 +261,7 @@ jobs:
 
       - name: enable BSEC library to support Bosch BME680 Environmental sensor
         if: contains(matrix.configuration, 'thingy91')
-        working-directory: nrf/ext
+        working-directory: /nrf/ext
         run: |
           wget -q ${{ secrets.BSEC_ARCHIVE_URL }} -O bsec.zip
           unzip -q bsec.zip
@@ -184,13 +270,20 @@ jobs:
 
       # }
 
+      - run: |
+          pwd
+          ls -la
+          printenv
+
       - name: Build firmware
         working-directory: project/asset_tracker_v2
         run: |
-          west build -b ${{ env.BOARD }} \
-          -p always -- \
-          ${{ env.EXTRA_ARGS }} \
-          -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf"
+          nrfutil toolchain-manager launch /bin/bash -- -c '\
+            west build -b ${{ env.BOARD }} \
+            -p always -- \
+            ${{ env.EXTRA_ARGS }} \
+            -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf" \
+          '
 
       - name: Upload symbols file to Memfault
         continue-on-error: true

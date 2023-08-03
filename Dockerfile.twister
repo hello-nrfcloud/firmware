@@ -1,0 +1,13 @@
+FROM zephyrprojectrtos/ci:v0.26.4 as base
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -y update && \
+    apt-get -y upgrade && \
+    apt-get -y install \
+       ruby
+
+# Prepare image with a ready to use build environment
+ADD . /workdir
+WORKDIR /workdir
+RUN west init -l . && west update
