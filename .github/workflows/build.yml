@@ -235,7 +235,7 @@ jobs:
 
       - name: Build firmware
         working-directory: project/asset_tracker_v2
-        shell: .github/workflows/toolchain-shell.sh {0}
+        shell: project/.github/workflows/toolchain-shell.sh {0}
         run: |
           west build -b ${{ env.BOARD }} \
           -p always -- \
