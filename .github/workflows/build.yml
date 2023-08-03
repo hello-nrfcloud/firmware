@@ -6,10 +6,6 @@ on:
       - "**.js"
       - "**.json"
       - .github/workflows/publish-firmware-bundles.yml
-  pull_request:
-    paths-ignore:
-      - "**.js"
-      - "**.json"
   workflow_dispatch:
 
 permissions:
