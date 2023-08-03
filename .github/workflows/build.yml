@@ -233,13 +233,12 @@ jobs:
 
       - name: Build firmware
         working-directory: project/asset_tracker_v2
+        shell: nrfutil toolchain-manager launch /bin/bash
         run: |
-          nrfutil toolchain-manager launch /bin/bash -- -c '\
-            west build -b ${{ env.BOARD }} \
-            -p always -- \
-            ${{ env.EXTRA_ARGS }} \
-            -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf" \
-          '
+          west build -b ${{ env.BOARD }} \
+          -p always -- \
+          ${{ env.EXTRA_ARGS }} \
+          -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf"
 
       - name: Upload symbols file to Memfault
         continue-on-error: true
