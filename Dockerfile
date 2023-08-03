@@ -14,7 +14,8 @@ RUN wget -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
     mv nrfutil /usr/local/bin && \
     chmod +x /usr/local/bin/nrfutil && \
     nrfutil install toolchain-manager && \
-    nrfutil toolchain-manager install --ncs-version ${NCS_VERSION}
+    nrfutil toolchain-manager install --ncs-version ${NCS_VERSION} && \
+    nrfutil toolchain-manager list
 
 # Prepare image with a ready to use build environment
 ADD . /workdir
