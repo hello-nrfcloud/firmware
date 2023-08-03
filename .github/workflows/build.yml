@@ -149,6 +149,8 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
       - name: Checkout
         uses: actions/checkout@v3
