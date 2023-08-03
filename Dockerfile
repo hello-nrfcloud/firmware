@@ -22,6 +22,9 @@ ADD . /workdir
 WORKDIR /workdir
 RUN nrfutil toolchain-manager launch /bin/bash -- -c 'west init -l . && west update'
 
+# Install Memfault CLI
+RUN apt-get -y install python3-pip && pip3 install memfault-cli
+
 # Launch into build environment
 # Currently this is not supported in GitHub Actions
 # See https://github.com/actions/runner/issues/1964

@@ -293,7 +293,6 @@ jobs:
           == 'workflow_dispatch' || github.event_name == 'repository_dispatch')
         working-directory: project/asset_tracker_v2
         run: |
-          pip3 install memfault-cli
           memfault \
             --org-token ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }} \
             --org ${{ vars.MEMFAULT_ORGANIZATION_SLUG }} \
