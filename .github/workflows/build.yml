@@ -167,6 +167,8 @@ jobs:
           nrfutil list
           nrfutil toolchain-manager list
 
+      - run: id
+
       # configure build {
 
       - name: Build for Thingy:91
