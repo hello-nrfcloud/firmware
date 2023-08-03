@@ -177,7 +177,7 @@ jobs:
 
       - name: enable BSEC library to support Bosch BME680 Environmental sensor
         if: contains(matrix.configuration, 'thingy91')
-        working-directory: nrf/ext
+        working-directory: /nrf/ext
         run: |
           wget -q ${{ secrets.BSEC_ARCHIVE_URL }} -O bsec.zip
           unzip -q bsec.zip
