@@ -1,0 +1,9 @@
+#
+# Copyright (c) 2023 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+module = APP_MODULE_MOVEMENT
+module-str = MOVEMENT
+source "subsys/logging/Kconfig.template.log_config"
