@@ -13,6 +13,9 @@
 #include "client_id.h"
 #include "message_channel.h"
 
+#include "cloudToDevice_decode.h"
+#include "deviceToCloud_encode.h"
+
 /* Register log module */
 LOG_MODULE_REGISTER(transport, CONFIG_MQTT_SAMPLE_TRANSPORT_LOG_LEVEL);
 
@@ -87,6 +90,25 @@ static void on_mqtt_publish(struct mqtt_helper_buf topic, struct mqtt_helper_buf
 							 payload.ptr,
 							 topic.size,
 							 topic.ptr);
+	
+	struct cloudToDevice_message c2d = {0};
+	int err = cbor_decode_cloudToDevice_message(payload.ptr, payload.size, &c2d, NULL);
+
+	if (err) {
+		LOG_ERR("Could not decode payload, err: %d", err);
+		return;
+	}
+	for (size_t i = 0; i < c2d.union_count; ++i) {
+		struct cloudToDevice_message_union_ *m = &c2d._union[i];
+		if (m->union_choice == _cloudToDevice_message_union__led_message) {
+			err = zbus_chan_pub(&LED_CHAN, &m->_led_message, K_NO_WAIT);
+			if (err) {
+				LOG_ERR("Could not publish LED Message");
+			}
+		} else if (m->union_choice == _cloudToDevice_message_union__config_message) {
+			// TODO
+		}
+	}
 }
 
 static void on_mqtt_suback(uint16_t message_id, int result)
@@ -126,17 +148,24 @@ static int topics_prefix(void)
 
 static void publish(struct deviceToCloud_message *payload)
 {
-	/*
-	int err;
-
+	uint8_t buf[CONFIG_MQTT_HELPER_RX_TX_BUFFER_SIZE] = {0};
 	struct mqtt_publish_param param = {
-		.message.payload.data = payload->string,
-		.message.payload.len = strlen(payload->string),
+		.message.payload.data = buf,
+		.message.payload.len = 0,
 		.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE,
 		.message_id = k_uptime_get_32(),
 		.message.topic.topic.utf8 = pub_topic,
 		.message.topic.topic.size = strlen(pub_topic),
 	};
+	size_t length_encoded = 0;
+	int err = cbor_encode_deviceToCloud_message(buf, ARRAY_SIZE(buf), payload, &length_encoded);
+
+	if (err) {
+		LOG_ERR("Error while encoding message, err: %d", err);
+		return;
+	}
+
+	param.message.payload.len = length_encoded;
 
 	err = mqtt_helper_publish(&param);
 	if (err) {
@@ -148,7 +177,6 @@ static void publish(struct deviceToCloud_message *payload)
 								  param.message.payload.data,
 								  param.message.topic.topic.size,
 								  param.message.topic.topic.utf8);
-	*/
 }
 
 static void subscribe(void)

@@ -10,8 +10,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/logging/log_ctrl.h>
-#include "../zcbor/include/deviceToCloud_encode_types.h"
-#include "../zcbor/include/cloudToDevice_decode_types.h"
+#include "deviceToCloud_encode_types.h"
+#include "cloudToDevice_decode_types.h"
 
 #ifdef __cplusplus
 extern "C" {
