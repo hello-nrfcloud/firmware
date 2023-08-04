@@ -6,13 +6,8 @@ manifest:
     west-commands: scripts/west-commands.yml
     path: project
 
-  remotes:
-    - name: ncs
-      url-base: https://github.com/nrfconnect
-
   projects:
     - name: nrf
-      remote: ncs
-      repo-path: sdk-nrf
-      revision: v2.4.0
+      url: git@github.com:bjda/fw-nrfconnect-nrf.git
+      revision: thingy91x_board
       import: true
