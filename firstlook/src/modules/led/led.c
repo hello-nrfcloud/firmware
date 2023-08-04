@@ -8,15 +8,16 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/drivers/led.h>
+#include <zephyr/device.h>
 
 #include "message_channel.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(led, CONFIG_APP_MODULE_LED_LOG_LEVEL);
 
-const static struct device *red_led = DEVICE_DT_GET(DT_NODELABEL(red_led));
-const static struct device *green_led = DEVICE_DT_GET(DT_NODELABEL(green_led));
-const static struct device *blue_led = DEVICE_DT_GET(DT_NODELABEL(blue_led));
+#define NUM_CHANNELS 3
+
+const static struct device *led_device = DEVICE_DT_GET_ANY(pwm_leds);
 
 void led_callback(const struct zbus_channel *chan)
 {
@@ -24,7 +25,16 @@ void led_callback(const struct zbus_channel *chan)
     const struct led_message *led_config;
 
     if (&LED_CHAN == chan) {
-        // TODO
+        if (!device_is_ready(led_device)) {
+            LOG_ERR("LED device is not ready!");
+            return;
+        }
+        uint8_t colors[NUM_CHANNELS] = {
+            (uint8_t) led_config->led_red,
+            (uint8_t) led_config->led_green,
+            (uint8_t) led_config->led_blue
+        };
+        led_set_color(led_device, 0, ARRAY_SIZE(colors), colors);
     }
 }
 
