@@ -2,10 +2,11 @@ FROM zephyrprojectrtos/ci:v0.26.4 as base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get -y update && \
-    apt-get -y upgrade && \
-    apt-get -y install \
-       ruby
+RUN <<EOT
+    apt-get -y update
+    apt-get -y upgrade
+    apt-get -y install ruby
+EOT
 
 # Prepare image with a ready to use build environment
 ADD . /workdir
