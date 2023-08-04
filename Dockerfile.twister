@@ -10,4 +10,4 @@ RUN apt-get -y update && \
 # Prepare image with a ready to use build environment
 ADD . /workdir
 WORKDIR /workdir
-RUN west init -l . && west update
+RUN west init -l . && west update --narrow -o=--depth=1

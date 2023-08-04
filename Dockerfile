@@ -20,7 +20,7 @@ RUN wget -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
 # Prepare image with a ready to use build environment
 ADD . /workdir
 WORKDIR /workdir
-RUN nrfutil toolchain-manager launch /bin/bash -- -c 'west init -l . && west update'
+RUN nrfutil toolchain-manager launch /bin/bash -- -c 'west init -l . && west update --narrow -o=--depth=1'
 
 # Install Memfault CLI
 RUN apt-get -y install python3-pip && pip3 install memfault-cli
