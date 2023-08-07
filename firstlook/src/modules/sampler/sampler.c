@@ -26,7 +26,7 @@ static int64_t get_ts(void)
 		LOG_ERR("Error getting time: %d", err);
 		ts = 0;
 	}
-	return ts;
+	return ts / 1000;
 }
 
 void sampler_callback(const struct zbus_channel *chan) {
