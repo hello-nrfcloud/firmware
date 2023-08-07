@@ -200,8 +200,9 @@ jobs:
         with:
           path: project
 
-      - name: Set up nrfutil
+      - name: Show nrfutil details
         run: |
+          nrfutil --version
           nrfutil list
           nrfutil toolchain-manager list
 
