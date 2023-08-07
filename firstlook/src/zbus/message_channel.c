@@ -58,3 +58,10 @@ ZBUS_CHAN_DEFINE(FATAL_ERROR_CHAN,
 		 ZBUS_MSG_INIT(0)
 );
 
+ZBUS_CHAN_DEFINE(CONFIG_CHAN,
+		 struct config_message,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(trigger, location),
+		 ZBUS_MSG_INIT(0)
+);

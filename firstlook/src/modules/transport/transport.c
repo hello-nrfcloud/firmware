@@ -106,7 +106,10 @@ static void on_mqtt_publish(struct mqtt_helper_buf topic, struct mqtt_helper_buf
 				LOG_ERR("Could not publish LED Message");
 			}
 		} else if (m->union_choice == _cloudToDevice_message_union__config_message) {
-			// TODO
+			err = zbus_chan_pub(&CONFIG_CHAN, &m->_config_message, K_NO_WAIT);
+			if (err) {
+				LOG_ERR("Could not publish CONFIG Message");
+			}
 		}
 	}
 }

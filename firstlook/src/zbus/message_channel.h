@@ -39,7 +39,8 @@ ZBUS_CHAN_DECLARE( \
 	MSG_OUT_CHAN, \
 	NETWORK_CHAN, \
 	LED_CHAN, \
-	FATAL_ERROR_CHAN \
+	FATAL_ERROR_CHAN, \
+	CONFIG_CHAN, \
 );
 
 #ifdef __cplusplus

@@ -55,6 +55,17 @@ static void trigger_task(void)
 	}
 }
 
+static void config_callback(const struct zbus_channel *chan)
+{
+    int err = 0;
+
+    if (&TRIGGER_CHAN == chan) {
+        // TODO
+    }
+}
+
+ZBUS_LISTENER_DEFINE(trigger, config_callback);
+
 K_THREAD_DEFINE(trigger_task_id,
 		CONFIG_MQTT_SAMPLE_TRIGGER_THREAD_STACK_SIZE,
 		trigger_task, NULL, NULL, NULL, 3, 0, 0);
