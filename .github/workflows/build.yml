@@ -202,7 +202,6 @@ jobs:
 
       - name: Set up nrfutil
         run: |
-          ln -s /root/.nrfutil $HOME/.nrfutil
           nrfutil list
           nrfutil toolchain-manager list
 
