@@ -22,19 +22,27 @@ const static struct device *led_device = DEVICE_DT_GET_ANY(pwm_leds);
 void led_callback(const struct zbus_channel *chan)
 {
     int err = 0;
-    const struct led_message *led_config;
+    struct led_message led_config;
 
     if (&LED_CHAN == chan) {
         if (!device_is_ready(led_device)) {
             LOG_ERR("LED device is not ready!");
             return;
         }
+        err = zbus_chan_read(&LED_CHAN, &led_config, K_SECONDS(1));
+        if (err) {
+            LOG_ERR("zbus_chan_read, error: %d", err);
+            SEND_FATAL_ERROR();
+            return;
+        }
         uint8_t colors[NUM_CHANNELS] = {
-            (uint8_t) led_config->led_red,
-            (uint8_t) led_config->led_green,
-            (uint8_t) led_config->led_blue
+            (uint8_t) led_config.led_red,
+            (uint8_t) led_config.led_green,
+            (uint8_t) led_config.led_blue
         };
-        led_set_color(led_device, 0, ARRAY_SIZE(colors), colors);
+        for (size_t i = 0; i < NUM_CHANNELS; ++i) {
+            led_set_brightness(led_device, i, colors[i]);
+        }
     }
 }
 

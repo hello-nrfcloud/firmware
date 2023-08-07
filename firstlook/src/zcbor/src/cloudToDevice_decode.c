@@ -34,11 +34,14 @@ static bool decode_led_message(
 	&& ((zcbor_uint32_decode(state, (&(*result).timestamp)))
 	&& ((((*result).timestamp <= UINT32_MAX)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))
 	&& ((zcbor_uint32_decode(state, (&(*result).led_red)))
-	&& ((((*result).led_red <= UINT8_MAX)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))
+	&& ((((*result).led_red >= 0)
+	&& ((*result).led_red <= 100)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))
 	&& ((zcbor_uint32_decode(state, (&(*result).led_green)))
-	&& ((((*result).led_green <= UINT8_MAX)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))
+	&& ((((*result).led_green >= 0)
+	&& ((*result).led_green <= 100)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))
 	&& ((zcbor_uint32_decode(state, (&(*result).led_blue)))
-	&& ((((*result).led_blue <= UINT8_MAX)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))) || (zcbor_list_map_end_force_decode(state), false)) && zcbor_list_end_decode(state))));
+	&& ((((*result).led_blue >= 0)
+	&& ((*result).led_blue <= 100)) || (zcbor_error(state, ZCBOR_ERR_WRONG_RANGE), false)))) || (zcbor_list_map_end_force_decode(state), false)) && zcbor_list_end_decode(state))));
 
 	if (!tmp_result)
 		zcbor_trace();
