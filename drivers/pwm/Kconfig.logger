@@ -1,0 +1,7 @@
+# Copyright (c) 2023 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+config PWM_LOGGER
+	bool "Nordic PWM logger"
+	default y
+	depends on DT_HAS_NORDIC_PWM_LOGGER_ENABLED
