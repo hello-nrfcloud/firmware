@@ -22,3 +22,10 @@ zephyr_include_directories(${ZEPHYR_BASE}/include/zephyr/)
 zephyr_include_directories(${ZEPHYR_BASE}/subsys/testsuite/include)
 zephyr_include_directories(../../src/zbus/)
 zephyr_include_directories(../../src/zcbor/include/)
+
+
+target_link_options(app PRIVATE --whole-archive)
+# Options that cannot be passed through Kconfig fragments
+target_compile_definitions(app PRIVATE
+	-DCONFIG_APP_MODULE_LED_LOG_LEVEL=4
+)

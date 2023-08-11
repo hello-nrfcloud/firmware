@@ -10,6 +10,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/logging/log_ctrl.h>
+#include <zephyr/zbus/zbus.h>
 #include "deviceToCloud_encode_types.h"
 #include "cloudToDevice_decode_types.h"
 
@@ -40,7 +41,7 @@ ZBUS_CHAN_DECLARE( \
 	NETWORK_CHAN, \
 	LED_CHAN, \
 	FATAL_ERROR_CHAN, \
-	CONFIG_CHAN, \
+	CONFIG_CHAN \
 );
 
 #ifdef __cplusplus

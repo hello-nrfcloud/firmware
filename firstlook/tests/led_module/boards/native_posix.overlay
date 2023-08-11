@@ -1,0 +1,27 @@
+#include <zephyr/dt-bindings/pwm/pwm.h>
+
+/{
+	test_pwm: pwm@11112222 {
+		compatible = "nordic,pwm-logger";
+		#pwm-cells = <3>;
+		reg = <0x11112222 0x1000>;
+		status = "okay";
+	};
+	pwmleds {
+		compatible = "pwm-leds";
+		pwm_led0: pwm_led_0 {
+			pwms = <&test_pwm 0 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
+		};
+		pwm_led1: pwm_led_1 {
+			pwms = <&test_pwm 1 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
+		};
+		pwm_led2: pwm_led_2 {
+			pwms = <&test_pwm 2 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
+		};
+	};
+	aliases {
+		pwm-led0 = &pwm_led0;
+		pwm-led1 = &pwm_led1;
+		pwm-led2 = &pwm_led2;
+	};
+};

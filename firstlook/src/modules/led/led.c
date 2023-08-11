@@ -6,7 +6,6 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/zbus/zbus.h>
 #include <zephyr/drivers/led.h>
 #include <zephyr/device.h>
 
@@ -19,7 +18,7 @@ LOG_MODULE_REGISTER(led, CONFIG_APP_MODULE_LED_LOG_LEVEL);
 
 const static struct device *led_device = DEVICE_DT_GET_ANY(pwm_leds);
 
-void led_callback(const struct zbus_channel *chan)
+static void led_callback(const struct zbus_channel *chan)
 {
     int err = 0;
     struct led_message led_config;
