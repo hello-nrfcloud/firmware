@@ -227,7 +227,7 @@ jobs:
           echo "CONFIG_CLOUD_CLIENT_ID_IMEI_PREFIX=\"oob-\"" >> firmware.conf
           echo "CONFIG_NRF_CLOUD_SEC_TAG=42" >> firmware.conf
           echo "CONFIG_DATA_DEVICE_MODE_ACTIVE=y" >> firmware.conf
-          echo "CONFIG_DATA_ACTIVE_TIMEOUT_SECONDS=60" >> firmware.conf
+          echo "CONFIG_DATA_ACTIVE_TIMEOUT_SECONDS=600" >> firmware.conf
 
       - name: Configure Memfault
         if: contains(matrix.configuration, 'mmflt')
