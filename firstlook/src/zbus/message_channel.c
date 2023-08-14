@@ -38,7 +38,7 @@ ZBUS_CHAN_DEFINE(NETWORK_CHAN,
 		 enum network_status, /* connected, disconnected events */
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(transport),
+		 ZBUS_OBSERVERS(transport, location),
 		 ZBUS_MSG_INIT(0)
 );
 

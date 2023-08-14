@@ -12,22 +12,44 @@
 #include <modem/location.h>
 
 #include "message_channel.h"
+#include "modem/lte_lc.h"
 
 LOG_MODULE_REGISTER(location_module, CONFIG_APP_MODULE_LOCATION_LOG_LEVEL);
 
 static K_SEM_DEFINE(location_lib_sem, 1, 1);
+static K_SEM_DEFINE(modem_init_sem, 0, 1);
 static K_SEM_DEFINE(trigger_sem, 0, 1);
-#define STACKSIZE               1024
+#define STACKSIZE               4096
 
+static void location_event_handler(const struct location_event_data *event_data);
 
 void location_module_entry(void) {
     int err = 0;
     struct location_config config = { 0 };
     enum location_method chosen_methods[] = {
+#if defined(CONFIG_LOCATION_METHOD_CELLULAR)
         LOCATION_METHOD_CELLULAR,
+#endif
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
         LOCATION_METHOD_WIFI,
-        LOCATION_METHOD_GNSS
+#endif
+#if defined(CONFIG_LOCATION_METHOD_GNSS)
+        LOCATION_METHOD_GNSS,
+#endif
     };
+    k_sem_take(&modem_init_sem, K_FOREVER);
+
+    err = location_init(location_event_handler);
+    if (err) {
+        LOG_ERR("Unable to init location library: %d", err);
+    }
+
+#if defined(CONFIG_LOCATION_METHOD_GNSS)
+    err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS);
+    if (err) {
+        LOG_ERR("Unable to init GNSS: %d", err);
+    }
+#endif
 
     while (true) {
         k_sem_take(&trigger_sem, K_FOREVER);
@@ -50,6 +72,14 @@ static void trigger_callback(const struct zbus_channel *chan)
 {
     if (&TRIGGER_CHAN == chan) {
         k_sem_give(&trigger_sem);
+    }
+    if (&NETWORK_CHAN == chan) {
+        enum network_status status = NETWORK_DISCONNECTED;
+        int err = zbus_chan_read(chan, &status, K_NO_WAIT);
+
+        if (!err && status == NETWORK_CONNECTED) {
+            k_sem_give(&modem_init_sem);
+        }
     }
 }
 
@@ -78,6 +108,10 @@ static void location_event_handler(const struct location_event_data *event_data)
 		break;
 	case LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST:
 		LOG_DBG("Getting cloud location request");
+        if (event_data->cloud_location_request.cell_data) {
+            LOG_DBG("%d cells", event_data->cloud_location_request.cell_data->ncells_count);
+        }
+        location_cloud_location_ext_result_set(LOCATION_EXT_RESULT_UNKNOWN, NULL);
 		break;
 	default:
 		LOG_DBG("Getting location: Unknown event %d", event_data->id);
@@ -91,15 +125,3 @@ static void location_event_handler(const struct location_event_data *event_data)
         k_sem_give(&location_lib_sem);
     }
 }
-
-static int location_module_init(void)
-{
-    int err = location_init(location_event_handler);
-    
-    if (err) {
-        LOG_ERR("Unable to init location library: %d", err);
-    }
-    return err;
-}
-
-SYS_INIT(location_module_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
