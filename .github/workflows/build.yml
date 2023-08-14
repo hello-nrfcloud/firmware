@@ -228,6 +228,9 @@ jobs:
           echo "CONFIG_NRF_CLOUD_SEC_TAG=42" >> firmware.conf
           echo "CONFIG_DATA_DEVICE_MODE_ACTIVE=y" >> firmware.conf
           echo "CONFIG_DATA_ACTIVE_TIMEOUT_SECONDS=60" >> firmware.conf
+          echo "CONFIG_LOCATION_REQUEST_DEFAULT_METHOD_FIRST_GNSS=n" >> firmware.conf
+          echo "CONFIG_LOCATION_REQUEST_DEFAULT_METHOD_FIRST_CELLULAR=y" >> firmware.conf
+          echo "CONFIG_LOCATION_METHOD_GNSS=n" >> firmware.conf
 
       - name: Configure Memfault
         if: contains(matrix.configuration, 'mmflt')
