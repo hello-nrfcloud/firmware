@@ -13,7 +13,6 @@
 
 #include "message_channel.h"
 #include "modem/lte_lc.h"
-#include <zephyr/net/net_if.h>
 
 LOG_MODULE_REGISTER(location_module, CONFIG_APP_MODULE_LOCATION_LOG_LEVEL);
 
@@ -23,12 +22,6 @@ static K_SEM_DEFINE(trigger_sem, 0, 1);
 #define STACKSIZE               4096
 
 static void location_event_handler(const struct location_event_data *event_data);
-
-void foo(struct net_if *iface, void *user_data)
-{
-    LOG_DBG("found interface %s", iface->if_dev->dev->name);
-}
-
 
 void location_module_entry(void) {
     int err = 0;
@@ -45,12 +38,12 @@ void location_module_entry(void) {
 #endif
     };
     k_sem_take(&modem_init_sem, K_FOREVER);
-    net_if_foreach(foo, NULL);
 
     err = location_init(location_event_handler);
     if (err) {
         LOG_ERR("Unable to init location library: %d", err);
     }
+    LOG_DBG("location library initialized");
 
 #if defined(CONFIG_LOCATION_METHOD_GNSS)
     err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS);

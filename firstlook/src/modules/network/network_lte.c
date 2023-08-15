@@ -64,7 +64,9 @@ static void connectivity_event_handler(struct net_mgmt_event_callback *cb,
 static void network_task(void)
 {
 	int err;
-	struct net_if *net_if = net_if_get_default();
+	const struct device *lte_dev = device_get_binding("nrf91_socket");
+	struct net_if *net_if = net_if_lookup_by_dev(lte_dev);
+	net_if_set_default(net_if);
 
 	net_mgmt_init_event_callback(&l4_cb, l4_event_handler, L4_EVENT_MASK);
 	net_mgmt_add_event_callback(&l4_cb);
