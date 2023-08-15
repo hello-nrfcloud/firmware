@@ -16,6 +16,8 @@
 /* Register log module */
 LOG_MODULE_REGISTER(trigger, CONFIG_MQTT_SAMPLE_TRIGGER_LOG_LEVEL);
 
+static K_SEM_DEFINE(modem_init_sem, 0, 1);
+
 static void message_send(void)
 {
 	int not_used = -1;
@@ -39,6 +41,7 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 
 static void trigger_task(void)
 {
+	k_sem_take(&modem_init_sem, K_FOREVER);
 #if CONFIG_DK_LIBRARY
 	int err = dk_buttons_init(button_handler);
 
@@ -61,6 +64,14 @@ static void config_callback(const struct zbus_channel *chan)
 
     if (&TRIGGER_CHAN == chan) {
         // TODO
+    }
+    if (&NETWORK_CHAN == chan) {
+        enum network_status status = NETWORK_DISCONNECTED;
+        err = zbus_chan_read(chan, &status, K_NO_WAIT);
+
+        if (!err && status == NETWORK_CONNECTED) {
+            k_sem_give(&modem_init_sem);
+        }
     }
 }
 
