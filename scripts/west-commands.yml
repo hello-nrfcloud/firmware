@@ -1,0 +1,6 @@
+west-commands:
+  - file: scripts/flash-app.py
+    commands:
+      - name: flash-app
+        class: FlashApp
+        help: Flash the app without bootloader
