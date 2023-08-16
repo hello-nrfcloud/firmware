@@ -90,7 +90,10 @@ static void location_event_handler(const struct location_event_data *event_data)
 {
 	switch (event_data->id) {
 	case LOCATION_EVT_LOCATION:
-		LOG_DBG("Got location:");
+		LOG_DBG("Got location: lat: %f, lon: %f, acc: %f",
+            event_data->location.latitude,
+            event_data->location.longitude,
+            event_data->location.accuracy);
 		break;
 	case LOCATION_EVT_RESULT_UNKNOWN:
 		LOG_DBG("Getting location completed with undefined result");
@@ -111,6 +114,9 @@ static void location_event_handler(const struct location_event_data *event_data)
 		LOG_DBG("Getting cloud location request");
         if (event_data->cloud_location_request.cell_data) {
             LOG_DBG("%d cells", event_data->cloud_location_request.cell_data->ncells_count);
+        }
+        if (event_data->cloud_location_request.wifi_data) {
+            LOG_DBG("%d aps", event_data->cloud_location_request.wifi_data->cnt);
         }
         location_cloud_location_ext_result_set(LOCATION_EXT_RESULT_UNKNOWN, NULL);
 		break;
