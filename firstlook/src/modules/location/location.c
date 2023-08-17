@@ -112,12 +112,16 @@ static void location_event_handler(const struct location_event_data *event_data)
 		break;
 	case LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST:
 		LOG_DBG("Getting cloud location request");
+#if defined(CONFIG_LOCATION_METHOD_CELLULAR)
         if (event_data->cloud_location_request.cell_data) {
             LOG_DBG("%d cells", event_data->cloud_location_request.cell_data->ncells_count);
         }
+#endif
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
         if (event_data->cloud_location_request.wifi_data) {
             LOG_DBG("%d aps", event_data->cloud_location_request.wifi_data->cnt);
         }
+#endif
         location_cloud_location_ext_result_set(LOCATION_EXT_RESULT_UNKNOWN, NULL);
 		break;
 	default:

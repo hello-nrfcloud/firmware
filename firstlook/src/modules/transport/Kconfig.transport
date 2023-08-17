@@ -16,7 +16,7 @@ config MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS
 
 config MQTT_SAMPLE_TRANSPORT_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 2048
+	default 8192
 
 config MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE
 	int "Message queue size"
@@ -26,7 +26,7 @@ config MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE
 
 config MQTT_SAMPLE_TRANSPORT_WORKQUEUE_STACK_SIZE
 	int "Workqueue stack size"
-	default 4096
+	default 8192
 	help
 	  Stack size of the module's internal workqueue.
 
