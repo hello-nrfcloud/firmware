@@ -30,12 +30,20 @@ K_THREAD_STACK_DEFINE(stack_area, CONFIG_MQTT_SAMPLE_TRANSPORT_WORKQUEUE_STACK_S
 static struct k_work_q transport_queue;
 
 /* Internal states */
-enum module_state { STATE_NETWORK_CONNECTED, STATE_NETWORK_DISCONNECTED };
+enum module_state
+{
+	STATE_DISCONNECTED,
+	STATE_CONNECTING,
+	STATE_CONNECTED
+};
+
+#define RECONNECT_TIMEOUT_SECONDS 60
 
 /* User defined state object.
  * Used to transfer data between state changes.
  */
-static struct s_object {
+static struct s_object
+{
 	/* This must be first */
 	struct smf_ctx ctx;
 
@@ -53,11 +61,45 @@ static struct s_object {
 
 static void publish(struct deviceToCloud_message *payload)
 {
-	int err;
-
 	LOG_INF("publish!");
-
 	/* Publish location here. */
+}
+
+bool wait_for_zbus(void *o)
+{
+	struct s_object *user_object = o;
+	int err;
+	if (zbus_sub_wait(&transport, &s_obj.chan, K_FOREVER))
+	{
+		return false;
+	}
+
+	if (&NETWORK_CHAN == s_obj.chan)
+	{
+
+		err = zbus_chan_read(&NETWORK_CHAN, &s_obj.status, K_SECONDS(1));
+		if (err)
+		{
+			LOG_ERR("zbus_chan_read, error: %d", err);
+			SEND_FATAL_ERROR();
+			return false;
+		}
+		return true;
+	}
+
+	if (&MSG_OUT_CHAN == s_obj.chan)
+	{
+
+		err = zbus_chan_read(&MSG_OUT_CHAN, &s_obj.payload, K_SECONDS(1));
+		if (err)
+		{
+			LOG_ERR("zbus_chan_read, error: %d", err);
+			SEND_FATAL_ERROR();
+			return false;
+		}
+		return true;
+	}
+	return false;
 }
 
 /* Zephyr State Machine framework handlers */
@@ -65,38 +107,67 @@ static void publish(struct deviceToCloud_message *payload)
 /* Function executed when the module is in the disconnected state. */
 static void disconnected_run(void *o)
 {
+	if (!wait_for_zbus(o))
+	{
+		return;
+	}
+
+	struct s_object *user_object = o;
+
+	if ((user_object->status == NETWORK_CONNECTED) && (user_object->chan == &NETWORK_CHAN))
+	{
+		smf_set_state(SMF_CTX(&s_obj), &state[STATE_CONNECTING]);
+	}
+}
+
+static void connecting_run(void *o)
+{
 	int err = 0;
 	struct s_object *user_object = o;
 	struct nrf_cloud_svc_info_ui ui_info = {
-		.gnss = true,
+	    .gnss = true,
 	};
 	struct nrf_cloud_svc_info service_info = {
-		.ui = &ui_info
-	};
+	    .ui = &ui_info};
 	struct nrf_cloud_modem_info modem_info = {
-		.device = NRF_CLOUD_INFO_SET,
-		.network = NRF_CLOUD_INFO_SET,
+	    .device = NRF_CLOUD_INFO_SET,
+	    .network = NRF_CLOUD_INFO_SET,
 	};
 	struct nrf_cloud_device_status device_status = {
-		.modem = &modem_info,
-		.svc = &service_info
-	};
+	    .modem = &modem_info,
+	    .svc = &service_info};
 
-	if ((user_object->status == NETWORK_CONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
-		smf_set_state(SMF_CTX(&s_obj), &state[STATE_NETWORK_CONNECTED]);
+	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN))
+	{
+		smf_set_state(SMF_CTX(&s_obj), &state[STATE_DISCONNECTED]);
 
-		err = nrf_cloud_coap_connect();
-		if (err) {
-			LOG_ERR("nrf_cloud_coap_connect, error: %d", err);
-			return;
-		}
+		int err = nrf_cloud_coap_disconnect();
 
-		err = nrf_cloud_coap_shadow_device_status_update(&device_status);
-		if (err) {
-			LOG_ERR("nrf_cloud_coap_shadow_device_status_update, error: %d", err);
+		if (err)
+		{
+			LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
 			return;
 		}
 	}
+	err = nrf_cloud_coap_connect();
+	if (err)
+	{
+		LOG_ERR("nrf_cloud_coap_connect, error: %d", err);
+		goto error;
+	}
+
+	err = nrf_cloud_coap_shadow_device_status_update(&device_status);
+	if (err)
+	{
+		LOG_ERR("nrf_cloud_coap_shadow_device_status_update, error: %d", err);
+		goto error;
+	}
+	smf_set_state(SMF_CTX(&s_obj), &state[STATE_CONNECTED]);
+	return;
+error:
+	nrf_cloud_coap_disconnect();
+	LOG_WRN("Retrying cloud connection in %d seconds.", RECONNECT_TIMEOUT_SECONDS);
+	k_sleep(K_SECONDS(RECONNECT_TIMEOUT_SECONDS));
 }
 
 /* Function executed when the module is in the connected state. */
@@ -104,18 +175,26 @@ static void connected_run(void *o)
 {
 	struct s_object *user_object = o;
 
-	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
-		smf_set_state(SMF_CTX(&s_obj), &state[STATE_NETWORK_DISCONNECTED]);
+	if (!wait_for_zbus(o))
+	{
+		return;
+	}
+
+	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN))
+	{
+		smf_set_state(SMF_CTX(&s_obj), &state[STATE_DISCONNECTED]);
 
 		int err = nrf_cloud_coap_disconnect();
 
-		if (err) {
+		if (err)
+		{
 			LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
 			return;
 		}
 	}
 
-	if (user_object->chan == &MSG_OUT_CHAN) {
+	if (user_object->chan == &MSG_OUT_CHAN)
+	{
 		publish(&user_object->payload);
 		return;
 	}
@@ -123,8 +202,9 @@ static void connected_run(void *o)
 
 /* Construct state table */
 static const struct smf_state state[] = {
-	[STATE_NETWORK_DISCONNECTED] = SMF_CREATE_STATE(NULL, disconnected_run, NULL),
-	[STATE_NETWORK_CONNECTED] = SMF_CREATE_STATE(NULL, connected_run, NULL),
+    [STATE_DISCONNECTED] = SMF_CREATE_STATE(NULL, disconnected_run, NULL),
+    [STATE_CONNECTING] = SMF_CREATE_STATE(NULL, connecting_run, NULL),
+    [STATE_CONNECTED] = SMF_CREATE_STATE(NULL, connected_run, NULL),
 };
 
 static void transport_task(void)
@@ -140,55 +220,24 @@ static void transport_task(void)
 	 */
 
 	err = nrf_cloud_coap_init();
-	if (err) {
+	if (err)
+	{
 		LOG_ERR("nrf_cloud_coap_init, error: %d", err);
 		SEND_FATAL_ERROR();
 		return;
 	}
 
 	/* Set initial state */
-	smf_set_initial(SMF_CTX(&s_obj), &state[STATE_NETWORK_DISCONNECTED]);
+	smf_set_initial(SMF_CTX(&s_obj), &state[STATE_DISCONNECTED]);
 
-	while (!zbus_sub_wait(&transport, &chan, K_FOREVER)) {
-
-		s_obj.chan = chan;
-
-		if (&NETWORK_CHAN == chan) {
-
-			err = zbus_chan_read(&NETWORK_CHAN, &status, K_SECONDS(1));
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-
-			s_obj.status = status;
-
-			err = smf_run_state(SMF_CTX(&s_obj));
-			if (err) {
-				LOG_ERR("smf_run_state, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-		}
-
-		if (&MSG_OUT_CHAN == chan) {
-
-			err = zbus_chan_read(&MSG_OUT_CHAN, &payload, K_SECONDS(1));
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-
-			s_obj.payload = payload;
-
-			err = smf_run_state(SMF_CTX(&s_obj));
-			if (err) {
-				LOG_ERR("smf_run_state, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
+	while (true)
+	{
+		err = smf_run_state(SMF_CTX(&s_obj));
+		if (err)
+		{
+			LOG_ERR("smf_run_state, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
 		}
 	}
 }
