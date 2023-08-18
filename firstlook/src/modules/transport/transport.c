@@ -107,6 +107,7 @@ bool wait_for_zbus(void *o)
 /* Function executed when the module is in the disconnected state. */
 static void disconnected_run(void *o)
 {
+	LOG_DBG("Disconnected");
 	if (!wait_for_zbus(o))
 	{
 		return;
@@ -122,6 +123,7 @@ static void disconnected_run(void *o)
 
 static void connecting_run(void *o)
 {
+	LOG_DBG("Connecting");
 	int err = 0;
 	struct s_object *user_object = o;
 	struct nrf_cloud_svc_info_ui ui_info = {
@@ -173,6 +175,7 @@ error:
 /* Function executed when the module is in the connected state. */
 static void connected_run(void *o)
 {
+	LOG_DBG("Connected");
 	struct s_object *user_object = o;
 
 	if (!wait_for_zbus(o))
