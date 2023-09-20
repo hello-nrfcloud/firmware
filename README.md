@@ -15,8 +15,8 @@ environment. Follow the official
 ### Initialization
 
 The first step is to initialize the workspace folder (`thingy-oob`) where the
-`firmware` project and all nRF Connect SDK modules will be cloned. Run
-the following command:
+`firmware` project and all nRF Connect SDK modules will be cloned. Run the
+following command:
 
 ```shell
 # initialize thingy-oob workspace
@@ -48,5 +48,5 @@ west flash
 ```
 
 Please refer to the official
-[Asset Tracker V2 documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/2.4.0/nrf/applications/asset_tracker_v2/doc/asset_tracker_v2_description.html)
+[Asset Tracker V2 documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/2.4.2/nrf/applications/asset_tracker_v2/doc/asset_tracker_v2_description.html)
 for details.

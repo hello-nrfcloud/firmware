@@ -1,6 +1,6 @@
 FROM ubuntu:22.04 as base
 
-ARG NCS_VERSION=v2.4.0
+ARG NCS_VERSION=v2.4.2
 
 ENV DEBIAN_FRONTEND=noninteractive
 
