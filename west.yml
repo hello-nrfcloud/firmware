@@ -8,6 +8,6 @@ manifest:
 
   projects:
     - name: nrf
-      url: git@github.com:bjda/fw-nrfconnect-nrf.git
+      url: git@github.com:bjda-thingy91/sdk-nrf.git
       revision: thingy91x_board
       import: true
