@@ -13,6 +13,8 @@
 #include <modem/modem_info.h>
 
 #include "message_channel.h"
+#include "deviceToCloud_encode.h"
+#include "hex_coding/hex_coding.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(transport, CONFIG_MQTT_SAMPLE_TRANSPORT_LOG_LEVEL);
@@ -62,7 +64,20 @@ static struct s_object
 static void publish(struct deviceToCloud_message *payload)
 {
 	LOG_INF("publish!");
-	/* Publish location here. */
+	uint8_t buf[512];
+	uint8_t buf2[1025] = {0};
+	size_t out_len = 0;
+	int ret = cbor_encode_deviceToCloud_message(buf, ARRAY_SIZE(buf), payload, &out_len);
+	if (ret) {
+		LOG_ERR("error encoding d2c message: %d", ret);
+		return;
+	}
+	hex_encode(buf, buf2, out_len);
+
+	ret = nrf_cloud_coap_message_send("42", buf2, false, NRF_CLOUD_NO_TIMESTAMP);
+	if (ret) {
+		LOG_ERR("error sending message to nRF Cloud CoAP: %d", ret);
+	}
 }
 
 bool wait_for_zbus(void *o)
@@ -215,7 +230,6 @@ static void transport_task(void)
 	int err;
 	const struct zbus_channel *chan;
 	enum network_status status;
-	struct deviceToCloud_message payload;
 
 	/* Initialize and start application workqueue.
 	 * This workqueue can be used to offload tasks and/or as a timer when wanting to
