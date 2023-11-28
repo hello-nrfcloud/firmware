@@ -38,7 +38,7 @@
   },
   "prettier": "@nordicsemiconductor/asset-tracker-cloud-code-style/.prettierrc",
   "engines": {
-    "node": ">=18",
+    "node": ">=20",
     "npm": ">=9"
   },
   "release": {
