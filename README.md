@@ -1,8 +1,7 @@
 # Thingy:91 Out-of-Box Experience Application
 
 ![Build and Release](https://github.com/hello-nrfcloud/firmware/workflows/Build%2C%20Test%2C%20Release/badge.svg)
-[![@commitlint/config-conventional](https://img.shields.io/badge/%40commitlint-config--conventional-brightgreen
-)](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-conventional)
+[![@commitlint/config-conventional](https://img.shields.io/badge/%40commitlint-config--conventional-brightgreen)](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-conventional)
 
 This project is based on the
 [NCS Example Application](https://github.com/nrfconnect/ncs-example-application).
@@ -49,5 +48,5 @@ west flash
 ```
 
 Please refer to the official
-[Asset Tracker V2 documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/2.4.2/nrf/applications/asset_tracker_v2/doc/asset_tracker_v2_description.html)
+[Asset Tracker V2 documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/2.5.0/nrf/applications/asset_tracker_v2/doc/asset_tracker_v2_description.html)
 for details.
