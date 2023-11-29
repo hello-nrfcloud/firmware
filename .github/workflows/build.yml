@@ -90,9 +90,7 @@ jobs:
       - name: Build Docker
         if: steps.check-docker-image.outcome == 'failure'
         run: |
-          docker buildx build -t $BUILD_IMAGE_NAME \
-            --build-arg NCS_VERSION=${{ env.NCS_VERSION }} \  
-            .
+          docker buildx build -t $BUILD_IMAGE_NAME --build-arg NCS_VERSION=${{ env.NCS_VERSION }} .
 
       - name: Publish Docker image
         if: steps.check-docker-image.outcome == 'failure'
