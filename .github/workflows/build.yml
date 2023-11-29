@@ -17,6 +17,7 @@ permissions:
 env:
   BUILD_IMAGE_NAME: hello-nrfcloud-firmware
   TWISTER_IMAGE_NAME: hello-nrfcloud-firmware-twister
+  NCS_VERSION: v2.5.0
 
 jobs:
   # generate date string to be embedded in builds
@@ -88,7 +89,10 @@ jobs:
 
       - name: Build Docker
         if: steps.check-docker-image.outcome == 'failure'
-        run: docker buildx build -t $BUILD_IMAGE_NAME .
+        run: |
+          docker buildx build \
+            --build-arg NCS_VERSION=${{ env.NCS_VERSION }} \  
+            -t $BUILD_IMAGE_NAME .
 
       - name: Publish Docker image
         if: steps.check-docker-image.outcome == 'failure'
@@ -270,20 +274,13 @@ jobs:
 
       # }
 
-      - run: |
-          pwd
-          ls -la
-          printenv
-
       - name: Build firmware
         working-directory: project/asset_tracker_v2
         run: |
-          nrfutil toolchain-manager launch /bin/bash -- -c '\
-            west build -b ${{ env.BOARD }} \
-            -p always -- \
-            ${{ env.EXTRA_ARGS }} \
-            -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf" \
-          '
+          west build -b ${{ env.BOARD }} \
+          -p always -- \
+          ${{ env.EXTRA_ARGS }} \
+          -DOVERLAY_CONFIG="${{ env.CONFIG_OVERLAY }};${{ env.MEMFAULT_OVERLAY }};${{ env.BSEC_OVERLAY }};firmware.conf"
 
       - name: Upload symbols file to Memfault
         continue-on-error: true
