@@ -32,7 +32,7 @@ EOT
 # Prepare image with a ready to use build environment
 ADD . /workdir
 WORKDIR /workdir
-SHELL ["nrfutil","toolchain-manager","launch","/bin/bash","-euxo","pipefail","--","-c"]
+SHELL ["nrfutil","toolchain-manager","launch","/bin/bash","--","-euxo","pipefail","-c"]
 RUN <<EOT
     west init -l . && west update --narrow -o=--depth=1
 EOT
