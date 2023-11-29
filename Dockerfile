@@ -4,6 +4,8 @@ ARG NCS_VERSION=v2.5.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+SHELL [ "/bin/bash", "-euxo", "pipefail", "-c" ]
+
 RUN <<EOT
     apt-get -y update
     apt-get -y upgrade
