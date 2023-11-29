@@ -339,11 +339,14 @@ jobs:
         with:
           node-version: "18.x"
 
-      - run: npx semantic-release
+      - uses: cycjimmy/semantic-release-action@v4
         id: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Trigger deployment workflow
-        if: steps.semantic-release.outcome == 'success'
+        if: steps.semantic-release.outputs.new_release_published == 'true'
         run:
           gh workflow run publish-firmware-bundles.yml --raw-field version=v${{
           needs.release-version.outputs.nextRelease }}
