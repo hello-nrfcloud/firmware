@@ -164,7 +164,7 @@ jobs:
 
       - name: Archive test result
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: twister
           path: project/asset_tracker_v2/twister-out
@@ -304,7 +304,7 @@ jobs:
 
       - name: Archive firmware
         if: success() || failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name:
             ${{ matrix.configuration }}-${{
