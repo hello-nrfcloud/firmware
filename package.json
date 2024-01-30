@@ -1,42 +1,35 @@
 {
-  "name": "@nordicsemiconductor/bifravst-firmware",
+  "name": "@nordicsemiconductor/asset-tracker-cloud-code-style",
   "version": "0.0.0-development",
-  "description": "Firmware for devices connecting to nRF Cloud for the out-of-box experience",
+  "description": "Code style definitions for all nRF Asset Tracker projects.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hello-nrfcloud/firmware.git"
+    "url": "git+https://github.com/NordicSemiconductor/asset-tracker-cloud-code-style-js.git"
   },
   "bugs": {
-    "url": "https://github.com/hello-nrfcloud/firmware/issues"
+    "url": "https://github.com/NordicSemiconductor/asset-tracker-cloud-code-style-js/issues"
   },
-  "homepage": "https://github.com/hello-nrfcloud/firmware#readme",
+  "homepage": "https://github.com/NordicSemiconductor/asset-tracker-cloud-code-style-js#readme",
   "keywords": [
-    "hello-nrfcloud",
-    "iot",
-    "firmware",
-    "nrf-connect-sdk",
-    "nrf-cloud",
-    "thingy91"
+    "nrf-asset-tracker",
+    "iot"
   ],
-  "type": "module",
-  "scripts": {
-    "prepare": "husky install && check-node-version --package"
-  },
   "author": "Nordic Semiconductor ASA | nordicsemi.no",
-  "license": "Nordic-5-Clause",
-  "devDependencies": {
-    "@commitlint/config-conventional": "18.4.4",
-    "@nordicsemiconductor/asset-tracker-cloud-code-style": "13.1.9",
-    "@octokit/rest": "20.0.2",
-    "check-node-version": "4.2.1",
-    "yazl": "2.5.1"
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "@commitlint/cli": "18.6.0",
+    "eslint": "8.56.0",
+    "lint-staged": "15.2.0",
+    "pinst": "3.0.0",
+    "prettier": "3.2.4",
+    "prettier-plugin-organize-imports": "3.2.4",
+    "typescript": "5.3.3"
   },
   "lint-staged": {
     "*.{yml,md,js,json}": [
-      "prettier --write"
+      "prettier --write --config .prettierrc.js"
     ]
   },
-  "prettier": "@nordicsemiconductor/asset-tracker-cloud-code-style/.prettierrc",
   "engines": {
     "node": ">=20",
     "npm": ">=9"
@@ -49,133 +42,34 @@
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
       [
         "@semantic-release/github",
         {
-          "assets": [
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-${nextRelease.gitTag}.hex",
-              "label": "App with Bootloader HEX file (thingy91)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-${nextRelease.gitTag}-fwupd.hex",
-              "label": "Firmware Update Image HEX file (thingy91)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-${nextRelease.gitTag}-fwupd.bin",
-              "label": "Firmware Update Image BIN file (thingy91)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-${nextRelease.gitTag}-symbols.elf",
-              "label": "App Symbols ELF file (thingy91)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}.hex",
-              "label": "App with Bootloader HEX file (thingy91, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}-fwupd.hex",
-              "label": "Firmware Update Image HEX file (thingy91, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}-fwupd.bin",
-              "label": "Firmware Update Image BIN file (thingy91, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.dbg-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-dbg-${nextRelease.gitTag}-symbols.elf",
-              "label": "App Symbols ELF file (thingy91, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}.hex",
-              "label": "App with Bootloader HEX file (thingy91, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}-fwupd.hex",
-              "label": "Firmware Update Image HEX file (thingy91, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}-fwupd.bin",
-              "label": "Firmware Update Image BIN file (thingy91, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.lp.mmflt-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-lp-mmflt-${nextRelease.gitTag}-symbols.elf",
-              "label": "App Symbols ELF file (thingy91, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}.hex",
-              "label": "App with Bootloader HEX file (thingy91, solar)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}-fwupd.hex",
-              "label": "Firmware Update Image HEX file (thingy91, solar)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}-fwupd.bin",
-              "label": "Firmware Update Image BIN file (thingy91, solar)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-sol-${nextRelease.gitTag}-symbols.elf",
-              "label": "App Symbols ELF file (thingy91, solar)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}.hex",
-              "label": "App with Bootloader HEX file (thingy91, solar, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}-fwupd.hex",
-              "label": "Firmware Update Image HEX file (thingy91, solar, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}-fwupd.bin",
-              "label": "Firmware Update Image BIN file (thingy91, solar, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.dbg-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-sol-dbg-${nextRelease.gitTag}-symbols.elf",
-              "label": "App Symbols ELF file (thingy91, solar, debug)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/merged.hex",
-              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}.hex",
-              "label": "App with Bootloader HEX file (thingy91, solar, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/app_signed.hex",
-              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}-fwupd.hex",
-              "label": "Firmware Update Image HEX file (thingy91, solar, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/app_update.bin",
-              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}-fwupd.bin",
-              "label": "Firmware Update Image BIN file (thingy91, solar, low-power, memfault)"
-            },
-            {
-              "path": "/home/runner/work/firmware/firmware/thingy91.sol.lp.mmflt-*/zephyr.elf",
-              "name": "hello-nrfcloud-thingy91-sol-lp-mmflt-${nextRelease.gitTag}-symbols.elf",
-              "label": "App Symbols ELF file (thingy91, solar, low-power, memfault)"
-            }
-          ]
+          "successComment": false,
+          "failTitle": false
         }
       ]
     ]
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "package-lock.json",
+    "index.js",
+    "LICENSE",
+    "README.md",
+    ".prettierrc.js",
+    "tsconfig.json",
+    "templates"
+  ],
+  "scripts": {
+    "prepare": "husky",
+    "test": "npm exec -- renovate-config-validator"
+  },
+  "devDependencies": {
+    "@commitlint/config-conventional": "18.6.0",
+    "husky": "9.0.7"
   }
 }
