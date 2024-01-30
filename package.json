@@ -20,7 +20,7 @@
   ],
   "type": "module",
   "scripts": {
-    "prepare": "husky install && check-node-version --package"
+    "prepare": "husky && check-node-version --package"
   },
   "author": "Nordic Semiconductor ASA | nordicsemi.no",
   "license": "Nordic-5-Clause",
@@ -29,6 +29,7 @@
     "@nordicsemiconductor/asset-tracker-cloud-code-style": "13.1.9",
     "@octokit/rest": "20.0.2",
     "check-node-version": "4.2.1",
+    "husky": "9.0.7",
     "yazl": "2.5.1"
   },
   "lint-staged": {
