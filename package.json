@@ -26,7 +26,7 @@
   "license": "Nordic-5-Clause",
   "devDependencies": {
     "@commitlint/config-conventional": "18.6.0",
-    "@nordicsemiconductor/asset-tracker-cloud-code-style": "13.1.13",
+    "@nordicsemiconductor/asset-tracker-cloud-code-style": "13.1.15",
     "@octokit/rest": "20.0.2",
     "check-node-version": "4.2.1",
     "husky": "9.0.10",
