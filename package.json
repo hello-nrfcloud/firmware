@@ -29,7 +29,7 @@
     "@nordicsemiconductor/asset-tracker-cloud-code-style": "13.1.15",
     "@octokit/rest": "20.0.2",
     "check-node-version": "4.2.1",
-    "husky": "9.0.10",
+    "husky": "9.0.11",
     "yazl": "2.5.1"
   },
   "lint-staged": {
