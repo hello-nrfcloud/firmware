@@ -37,7 +37,7 @@
       "prettier --write"
     ]
   },
-  "prettier": "@nordicsemiconductor/asset-tracker-cloud-code-style/.prettierrc",
+  "prettier": "@bifravst/prettier-config",
   "engines": {
     "node": ">=20",
     "npm": ">=9"
