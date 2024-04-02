@@ -1,0 +1,18 @@
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig SIMPLE_CONFIG
+	bool "Simple Config library"
+	select NRF_CLOUD_COAP
+
+if SIMPLE_CONFIG
+
+module=SIMPLE_CONFIG
+module-dep=LOG
+module-str=Log level for Simple Config lib
+module-help=Enables Simple Config log messages.
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endif # SIMPLE_CONFIG

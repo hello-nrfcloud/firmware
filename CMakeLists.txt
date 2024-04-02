@@ -5,3 +5,6 @@
 # as the module CMake entry point (see zephyr/module.yml).
 
 
+zephyr_include_directories(include)
+
+add_subdirectory(lib)
