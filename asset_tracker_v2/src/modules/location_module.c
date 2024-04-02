@@ -21,21 +21,10 @@
 #include "events/data_module_event.h"
 #include "events/util_module_event.h"
 #include "events/modem_module_event.h"
+#include "events/cloud_module_event.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_LOCATION_MODULE_LOG_LEVEL);
-
-BUILD_ASSERT(CONFIG_AT_MONITOR_HEAP_SIZE >= 1024,
-	    "CONFIG_AT_MONITOR_HEAP_SIZE must be >= 1024 to fit neighbor cell measurements "
-	    "and other notifications at the same time");
-
-/* Use a timeout of 90 seconds for GNSS search. */
-#define DATA_FETCH_TIMEOUT_GNSS_SEARCH 90
-
-/* Use a timeout of 11 seconds to accommodate for neighbour cell measurements
- * that can take up to 10.24 seconds.
- */
-#define DATA_FETCH_TIMEOUT_NEIGHBORHOOD_SEARCH 11
 
 struct location_msg_data {
 	union {
@@ -43,6 +32,7 @@ struct location_msg_data {
 		struct data_module_event data;
 		struct util_module_event util;
 		struct modem_module_event modem;
+		struct cloud_module_event cloud;
 		struct location_module_event location;
 	} module;
 };
@@ -77,6 +67,13 @@ static struct module_stats {
 	/* Number of satellites tracked at the time of a GNSS fix or a timeout. */
 	uint8_t satellites_tracked;
 } stats;
+
+/* Indicates whether cloud location request is pending towards cloud service, that is,
+ * LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST has been received but not responded yet.
+ * This is specifically needed when cloud connection doesn't exist and there is a
+ * new sampling request. We can then cancel previous location request and do a new one.
+ */
+static bool cloud_location_request_pending;
 
 static struct module_data self = {
 	.name = "location",
@@ -193,6 +190,15 @@ static bool app_event_handler(const struct app_event_header *aeh)
 
 		message_handler(&msg);
 	}
+
+	if (is_cloud_module_event(aeh)) {
+		struct cloud_module_event *event = cast_cloud_module_event(aeh);
+		struct location_msg_data msg = {
+			.module.cloud = *event
+		};
+
+		message_handler(&msg);
+	}
 	return false;
 }
 
@@ -234,12 +240,6 @@ static void search_start(void)
 	int methods_count = 0;
 	struct location_method_config methods_updated[CONFIG_LOCATION_METHODS_LIST_SIZE] = { 0 };
 
-	if (copy_cfg.no_data.neighbor_cell && copy_cfg.no_data.gnss && copy_cfg.no_data.wifi) {
-		SEND_EVENT(location, LOCATION_MODULE_EVT_DATA_NOT_READY);
-		LOG_ERR("All GNSS, cellular and Wi-Fi are configured off");
-		return;
-	}
-
 	/* Set default location configuration configured at compile time */
 	location_config_defaults_set(&config, 0, NULL);
 
@@ -264,6 +264,12 @@ static void search_start(void)
 			}
 		}
 
+		if (methods_count == 0) {
+			SEND_EVENT(location, LOCATION_MODULE_EVT_DATA_NOT_READY);
+			LOG_INF("All location methods are disabled at run-time");
+			return;
+		}
+
 		config.methods_count = methods_count;
 		memcpy(config.methods,
 		       methods_updated,
@@ -285,6 +291,7 @@ static void search_start(void)
 
 static void inactive_send(void)
 {
+	cloud_location_request_pending = false;
 	SEND_EVENT(location, LOCATION_MODULE_EVT_INACTIVE);
 }
 
@@ -328,6 +335,7 @@ static void send_cloud_location_update(const struct location_data_cloud *cloud_l
 	struct location_module_event *evt = new_location_module_event();
 	struct location_module_neighbor_cells *evt_ncells =
 		&evt->data.cloud_location.neighbor_cells;
+	evt->data.cloud_location.neighbor_cells_valid = false;
 
 	if (cloud_location_info->cell_data != NULL) {
 		BUILD_ASSERT(sizeof(evt_ncells->cell_data) == sizeof(struct lte_lc_cells_info));
@@ -357,6 +365,7 @@ static void send_cloud_location_update(const struct location_data_cloud *cloud_l
 	}
 
 #if defined(CONFIG_LOCATION_METHOD_WIFI)
+	evt->data.cloud_location.wifi_access_points_valid = false;
 	if (cloud_location_info->wifi_data != NULL) {
 		BUILD_ASSERT(sizeof(evt->data.cloud_location.wifi_access_points.ap_info) >=
 			     sizeof(struct wifi_scan_result) *
@@ -406,8 +415,8 @@ void location_event_handler(const struct location_event_data *event_data)
 		stats.search_time = (uint32_t)(k_uptime_get() - stats.start_uptime);
 		LOG_DBG("  search time: %d ms", stats.search_time);
 
-		/* Only GNSS result is handled as cellular is handled
-		 * as part of LOCATION_EVT_CELLULAR_EXT_REQUEST
+		/* Only GNSS result is handled as cellular and Wi-Fi are handled
+		 * as part of LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST
 		 */
 		stats.satellites_tracked = 0;
 		if (event_data->method == LOCATION_METHOD_GNSS) {
@@ -461,12 +470,12 @@ void location_event_handler(const struct location_event_data *event_data)
 		break;
 
 	case LOCATION_EVT_GNSS_ASSISTANCE_REQUEST: {
-		LOG_DBG("Requested A-GPS data");
-#if defined(CONFIG_NRF_CLOUD_AGPS)
+		LOG_DBG("Requested A-GNSS data");
+#if defined(CONFIG_NRF_CLOUD_AGNSS)
 		struct location_module_event *location_module_event = new_location_module_event();
 
-		location_module_event->data.agps_request = event_data->agps_request;
-		location_module_event->type = LOCATION_MODULE_EVT_AGPS_NEEDED;
+		location_module_event->data.agnss_request = event_data->agnss_request;
+		location_module_event->type = LOCATION_MODULE_EVT_AGNSS_NEEDED;
 		APP_EVENT_SUBMIT(location_module_event);
 #endif
 		break;
@@ -488,9 +497,20 @@ void location_event_handler(const struct location_event_data *event_data)
 	case LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST:
 		LOG_DBG("Getting cloud location request");
 		send_cloud_location_update(&event_data->cloud_location_request);
-		location_cloud_location_ext_result_set(LOCATION_EXT_RESULT_UNKNOWN, NULL);
+		cloud_location_request_pending = true;
 		break;
 #endif
+
+	case LOCATION_EVT_STARTED:
+		LOG_DBG("Location request has been started with '%s' method",
+			location_method_str(event_data->method));
+		break;
+
+	case LOCATION_EVT_FALLBACK:
+		LOG_DBG("Location fallback has occurred from '%s' to '%s'",
+			location_method_str(event_data->method),
+			location_method_str(event_data->fallback.next_method));
+		break;
 
 	default:
 		LOG_DBG("Getting location: Unknown event %d", event_data->id);
@@ -545,8 +565,33 @@ static void on_state_running_location_search(struct location_msg_data *msg)
 		sub_state_set(SUB_STATE_IDLE);
 	}
 
+	if (IS_EVENT(msg, cloud, CLOUD_EVT_CLOUD_LOCATION_RECEIVED)) {
+#if defined(CONFIG_LOCATION)
+		location_cloud_location_ext_result_set(
+			LOCATION_EXT_RESULT_SUCCESS,
+			&msg->module.cloud.data.cloud_location);
+#endif
+	}
+	if (IS_EVENT(msg, cloud, CLOUD_EVT_CLOUD_LOCATION_ERROR)) {
+		location_cloud_location_ext_result_set(LOCATION_EXT_RESULT_ERROR, NULL);
+	}
+
+	if (IS_EVENT(msg, cloud, CLOUD_EVT_CLOUD_LOCATION_UNKNOWN)) {
+		location_cloud_location_ext_result_set(LOCATION_EXT_RESULT_UNKNOWN, NULL);
+	}
+
 	if (IS_EVENT(msg, app, APP_EVT_DATA_GET)) {
 		if (!location_data_requested(msg->module.app.data_list, msg->module.app.count)) {
+			return;
+		}
+
+		/* If cloud location request is pending data and cloud modules,
+		 * we'll cancel current location request and start a new one
+		 */
+		if (cloud_location_request_pending) {
+			location_request_cancel();
+			cloud_location_request_pending = false;
+			search_start();
 			return;
 		}
 
@@ -638,4 +683,5 @@ APP_EVENT_SUBSCRIBE_EARLY(MODULE, app_module_event);
 APP_EVENT_SUBSCRIBE(MODULE, data_module_event);
 APP_EVENT_SUBSCRIBE(MODULE, util_module_event);
 APP_EVENT_SUBSCRIBE(MODULE, modem_module_event);
+APP_EVENT_SUBSCRIBE(MODULE, cloud_module_event);
 APP_EVENT_SUBSCRIBE(MODULE, location_module_event);

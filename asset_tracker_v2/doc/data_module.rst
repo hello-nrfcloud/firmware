@@ -10,9 +10,6 @@ Data module
 The data module gathers data that has been sampled by other modules in the system and stores it into ring buffers.
 It keeps track of data requested by the :ref:`asset_tracker_v2_app_module` and decides when data is sent to the cloud.
 
-.. note::
-   The data module will undergo substantial refactoring soon. Hence, some of its features are not currently documented.
-
 Features
 ********
 
@@ -72,7 +69,7 @@ Options that alter the default values of the application's real-time configurati
 
 CONFIG_DATA_DEVICE_MODE_ACTIVE
    This configuration sets the device in active mode.
-   Default mode for the nRF9160 DK.
+   Default mode for nRF91 Series devices.
 
 .. _CONFIG_DATA_DEVICE_MODE_PASSIVE:
 
@@ -127,6 +124,12 @@ CONFIG_DATA_SAMPLE_NEIGHBOR_CELLS_DEFAULT
    This configuration includes neighbor cell measurements during sampling.
    Enabled by default.
 
+.. _CONFIG_DATA_SAMPLE_WIFI_DEFAULT:
+
+CONFIG_DATA_SAMPLE_WIFI_DEFAULT
+   This configuration includes Wi-Fi APs during sampling.
+   Enabled by default.
+
 Other options:
 
 .. _CONFIG_DATA_GRANT_SEND_ON_CONNECTION_QUALITY:
@@ -174,7 +177,7 @@ Dependencies
 This module uses the following |NCS| libraries and drivers:
 
 * :ref:`app_event_manager`
-* :ref:`lib_nrf_cloud_agps`
+* :ref:`lib_nrf_cloud_agnss`
 * :ref:`lib_nrf_cloud_pgps`
 * :ref:`settings_api`
 

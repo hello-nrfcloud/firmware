@@ -33,9 +33,9 @@ See :ref:`Cloud wrapper API <api_cloud_wrapper>` for more information on how eac
 |                                                                                    +-------------------------------+
 |                                                                                    |    `TCP`_                     |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`FOTA <nrf9160_fota>` |
+|                                                                                    |    :ref:`FOTA <nrf91_fota>`   |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`lib_nrf_cloud_agps`  |
+|                                                                                    |    :ref:`lib_nrf_cloud_agnss` |
 |                                                                                    +-------------------------------+
 |                                                                                    |    :ref:`lib_nrf_cloud_pgps`  |
 +------------------------------------------------------------------------------------+-------------------------------+
@@ -45,9 +45,9 @@ See :ref:`Cloud wrapper API <api_cloud_wrapper>` for more information on how eac
 |                                                                                    +-------------------------------+
 |                                                                                    |    `TCP`_                     |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`FOTA <nrf9160_fota>` |
+|                                                                                    |    :ref:`FOTA <nrf91_fota>`   |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`lib_nrf_cloud_agps`  |
+|                                                                                    |    :ref:`lib_nrf_cloud_agnss` |
 |                                                                                    +-------------------------------+
 |                                                                                    |    :ref:`lib_nrf_cloud_pgps`  |
 +------------------------------------------------------------------------------------+-------------------------------+
@@ -57,9 +57,9 @@ See :ref:`Cloud wrapper API <api_cloud_wrapper>` for more information on how eac
 |                                                                                    +-------------------------------+
 |                                                                                    |    `TCP`_                     |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`FOTA <nrf9160_fota>` |
+|                                                                                    |    :ref:`FOTA <nrf91_fota>`   |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`lib_nrf_cloud_agps`  |
+|                                                                                    |    :ref:`lib_nrf_cloud_agnss` |
 |                                                                                    +-------------------------------+
 |                                                                                    |    :ref:`lib_nrf_cloud_pgps`  |
 +------------------------------------------------------------------------------------+-------------------------------+
@@ -71,32 +71,32 @@ See :ref:`Cloud wrapper API <api_cloud_wrapper>` for more information on how eac
 |                                                                                    +-------------------------------+
 |                                                                                    |    `UDP protocol`_            |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`FOTA <nrf9160_fota>` |
+|                                                                                    |    :ref:`FOTA <nrf91_fota>`   |
 |                                                                                    +-------------------------------+
-|                                                                                    |    :ref:`lib_nrf_cloud_agps`  |
+|                                                                                    |    :ref:`lib_nrf_cloud_agnss` |
 +------------------------------------------------------------------------------------+-------------------------------+
 
-.. _nrfcloud_agps_pgps:
+.. _nrfcloud_agnss_pgps:
 
-nRF Cloud A-GPS and P-GPS
-=========================
+nRF Cloud A-GNSS and P-GPS
+==========================
 
-When the cloud module is configured to communicate with `AWS IoT Core`_, `Azure IoT Hub`_, or an `LwM2M`_ server, it supports processing of received A-GPS and P-GPS data using the :ref:`lib_nrf_cloud_agps` and :ref:`lib_nrf_cloud_pgps` libraries.
-This enables the cloud service to fetch A-GPS and P-GPS data directly from `nRF Cloud`_ using REST calls and relay this data to the nRF9160 SiP using the pre-established cloud connection.
+When the cloud module is configured to communicate with `AWS IoT Core`_, `Azure IoT Hub`_, or an `LwM2M`_ server, it supports processing of received A-GNSS and P-GPS data using the :ref:`lib_nrf_cloud_agnss` and :ref:`lib_nrf_cloud_pgps` libraries.
+This enables the cloud service to fetch A-GNSS and P-GPS data directly from `nRF Cloud`_ and relay this data to an nRF91 Series SiP using the pre-established cloud connection.
 By reusing the pre-established connection, the application saves overhead related to maintaining multiple connections at the same time.
-When configuring the application to communicate with nRF Cloud, A-GPS and P-GPS data are received directly from the service, and not by proxy.
+When configuring the application to communicate with nRF Cloud, A-GNSS and P-GPS data are received directly from the service, and not by proxy.
 For more information, see `nRF Cloud Location Services <nRF Cloud Location Services documentation_>`_.
 
 FOTA
 ====
 
-The client libraries supported by the cloud wrapper API all implement their own version of :ref:`FOTA <nrf9160_fota>`.
+The client libraries supported by the cloud wrapper API all implement their own version of :ref:`FOTA <nrf91_fota>`.
 This enables the cloud to issue FOTA updates and update the application and modem firmware while the device is in field.
 For additional documentation on the various FOTA implementations, refer to the respective client library documentation linked to in :ref:`Integration layers <integration_layers>`.
 
 Full modem FOTA updates are only supported by nRF Cloud.
-This application implements full modem FOTA only for the nRF9160 development kit version 0.14.0 and higher.
-To enable full modem FOTA, add the ``-DOVERLAY_CONFIG=overlay-full_modem_fota.conf`` parameter to your build command.
+This application implements full modem FOTA for the nRF91x1 DKs and for the nRF9160 DK version 0.14.0 and higher.
+To enable full modem FOTA, add the ``-DEXTRA_CONF_FILE=overlay-full_modem_fota.conf`` parameter to your build command.
 
 Also, specify your development kit version by appending it to the board name.
 For example, if your development kit version is 1.0.1, use the board name ``nrf9160dk_nrf9160_ns@1_0_1`` in your build command.
@@ -114,7 +114,7 @@ Reconnection is implemented with a binary backoff based on the following lookup 
 .. code-block:: c
 
    static struct cloud_backoff_delay_lookup backoff_delay[] = {
-      { 32 }, { 64 }, { 128 }, { 256 }, { 512 },
+      { 32 }, { 64 }, { 128 }, { 256 }, { 512 }, { 1024 },
       { 2048 }, { 4096 }, { 8192 }, { 16384 }, { 32768 },
       { 65536 }, { 131072 }, { 262144 }, { 524288 }, { 1048576 }
    };
@@ -133,7 +133,7 @@ CONFIG_CLOUD_THREAD_STACK_SIZE - Cloud module thread stack size
 
 CONFIG_CLOUD_CLIENT_ID_USE_CUSTOM - Configuration for enabling the use of a custom cloud client ID
    This option is used to enable the use of a custom client ID for connection to the respective cloud service.
-   By default, the cloud module uses the IMEI of the nRF9160-based device as the client ID.
+   By default, the cloud module uses the IMEI of the nRF91 Series device as the client ID.
 
 .. _CONFIG_CLOUD_CLIENT_ID:
 
@@ -159,7 +159,7 @@ For more information on how to set up a connection and provision certificates to
 
 .. note::
    There are no mandatory configuration settings for the :ref:`lib_nrf_cloud` library.
-   The nRF9160 DK and Thingy91 come preprovisioned with certificates required to establish a connection to nRF Cloud.
+   The nRF91 Series DKs and the Thingy:91 come with factory-provisioned certificates required to establish a connection to nRF Cloud.
    The default configuration of the :ref:`lib_nrf_cloud` library uses the security tag that the nRF Cloud certificates are stored to.
 
 Configurations for AWS IoT library
@@ -168,7 +168,7 @@ Configurations for AWS IoT library
 To enable communication with AWS IoT, set the following options in the :file:`overlay-aws.conf` file:
 
 * :kconfig:option:`CONFIG_AWS_IOT_BROKER_HOST_NAME`
-* :kconfig:option:`CONFIG_AWS_IOT_SEC_TAG`
+* :kconfig:option:`CONFIG_MQTT_HELPER_SEC_TAG`
 
 Configurations for Azure IoT Hub library
 ----------------------------------------
@@ -190,7 +190,7 @@ Configurations for LwM2M integration layer
 
 When building for LwM2M, the cloud module's default configuration is to communicate with AVSystem's `Coiote Device Management`_, with a runtime provisioned `Pre-shared key (PSK)`_ set by the :kconfig:option:`CONFIG_LWM2M_INTEGRATION_PSK` option.
 This enables the device to work with `Coiote Device Management`_ without provisioning the PSK to the modem before running the application.
-To allow the device to communicate with other LwM2M servers, modify the default configuration by changing the following Kconfig options:
+To allow the device to communicate with other LwM2M Servers, modify the default configuration by changing the following Kconfig options:
 
 * :kconfig:option:`CONFIG_LWM2M_CLIENT_UTILS_SERVER`
 * :kconfig:option:`CONFIG_LWM2M_RD_CLIENT_SUPPORT_BOOTSTRAP`
@@ -247,7 +247,7 @@ Dependencies
 This module uses the following |NCS| libraries and drivers:
 
 * :ref:`api_cloud_wrapper`
-* :ref:`lib_nrf_cloud_agps`
+* :ref:`lib_nrf_cloud_agnss`
 * :ref:`lib_nrf_cloud_pgps`
 
 API documentation

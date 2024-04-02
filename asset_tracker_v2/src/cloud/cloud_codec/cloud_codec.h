@@ -15,6 +15,9 @@
 #include <cJSON_os.h>
 #include <zephyr/net/net_ip.h>
 #include <modem/lte_lc.h>
+#if defined(CONFIG_LOCATION)
+#include <modem/location.h>
+#endif
 #include <net/wifi_location_common.h>
 #include <nrf_modem_gnss.h>
 
@@ -34,17 +37,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct cloud_data_solar {
-	/* V */
-	float voltage;
-	/* mA */
-	float current;
-	/** Timestamp. UNIX milliseconds. */
-	int64_t ts;
-	/** Flag signifying that the data entry is to be encoded. */
-	bool queued : 1;
-};
 
 /** @brief Structure containing battery data published to cloud. */
 struct cloud_data_battery {
@@ -187,8 +179,6 @@ struct cloud_data_modem_dynamic {
 	char apn[CONFIG_CLOUD_CODEC_APN_LEN_MAX];
 	/** Mobile Country Code and Mobile Network Code. */
 	char mccmnc[7];
-	/* Energy estimate */
-	uint16_t energy_estimate;
 	/** Flag signifying that the data entry is to be encoded. */
 	bool queued : 1;
 };
@@ -254,7 +244,7 @@ struct cloud_data_cloud_location {
 	bool queued : 1;
 };
 
-struct cloud_data_agps_request {
+struct cloud_data_agnss_request {
 	/** Mobile Country Code. */
 	int mcc;
 	/** Mobile Network Code. */
@@ -263,8 +253,8 @@ struct cloud_data_agps_request {
 	uint32_t cell;
 	/** Area Code. */
 	uint32_t area;
-	/** AGPS request types */
-	struct nrf_modem_gnss_agps_data_frame request;
+	/** A-GNSS request types */
+	struct nrf_modem_gnss_agnss_data_frame request;
 	/** Flag signifying that the data entry is to be encoded. */
 	bool queued : 1;
 };
@@ -332,23 +322,42 @@ int cloud_codec_encode_cloud_location(
 	struct cloud_codec_data *output,
 	struct cloud_data_cloud_location *cloud_location);
 
+/* Foward declaration */
+struct location_data;
+
 /**
- * @brief Encode cloud codec A-GPS request.
+ * @brief Decode received cloud location data.
+ *
+ * @param[in] input String buffer with encoded cloud location data.
+ * @param[in] input_len Length of input.
+ * @param[out] location Storage for the decoded cloud location data.
+ *
+ * @retval 0 on success.
+ * @retval -EFAULT if cloud returned with error to the location request.
+ * @retval -ENOMEM if codec could not allocate memory.
+ * @retval -ENOTSUP if the function is not supported by the backend.
+ * @return 0 on success or negative error value on failure.
+ */
+int cloud_codec_decode_cloud_location(const char *input, size_t input_len,
+				      struct location_data *location);
+
+/**
+ * @brief Encode cloud codec A-GNSS request.
  *
  * @note LwM2M builds: This function does not output a list of objects, unlike other
  *		       functions in this API. The object references that are required to update
- *		       A-GPS are kept internal in the LwM2M utils library.
+ *		       A-GNSS are kept internal in the LwM2M utils library.
  *
  * @param[out] output String buffer for encoding result.
- * @param[in] agps_request A-GPS request data.
+ * @param[in] agnss_request A-GNSS request data.
  *
  * @retval 0 on success.
  * @retval -ENODATA if data object is not marked valid.
  * @retval -ENOMEM if codec couldn't allocate memory.
  * @retval -ENOTSUP if the function is not supported by the encoding backend.
  */
-int cloud_codec_encode_agps_request(struct cloud_codec_data *output,
-				    struct cloud_data_agps_request *agps_request);
+int cloud_codec_encode_agnss_request(struct cloud_codec_data *output,
+				     struct cloud_data_agnss_request *agnss_request);
 
 /**
  * @brief Encode cloud codec P-GPS request.
@@ -422,8 +431,7 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf,
-			    struct cloud_data_solar *sol_buf);
+			    struct cloud_data_battery *bat_buf);
 
 /**
  * @brief Encode UI data.
@@ -486,15 +494,13 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
-				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count,
-				  size_t sol_buf_count);
+				  size_t bat_buf_count);
 
 void cloud_codec_populate_sensor_buffer(
 				struct cloud_data_sensors *sensor_buffer,
@@ -518,11 +524,6 @@ void cloud_codec_populate_bat_buffer(struct cloud_data_battery *bat_buffer,
 				     int *head_bat_buf,
 				     size_t buffer_count);
 
-void cloud_codec_populate_sol_buffer(struct cloud_data_solar *sol_buffer,
-				     struct cloud_data_solar *new_sol_data,
-				     int *head_sol_buf,
-				     size_t buffer_count);
-
 void cloud_codec_populate_gnss_buffer(struct cloud_data_gnss *gnss_buffer,
 				     struct cloud_data_gnss *new_gnss_data,
 				     int *head_gnss_buf,
@@ -534,10 +535,10 @@ void cloud_codec_populate_modem_dynamic_buffer(
 				int *head_modem_buf,
 				size_t buffer_count);
 
-/**
- * @}
- */
 #ifdef __cplusplus
 }
 #endif
+/**
+ * @}
+ */
 #endif

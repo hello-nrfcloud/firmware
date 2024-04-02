@@ -33,7 +33,6 @@ enum batch_data_type {
 	MODEM_DYNAMIC,
 	BATTERY,
 	IMPACT,
-	SOLAR,
 };
 
 /* Function that checks the version number of the incoming message and determines if it has already
@@ -267,14 +266,6 @@ static int modem_dynamic_data_add(struct cloud_data_modem_dynamic *data, cJSON *
 	if (err) {
 		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 		goto exit;
-	}
-
-	if (data->energy_estimate != 0) {
-		err = json_add_number(modem_val_obj, MODEM_ENERGY_ESTIMATE, data->energy_estimate);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
 	}
 
 	*val_obj_ref = modem_val_obj;
@@ -543,9 +534,9 @@ static int add_batch_data(cJSON *array, enum batch_data_type type, void *buf, si
 				LOG_ERR("Cannot convert pressure to string, buffer too small");
 			}
 
-			if (data[i].bsec_air_quality >= 0) {
+			if ((data[i].bsec_air_quality >= 0) || (data[i].bsec_air_quality <= 500)) {
 				len = snprintk(bsec_air_quality, sizeof(bsec_air_quality), "%d",
-					data[i].bsec_air_quality);
+					       data[i].bsec_air_quality);
 				if ((len < 0) || (len >= sizeof(bsec_air_quality))) {
 					LOG_ERR("Cannot convert BSEC air quality to string, "
 						"buffer too small");
@@ -687,36 +678,6 @@ static int add_batch_data(cJSON *array, enum batch_data_type type, void *buf, si
 			data[i].queued = false;
 			break;
 		}
-		case SOLAR: {
-			int err, len;
-			char current[10];
-			struct cloud_data_solar *data = (struct cloud_data_solar *)buf;
-
-			if (data[i].queued == false) {
-				break;
-			}
-
-			err = date_time_uptime_to_unix_time_ms(&data[i].ts);
-			if (err) {
-				LOG_ERR("date_time_uptime_to_unix_time_ms, error: %d", err);
-				return -EOVERFLOW;
-			}
-
-			len = snprintk(current, sizeof(current), "%.6f", data[i].current*1000);
-			if ((len < 0) || (len >= sizeof(current))) {
-				LOG_ERR("Cannot convert current to string, buffer too small");
-				return -ENOMEM;
-			}
-
-			err = add_data(array, NULL, APP_ID_SOLAR, current, &data[i].ts,
-				       data[i].queued, NULL, false);
-			if (err && err != -ENODATA) {
-				return err;
-			}
-
-			data[i].queued = false;
-			break;
-		}
 		default:
 			LOG_ERR("Unknown batch data type");
 			return -EINVAL;
@@ -741,8 +702,8 @@ int cloud_codec_encode_cloud_location(
 {
 #if defined(CONFIG_NRF_CLOUD_LOCATION)
 	int err;
-	char *buffer;
-	cJSON *root_obj = NULL;
+
+	NRF_CLOUD_OBJ_JSON_DEFINE(location_req_obj);
 
 	__ASSERT_NO_MSG(output != NULL);
 	__ASSERT_NO_MSG(cloud_location != NULL);
@@ -767,23 +728,22 @@ int cloud_codec_encode_cloud_location(
 		return -ENODATA;
 	}
 
-	root_obj = cJSON_CreateObject();
-	err = nrf_cloud_location_request_msg_json_encode(
+	err = nrf_cloud_obj_location_request_create(
+		&location_req_obj,
 		cloud_location->neighbor_cells_valid ? &cell_info : NULL,
 #if defined(CONFIG_LOCATION_METHOD_WIFI)
 		cloud_location->wifi_access_points_valid ? &wifi_info : NULL,
 #else
 		NULL,
 #endif
-		true,
-		root_obj);
+		NULL);
 	if (err) {
 		LOG_ERR("nrf_cloud_location_request_msg_json_encode, error: %d", err);
 		goto exit;
 	}
 
-	buffer = cJSON_PrintUnformatted(root_obj);
-	if (buffer == NULL) {
+	err = nrf_cloud_obj_cloud_encode(&location_req_obj);
+	if (err) {
 		LOG_ERR("Failed to allocate memory for JSON string");
 
 		err = -ENOMEM;
@@ -791,30 +751,53 @@ int cloud_codec_encode_cloud_location(
 	}
 
 	if (IS_ENABLED(CONFIG_CLOUD_CODEC_LOG_LEVEL_DBG)) {
-		json_print_obj("Encoded message:\n", root_obj);
+		json_print_obj("Encoded message:\n", location_req_obj.json);
 	}
 
-	output->buf = buffer;
-	output->len = strlen(buffer);
+	output->buf = (char *)location_req_obj.encoded_data.ptr;
+	output->len = location_req_obj.encoded_data.len;
 
 exit:
 	if (!err) {
 		cloud_location->queued = false;
 	}
-	cJSON_Delete(root_obj);
+	(void)nrf_cloud_obj_free(&location_req_obj);
 	return err;
 #endif /* CONFIG_NRF_CLOUD_LOCATION */
 
 	return -ENOTSUP;
 }
 
-int cloud_codec_encode_agps_request(struct cloud_codec_data *output,
-				    struct cloud_data_agps_request *agps_request)
+int cloud_codec_decode_cloud_location(const char *input, size_t input_len,
+				      struct location_data *location)
+{
+	ARG_UNUSED(input_len);
+
+	int err;
+	struct nrf_cloud_location_result result;
+
+	err = nrf_cloud_location_process(input, &result);
+	if (err == 0) {
+#if defined(CONFIG_LOCATION)
+		location->latitude = result.lat;
+		location->longitude = result.lon;
+		location->accuracy = result.unc;
+#endif
+		/* Date and time are not filled because they are not used anyway */
+	} else if (err == 1) {
+		/* Unexpected response from cloud is treated similarly to error from cloud */
+		err = -EFAULT;
+	}
+	return err;
+}
+
+int cloud_codec_encode_agnss_request(struct cloud_codec_data *output,
+				     struct cloud_data_agnss_request *agnss_request)
 {
 	__ASSERT_NO_MSG(output != NULL);
-	__ASSERT_NO_MSG(agps_request != NULL);
+	__ASSERT_NO_MSG(agnss_request != NULL);
 
-	agps_request->queued = false;
+	agnss_request->queued = false;
 	return -ENOTSUP;
 }
 
@@ -946,8 +929,7 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf,
-			    struct cloud_data_solar *sol_buf)
+			    struct cloud_data_battery *bat_buf)
 {
 	/* Encoding of the latest buffer entries is not supported.
 	 * Only batch encoding is supported.
@@ -1083,15 +1065,13 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
-				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count,
-				  size_t sol_buf_count)
+				  size_t bat_buf_count)
 {
 	ARG_UNUSED(modem_stat_buf);
 
@@ -1137,12 +1117,6 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 	err = add_batch_data(root_array, MODEM_DYNAMIC, modem_dyn_buf, modem_dyn_buf_count);
 	if (err) {
 		LOG_ERR("Failed adding dynamic modem data to array, error: %d", err);
-		goto exit;
-	}
-
-	err = add_batch_data(root_array, SOLAR, sol_buf, sol_buf_count);
-	if (err) {
-		LOG_ERR("Failed adding solar data to array, error: %d", err);
 		goto exit;
 	}
 

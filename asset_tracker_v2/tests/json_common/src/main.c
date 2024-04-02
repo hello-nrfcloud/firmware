@@ -347,33 +347,6 @@ void test_encode_environmental_data_array(void)
 
 /* Modem dynamic */
 
-void test_encode_modem_dynamic_data_object_no_eest(void)
-{
-	int ret;
-	struct cloud_data_modem_dynamic data = {
-		.band = 3,
-		.nw_mode = LTE_LC_LTE_MODE_NBIOT,
-		.rsrp = -8,
-		.area = 12,
-		.mccmnc = "24202",
-		.cell = 33703719,
-		.ip = "10.81.183.99",
-		.energy_estimate = 0,
-		.ts = 1000,
-		.queued = true,
-	};
-	ret = json_common_modem_dynamic_data_add(dummy.root_obj,
-						 &data,
-						 JSON_COMMON_ADD_DATA_TO_OBJECT,
-						 DATA_MODEM_DYNAMIC,
-						 NULL);
-	TEST_ASSERT_EQUAL(0, ret);
-
-	ret = encoded_output_check(dummy.root_obj, TEST_VALIDATE_MODEM_DYNAMIC_JSON_SCHEMA_NO_EEST,
-				   data.queued);
-	TEST_ASSERT_EQUAL(0, ret);
-}
-
 void test_encode_modem_dynamic_data_object(void)
 {
 	int ret;
@@ -385,7 +358,6 @@ void test_encode_modem_dynamic_data_object(void)
 		.mccmnc = "24202",
 		.cell = 33703719,
 		.ip = "10.81.183.99",
-		.energy_estimate = 5,
 		.ts = 1000,
 		.queued = true,
 	};
@@ -440,7 +412,6 @@ void test_encode_modem_dynamic_data_array(void)
 		.mccmnc = "24202",
 		.cell = 33703719,
 		.ip = "10.81.183.99",
-		.energy_estimate = 5,
 		.ts = 1000,
 		.queued = true,
 	};
@@ -722,32 +693,32 @@ void test_encode_wifi_aps_data_object(void)
 	TEST_ASSERT_EQUAL(-ENODATA, ret);
 }
 
-void test_encode_agps_request_data_object(void)
+void test_encode_agnss_request_data_object(void)
 {
 	int ret;
-	struct cloud_data_agps_request data = {
+	struct cloud_data_agnss_request data = {
 		.mcc = 242,
 		.mnc = 1,
 		.cell = 21679716,
 		.area = 40401,
-		.request.sv_mask_ephe = UINT32_MAX,
-		.request.sv_mask_alm = UINT32_MAX,
+		.request.system[0].sv_mask_ephe = UINT32_MAX,
+		.request.system[0].sv_mask_alm = UINT32_MAX,
 		.request.data_flags =
-			NRF_MODEM_GNSS_AGPS_GPS_UTC_REQUEST |
-			NRF_MODEM_GNSS_AGPS_KLOBUCHAR_REQUEST |
-			NRF_MODEM_GNSS_AGPS_NEQUICK_REQUEST |
-			NRF_MODEM_GNSS_AGPS_SYS_TIME_AND_SV_TOW_REQUEST |
-			NRF_MODEM_GNSS_AGPS_POSITION_REQUEST |
-			NRF_MODEM_GNSS_AGPS_INTEGRITY_REQUEST,
+			NRF_MODEM_GNSS_AGNSS_GPS_UTC_REQUEST |
+			NRF_MODEM_GNSS_AGNSS_KLOBUCHAR_REQUEST |
+			NRF_MODEM_GNSS_AGNSS_NEQUICK_REQUEST |
+			NRF_MODEM_GNSS_AGNSS_GPS_SYS_TIME_AND_SV_TOW_REQUEST |
+			NRF_MODEM_GNSS_AGNSS_POSITION_REQUEST |
+			NRF_MODEM_GNSS_AGNSS_INTEGRITY_REQUEST,
 		.queued = true
 	};
 
-	ret = json_common_agps_request_data_add(dummy.root_obj,
-						&data,
-						JSON_COMMON_ADD_DATA_TO_OBJECT);
+	ret = json_common_agnss_request_data_add(dummy.root_obj,
+						 &data,
+						 JSON_COMMON_ADD_DATA_TO_OBJECT);
 	TEST_ASSERT_EQUAL(0, ret);
 
-	ret = encoded_output_check(dummy.root_obj, TEST_VALIDATE_AGPS_REQUEST_JSON_SCHEMA,
+	ret = encoded_output_check(dummy.root_obj, TEST_VALIDATE_AGNSS_REQUEST_JSON_SCHEMA,
 				   data.queued);
 	TEST_ASSERT_EQUAL(0, ret);
 
@@ -755,9 +726,9 @@ void test_encode_agps_request_data_object(void)
 
 	data.queued = false;
 
-	ret = json_common_agps_request_data_add(dummy.root_obj,
-						&data,
-						JSON_COMMON_ADD_DATA_TO_OBJECT);
+	ret = json_common_agnss_request_data_add(dummy.root_obj,
+						 &data,
+						 JSON_COMMON_ADD_DATA_TO_OBJECT);
 	TEST_ASSERT_EQUAL(-ENODATA, ret);
 }
 
@@ -929,7 +900,6 @@ void test_encode_batch_data_object(void)
 		[0].mccmnc = "24202",
 		[0].cell = 33703719,
 		[0].ip = "10.81.183.99",
-		[0].energy_estimate = 7,
 		[0].ts = 1000,
 		[0].queued = true,
 		/* Second entry */
@@ -940,7 +910,6 @@ void test_encode_batch_data_object(void)
 		[1].mccmnc = "24202",
 		[1].cell = 33703719,
 		[1].ip = "10.81.183.99",
-		[1].energy_estimate = 6,
 		[1].ts = 1000,
 		[1].queued = true,
 	};

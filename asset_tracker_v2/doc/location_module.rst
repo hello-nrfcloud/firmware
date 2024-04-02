@@ -18,8 +18,7 @@ This section documents the various features implemented by the module.
 Location control
 ================
 
-The module uses the :ref:`lib_location` library to communicate with the nRF9160 modem and
-control its GNSS and LTE neighbor cell measurement functionalities as well as with the nRF7002 Wi-Fi positioning functionality.
+The module uses the :ref:`lib_location` library to communicate with the nRF91 Series modem and control its GNSS and LTE neighbor cell measurement functionalities as well as with the nRF7002 Wi-Fi positioning functionality.
 A location request starts when the module receives an ``APP_EVT_DATA_GET`` event and
 the ``APP_DATA_LOCATION`` type is listed in the event's ``data_list`` member containing the data types that shall be sampled.
 
@@ -45,7 +44,7 @@ The module sends the following events based on the outcome of the location reque
 * :c:enum:`LOCATION_MODULE_EVT_CLOUD_LOCATION_DATA_READY`: Neighbor cell measurements or Wi-Fi access points (or both) have been obtained
 * :c:enum:`LOCATION_MODULE_EVT_DATA_NOT_READY`: Location request failed
 * :c:enum:`LOCATION_MODULE_EVT_TIMEOUT`: Timeout occurred
-* :c:enum:`LOCATION_MODULE_EVT_AGPS_NEEDED`: A-GPS request should be sent to cloud
+* :c:enum:`LOCATION_MODULE_EVT_AGNSS_NEEDED`: A-GNSS request should be sent to cloud
 * :c:enum:`LOCATION_MODULE_EVT_PGPS_NEEDED`: P-GPS request should be sent to cloud
 
 GNSS LNA configuration
@@ -53,30 +52,29 @@ GNSS LNA configuration
 
 Different devices have different GNSS antenna and LNA setups depending on the antenna type (onboard or external).
 The application uses the :ref:`lib_modem_antenna` library for configuring the LNA.
-The library has Kconfig options to control the LNA using either the COEX0 or MAGPIO interface of the nRF9160.
+The library has Kconfig options to control the LNA using either the COEX0 or MAGPIO interface of the nRF91 Series device.
 See the library documentation for more details on how to configure the antenna and LNA.
 
 GPS assistance data
 ===================
 
 The location module receives requests for GPS assistance data from the :ref:`lib_location` library.
-When the module receives an A-GPS request, it distributes it to the other modules as a :c:enum:`LOCATION_MODULE_EVT_AGPS_NEEDED` event that contains information about the type of assistance data needed.
-Providing the requested A-GPS data typically reduces significantly the time it takes to acquire a GNSS fix.
+When the module receives an A-GNSS request, it distributes it to the other modules as a :c:enum:`LOCATION_MODULE_EVT_AGNSS_NEEDED` event that contains information about the type of assistance data needed.
+Providing the requested A-GNSS data typically reduces significantly the time it takes to acquire a GNSS fix.
 
 Wi-Fi positioning
 =================
 
-Wi-Fi positioning is supported with an nRF7002 EK on the nRF9160 DK.
-To enable Wi-Fi positioning and especially nRF7002 functionality, use a
-special DTC overlay with the compiler option ``-DDTC_OVERLAY_FILE=nrf9160dk_with_nrf7002ek.overlay`` and a
-configuration overlay ``-DOVERLAY_CONFIG=overlay-nrf7002ek-wifi-scan-only.conf``.
-
-To build for the nRF9160 DK with nRF7002 EK, use the ``nrf9160dk_nrf9160_ns`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek_nrf7002`` and a scan-only overlay configuration.
+Wi-Fi positioning is supported with an nRF7002 EK on the nRF91 Series DK.
+To enable Wi-Fi positioning and especially nRF7002 functionality, use the ``-DSHIELD=nrf7002ek`` and ``-DEXTRA_CONF_FILE=overlay-nrf7002ek-wifi-scan-only.conf`` options.
 The following is an example of the CLI command:
 
-.. code-block:: console
+.. parsed-literal::
+   :class: highlight
 
-   west build -p -b nrf9160dk_nrf9160ns -- -DSHIELD=nrf7002ek_nrf7002 -DDTC_OVERLAY_FILE=nrf9160dk_with_nrf7002ek.overlay -DOVERLAY_CONFIG=overlay-nrf7002ek-wifi-scan-only.conf
+    west build -p -b *build_target* -- -DSHIELD=nrf7002ek -DEXTRA_CONF_FILE=overlay-nrf7002ek-wifi-scan-only.conf
+
+Replace the *build_target* with the build target of the DK you are using (see :ref:`asset_tracker_v2_requirements`).
 
 Wi-Fi positioning has the following limitations:
 
@@ -88,6 +86,7 @@ Wi-Fi positioning has the following limitations:
 
    The Wi-Fi configuration uses both flash and SRAM extensively.
    You can configure the number of scan results with the :kconfig:option:`CONFIG_LOCATION_METHOD_WIFI_SCANNING_RESULTS_MAX_CNT` Kconfig option to reduce SRAM consumption.
+   Align the :kconfig:option:`CONFIG_NRF_WIFI_SCAN_MAX_BSS_CNT` Kconfig option with :kconfig:option:`CONFIG_LOCATION_METHOD_WIFI_SCANNING_RESULTS_MAX_CNT`.
    You can also change the value of the :kconfig:option:`CONFIG_HEAP_MEM_POOL_SIZE` Kconfig option.
 
 Module internals
@@ -100,7 +99,19 @@ All incoming events from other modules are handled in the context of the Applica
 
 The :ref:`lib_location` library handles cellular and Wi-Fi positioning together when the location request method list has them next to each other.
 This means that LTE neighbor cell measurements and Wi-Fi scanning results are combined into the same :c:enum:`LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST` event.
-The location module responds to the :ref:`lib_location` library with unknown location resolution, because it does not request the location back from cloud service.
+
+The location module sends the cellular and Wi-Fi positioning request forward with :c:enum:`LOCATION_MODULE_EVT_CLOUD_LOCATION_DATA_READY` event,
+and waits for an event from the cloud module on the result of the positioning.
+This result is forwarded to the :ref:`lib_location` library.
+Depending on the cloud integration, positioning result from the cloud service might be requested or not.
+The result must be indicated with one of the following events:
+
+* :c:enum:`CLOUD_EVT_CLOUD_LOCATION_RECEIVED`: Location has been resolved successfully.
+  The :ref:`lib_location` library does not continue to use other positioning methods and the location request completes quickly.
+* :c:enum:`CLOUD_EVT_CLOUD_LOCATION_ERROR`: Location resolution failed.
+  The :ref:`lib_location` library performs a fallback to the next positioning method in the priority list.
+* :c:enum:`CLOUD_EVT_CLOUD_LOCATION_UNKNOWN`: Location resolution result is unknown, that is, cloud integration is not capable of or configured to resolve it.
+  The :ref:`lib_location` library performs a fallback to the next positioning method.
 
 Configuration options
 *********************

@@ -11,14 +11,6 @@
 #if defined(CONFIG_DATA_GRANT_SEND_ON_CONNECTION_QUALITY)
 #include <modem/lte_lc.h>
 #endif
-#include <modem/modem_info.h>
-#if defined(CONFIG_NRF_CLOUD_AGPS)
-#include <net/nrf_cloud_agps.h>
-#endif
-
-#if defined(CONFIG_NRF_CLOUD_PGPS)
-#include <net/nrf_cloud_pgps.h>
-#endif
 
 #include "cloud/cloud_codec/cloud_codec.h"
 
@@ -66,7 +58,6 @@ static enum state_type {
  */
 static struct cloud_data_gnss gnss_buf[CONFIG_DATA_GNSS_BUFFER_COUNT];
 static struct cloud_data_sensors sensors_buf[CONFIG_DATA_SENSOR_BUFFER_COUNT];
-static struct cloud_data_solar sol_buf[2];
 static struct cloud_data_ui ui_buf[CONFIG_DATA_UI_BUFFER_COUNT];
 static struct cloud_data_impact impact_buf[CONFIG_DATA_IMPACT_BUFFER_COUNT];
 static struct cloud_data_battery bat_buf[CONFIG_DATA_BATTERY_BUFFER_COUNT];
@@ -85,7 +76,6 @@ static struct cloud_data_modem_static modem_stat;
 /* Head of ringbuffers. */
 static int head_gnss_buf;
 static int head_sensor_buf;
-static int head_sol_buf;
 static int head_modem_dyn_buf;
 static int head_ui_buf;
 static int head_impact_buf;
@@ -104,7 +94,8 @@ static struct cloud_data_cfg current_cfg = {
 	.accelerometer_inactivity_threshold	= CONFIG_DATA_ACCELEROMETER_INACT_THRESHOLD,
 	.accelerometer_inactivity_timeout	= CONFIG_DATA_ACCELEROMETER_INACT_TIMEOUT_SECONDS,
 	.no_data.gnss		 = !IS_ENABLED(CONFIG_DATA_SAMPLE_GNSS_DEFAULT),
-	.no_data.neighbor_cell	 = !IS_ENABLED(CONFIG_DATA_SAMPLE_NEIGHBOR_CELLS_DEFAULT)
+	.no_data.neighbor_cell	 = !IS_ENABLED(CONFIG_DATA_SAMPLE_NEIGHBOR_CELLS_DEFAULT),
+	.no_data.wifi		 = !IS_ENABLED(CONFIG_DATA_SAMPLE_WIFI_DEFAULT)
 };
 
 static struct k_work_delayable data_send_work;
@@ -133,14 +124,6 @@ enum coneval_supported_data_type {
 	CLOUD_LOCATION,
 	COUNT,
 };
-
-/* Whether `agps_request_buffer` has A-GPS request buffered for sending when connection to
- * cloud has been re-established.
- */
-bool agps_request_buffered;
-
-/* Buffered A-GPS request. */
-struct nrf_modem_gnss_agps_data_frame agps_request_buffer;
 
 /* Data module message queue. */
 #define DATA_QUEUE_ENTRY_COUNT		10
@@ -612,8 +595,7 @@ static void data_encode(void)
 					      &modem_dyn_buf[head_modem_dyn_buf],
 					      &ui_buf[head_ui_buf],
 					      &impact_buf[head_impact_buf],
-					      &bat_buf[head_bat_buf],
-					      &sol_buf[head_sol_buf]);
+					      &bat_buf[head_bat_buf]);
 		switch (err) {
 		case 0:
 			LOG_DBG("Data encoded successfully");
@@ -644,15 +626,13 @@ static void data_encode(void)
 						    ui_buf,
 						    impact_buf,
 						    bat_buf,
-						    sol_buf,
 						    ARRAY_SIZE(gnss_buf),
 						    ARRAY_SIZE(sensors_buf),
 						    MODEM_STATIC_ARRAY_SIZE,
 						    ARRAY_SIZE(modem_dyn_buf),
 						    ARRAY_SIZE(ui_buf),
 						    ARRAY_SIZE(impact_buf),
-						    ARRAY_SIZE(bat_buf),
-						    ARRAY_SIZE(sol_buf));
+						    ARRAY_SIZE(bat_buf));
 		switch (err) {
 		case 0:
 			LOG_DBG("Batch data encoded successfully");
@@ -671,100 +651,6 @@ static void data_encode(void)
 		}
 	}
 }
-
-#if defined(CONFIG_NRF_CLOUD_AGPS) && !defined(CONFIG_NRF_CLOUD_MQTT)
-static int get_modem_info(struct modem_param_info *const modem_info)
-{
-	__ASSERT_NO_MSG(modem_info != NULL);
-
-	int err = modem_info_init();
-
-	if (err) {
-		LOG_ERR("Could not initialize modem info module, error: %d", err);
-		return err;
-	}
-
-	err = modem_info_params_init(modem_info);
-	if (err) {
-		LOG_ERR("Could not initialize modem info parameters, error: %d", err);
-		return err;
-	}
-
-	err = modem_info_params_get(modem_info);
-	if (err) {
-		LOG_ERR("Could not obtain cell information, error: %d", err);
-		return err;
-	}
-
-	return 0;
-}
-
-/**
- * @brief Combine and encode modem network parameters together with the incoming A-GPS data request
- *	  types to form the A-GPS request.
- *
- * @param[in] incoming_request Pointer to a structure containing A-GPS data types that has been
- *			       requested by the modem. If incoming_request is NULL, all A-GPS data
- *			       types are requested.
- *
- * @return 0 on success, otherwise a negative error code indicating reason of failure.
- */
-static int agps_request_encode(struct nrf_modem_gnss_agps_data_frame *incoming_request)
-{
-	int err;
-	struct cloud_codec_data codec = {0};
-	static struct modem_param_info modem_info = {0};
-	static struct cloud_data_agps_request cloud_agps_request = {0};
-
-	err = get_modem_info(&modem_info);
-	if (err) {
-		return err;
-	}
-
-	if (incoming_request == NULL) {
-		const uint32_t mask = IS_ENABLED(CONFIG_NRF_CLOUD_PGPS) ? 0u : 0xFFFFFFFFu;
-
-		LOG_DBG("Requesting all A-GPS elements");
-		cloud_agps_request.request.sv_mask_ephe = mask,
-		cloud_agps_request.request.sv_mask_alm = mask,
-		cloud_agps_request.request.data_flags =
-					NRF_MODEM_GNSS_AGPS_GPS_UTC_REQUEST |
-					NRF_MODEM_GNSS_AGPS_KLOBUCHAR_REQUEST |
-					NRF_MODEM_GNSS_AGPS_NEQUICK_REQUEST |
-					NRF_MODEM_GNSS_AGPS_SYS_TIME_AND_SV_TOW_REQUEST |
-					NRF_MODEM_GNSS_AGPS_POSITION_REQUEST |
-					NRF_MODEM_GNSS_AGPS_INTEGRITY_REQUEST;
-	} else {
-		cloud_agps_request.request = *incoming_request;
-	}
-
-	cloud_agps_request.mcc = modem_info.network.mcc.value;
-	cloud_agps_request.mnc = modem_info.network.mnc.value;
-	cloud_agps_request.cell = modem_info.network.cellid_dec;
-	cloud_agps_request.area = modem_info.network.area_code.value;
-	cloud_agps_request.queued = true;
-
-	err = cloud_codec_encode_agps_request(&codec, &cloud_agps_request);
-	switch (err) {
-	case 0:
-		LOG_DBG("A-GPS request encoded successfully");
-		data_send(DATA_EVT_AGPS_REQUEST_DATA_SEND, &codec);
-		break;
-	case -ENOTSUP:
-		LOG_ERR("Encoding of A-GPS requests are not supported by the configured codec");
-		break;
-	case -ENODATA:
-		LOG_DBG("No A-GPS request data to encode, error: %d", err);
-		break;
-	default:
-		LOG_ERR("Error encoding A-GPS request: %d", err);
-		SEND_ERROR(data, DATA_EVT_ERROR, err);
-		break;
-	}
-
-	return err;
-}
-#endif /* CONFIG_NRF_CLOUD_AGPS && !CONFIG_NRF_CLOUD_MQTT */
 
 static void config_get(void)
 {
@@ -860,10 +746,15 @@ static void data_send_work_fn(struct k_work *work)
 static void requested_data_status_set(enum app_module_data_type data_type)
 {
 	if (!k_work_delayable_is_pending(&data_send_work)) {
-		/* If the data_send_work is not pending it means that the module has already
-		 * triggered an data encode/send.
-		 */
-		LOG_DBG("Data already encoded and sent, abort.");
+		if (data_type == APP_DATA_LOCATION) {
+			/* We may get location related data when a fallback to next method occurs */
+			data_send_work_fn(NULL);
+		} else {
+			/* If the data_send_work is not pending it means that the module has already
+			 * triggered an data encode/send.
+			 */
+			LOG_DBG("Data already encoded and sent, abort.");
+		}
 		return;
 	}
 
@@ -1052,96 +943,17 @@ static void new_config_handle(struct cloud_data_cfg *new_config)
 	config_send();
 }
 
-/**
- * @brief Function that requests A-GPS and P-GPS data upon receiving a request from the
- *        location module.
- *
- * @param[in] incoming_request Pointer to a structure containing A-GPS data types that has been
- *			       requested by the modem. If incoming_request is NULL, all A-GPS data
- *			       types are requested.
- */
-static void agps_request_handle(struct nrf_modem_gnss_agps_data_frame *incoming_request)
-{
-	int err;
-
-#if defined(CONFIG_NRF_CLOUD_AGPS)
-	struct nrf_modem_gnss_agps_data_frame request;
-
-	if (incoming_request != NULL) {
-		request.sv_mask_ephe = incoming_request->sv_mask_ephe;
-		request.sv_mask_alm = incoming_request->sv_mask_alm;
-		request.data_flags = incoming_request->data_flags;
-	}
-
-#if defined(CONFIG_NRF_CLOUD_MQTT)
-	/* If CONFIG_NRF_CLOUD_MQTT is enabled, the nRF Cloud MQTT transport library will be used
-	 * to send the request.
-	 */
-	err = (incoming_request == NULL) ? nrf_cloud_agps_request_all() :
-					   nrf_cloud_agps_request(&request);
-	if (err) {
-		LOG_WRN("Failed to request A-GPS data, error: %d", err);
-		LOG_DBG("This is expected to fail if we are not in a connected state");
-	} else {
-		if (nrf_cloud_agps_request_in_progress()) {
-			LOG_DBG("A-GPS request sent");
-			return;
-		}
-		LOG_DBG("No A-GPS data requested");
-		/* Continue so P-GPS, if enabled, can be requested. */
-	}
-#else
-	/* If the nRF Cloud MQTT transport library is not enabled, we will have to create an
-	 * A-GPS request and send out an event containing the request for the cloud module to pick
-	 * up and send to the cloud that is currently used.
-	 */
-	err = (incoming_request == NULL) ? agps_request_encode(NULL) :
-					   agps_request_encode(&request);
-	if (err) {
-		LOG_WRN("Failed to request A-GPS data, error: %d", err);
-	} else {
-		LOG_DBG("A-GPS request sent");
-		return;
-	}
-#endif
-#endif
-
-#if defined(CONFIG_NRF_CLOUD_PGPS)
-	/* A-GPS data is not expected to be received. Proceed to schedule a callback when
-	 * P-GPS data for current time is available.
-	 */
-	err = nrf_cloud_pgps_notify_prediction();
-	if (err) {
-		LOG_ERR("Requesting notification of prediction availability, error: %d", err);
-	}
-#endif
-
-	(void)err;
-}
-
 /* Message handler for STATE_CLOUD_DISCONNECTED. */
 static void on_cloud_state_disconnected(struct data_msg_data *msg)
 {
 	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONNECTED)) {
 		state_set(STATE_CLOUD_CONNECTED);
-		if (agps_request_buffered) {
-			LOG_DBG("Handle buffered A-GPS request");
-			agps_request_handle(&agps_request_buffer);
-			agps_request_buffered = false;
-		}
 		return;
 	}
 
 	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONFIG_EMPTY) &&
 	    IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)) {
 		config_send();
-	}
-
-	if (IS_EVENT(msg, location, LOCATION_MODULE_EVT_AGPS_NEEDED)) {
-		LOG_DBG("A-GPS request buffered");
-		agps_request_buffered = true;
-		agps_request_buffer = msg->module.location.data.agps_request;
-		return;
 	}
 }
 
@@ -1175,11 +987,6 @@ static void on_cloud_state_connected(struct data_msg_data *msg)
 
 	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONFIG_EMPTY)) {
 		config_send();
-		return;
-	}
-
-	if (IS_EVENT(msg, location, LOCATION_MODULE_EVT_AGPS_NEEDED)) {
-		agps_request_handle(&msg->module.location.data.agps_request);
 		return;
 	}
 }
@@ -1307,7 +1114,6 @@ static void on_all_states(struct data_msg_data *msg)
 			.rsrp = msg->module.modem.data.modem_dynamic.rsrp,
 			.mcc = msg->module.modem.data.modem_dynamic.mcc,
 			.mnc = msg->module.modem.data.modem_dynamic.mnc,
-			.energy_estimate = msg->module.modem.data.modem_dynamic.energy_estimate,
 			.ts = msg->module.modem.data.modem_dynamic.timestamp,
 			.queued = true
 		};
@@ -1374,21 +1180,6 @@ static void on_all_states(struct data_msg_data *msg)
 		requested_data_status_set(APP_DATA_ENVIRONMENTAL);
 	}
 
-	if (IS_EVENT(msg, sensor, SENSOR_EVT_SOLAR_DATA_READY)) {
-		struct cloud_data_solar new_sol_data = {
-			.voltage = msg->module.sensor.data.solar.voltage,
-			.current = msg->module.sensor.data.solar.current,
-			.ts = msg->module.sensor.data.solar.timestamp,
-			.queued = true
-		};
-
-		cloud_codec_populate_sol_buffer(sol_buf,
-						&new_sol_data,
-						&head_sol_buf,
-						ARRAY_SIZE(sol_buf));
-		requested_data_status_set(APP_DATA_SOLAR);
-	}
-
 	if (IS_EVENT(msg, sensor, SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED)) {
 		requested_data_status_set(APP_DATA_ENVIRONMENTAL);
 	}
@@ -1432,6 +1223,8 @@ static void on_all_states(struct data_msg_data *msg)
 	}
 
 	if (IS_EVENT(msg, location, LOCATION_MODULE_EVT_CLOUD_LOCATION_DATA_READY)) {
+		cloud_location.neighbor_cells_valid = false;
+		cloud_location.neighbor_cells.queued = false;
 		if (msg->module.location.data.cloud_location.neighbor_cells_valid) {
 			BUILD_ASSERT(sizeof(cloud_location.neighbor_cells.cell_data) ==
 				     sizeof(msg->module.location.data.cloud_location
@@ -1456,6 +1249,9 @@ static void on_all_states(struct data_msg_data *msg)
 			       sizeof(cloud_location.neighbor_cells.neighbor_cells));
 		}
 #if defined(CONFIG_LOCATION_METHOD_WIFI)
+		cloud_location.wifi_access_points_valid = false;
+		cloud_location.wifi_access_points.queued = false;
+
 		if (msg->module.location.data.cloud_location.wifi_access_points_valid) {
 			BUILD_ASSERT(sizeof(cloud_location.wifi_access_points.ap_info) ==
 				     sizeof(msg->module.location.data.cloud_location

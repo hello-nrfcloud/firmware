@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Nordic Semiconductor ASA
+ * Copyright (c) 2023 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
@@ -190,8 +190,8 @@ static void ext_sensor_handler(const struct ext_sensor_evt *const evt)
 	case EXT_SENSOR_EVT_PRESSURE_ERROR:
 		LOG_ERR("EXT_SENSOR_EVT_PRESSURE_ERROR");
 		break;
-	case EXT_SENSOR_EVT_BME680_BSEC_ERROR:
-		LOG_ERR("EXT_SENSOR_EVT_BME680_BSEC_ERROR");
+	case EXT_SENSOR_EVT_AIR_QUALITY_ERROR:
+		LOG_ERR("EXT_SENSOR_EVT_AIR_QUALITY_ERROR");
 		break;
 	default:
 		break;
@@ -280,8 +280,8 @@ static void battery_data_get(void)
 static void environmental_data_get(void)
 {
 	struct sensor_module_event *sensor_module_event;
-	int err;
 #if defined(CONFIG_EXTERNAL_SENSORS)
+	int err;
 	double temperature = 0, humidity = 0, pressure = 0;
 	uint16_t bsec_air_quality = UINT16_MAX;
 
@@ -340,46 +340,6 @@ static void environmental_data_get(void)
 	sensor_module_event->type = SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED;
 #endif
 	APP_EVENT_SUBMIT(sensor_module_event);
-
-#if defined(CONFIG_INA3221)
-	const struct device *ina3221_dev = DEVICE_DT_GET_ONE(ti_ina3221);
-	struct sensor_value voltage, current;
-	struct sensor_module_event *sensor_module_event2;
-
-	if (!device_is_ready(ina3221_dev)) {
-		LOG_ERR("sensor: ina3221 not ready.");
-		return;
-	}
-
-	/* perform measurement */
-	if (sensor_sample_fetch(ina3221_dev)) {
-		LOG_ERR("sensor_sample fetch failed");
-	}
-
-	if (sensor_channel_get(ina3221_dev, SENSOR_CHAN_VOLTAGE, &voltage)) {
-		LOG_ERR("sensor_sample get voltage failed");
-		return;
-	}
-
-	if (sensor_channel_get(ina3221_dev, SENSOR_CHAN_CURRENT, &current)) {
-		LOG_ERR("sensor_sample get current failed");
-		return;
-	}
-
-	float voltage_f = sensor_value_to_double(&voltage);
-	float current_f = sensor_value_to_double(&current);
-	LOG_WRN("Channel %d: %.2fmA", 0, current_f * 1000.0);
-	sensor_module_event2 = new_sensor_module_event();
-	__ASSERT(sensor_module_event2, "Not enough heap left to allocate event");
-
-	sensor_module_event2->data.solar.voltage = voltage_f;
-	sensor_module_event2->data.solar.current = current_f;
-	sensor_module_event2->data.solar.timestamp = k_uptime_get();
-	sensor_module_event2->type = SENSOR_EVT_SOLAR_DATA_READY;
-	
-	APP_EVENT_SUBMIT(sensor_module_event2);
-#endif
-	ARG_UNUSED(err);
 }
 
 static int setup(void)

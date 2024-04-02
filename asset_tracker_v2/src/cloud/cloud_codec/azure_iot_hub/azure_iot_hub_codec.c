@@ -33,7 +33,7 @@ int cloud_codec_encode_cloud_location(
 	struct cloud_codec_data *output,
 	struct cloud_data_cloud_location *cloud_location)
 {
-	int err;
+	int err = -ENODATA;
 	char *buffer;
 
 	__ASSERT_NO_MSG(output != NULL);
@@ -45,22 +45,21 @@ int cloud_codec_encode_cloud_location(
 		return -ENOMEM;
 	}
 
-	if (!cloud_location->neighbor_cells_valid) {
-		err = -ENODATA;
-		goto exit;
-	}
-
-	err = json_common_neighbor_cells_data_add(root_obj, &cloud_location->neighbor_cells,
-						  JSON_COMMON_ADD_DATA_TO_OBJECT);
-	if (err) {
-		goto exit;
+	if (cloud_location->neighbor_cells_valid) {
+		err = json_common_neighbor_cells_data_add(root_obj, &cloud_location->neighbor_cells,
+							  JSON_COMMON_ADD_DATA_TO_OBJECT);
+		if (err) {
+			goto exit;
+		}
 	}
 
 #if defined(CONFIG_LOCATION_METHOD_WIFI)
-	err = json_common_wifi_ap_data_add(root_obj, &cloud_location->wifi_access_points,
-					   JSON_COMMON_ADD_DATA_TO_OBJECT);
-	if (err) {
-		goto exit;
+	if (cloud_location->wifi_access_points_valid) {
+		err = json_common_wifi_ap_data_add(root_obj, &cloud_location->wifi_access_points,
+						   JSON_COMMON_ADD_DATA_TO_OBJECT);
+		if (err) {
+			goto exit;
+		}
 	}
 #endif
 
@@ -84,14 +83,21 @@ exit:
 	return err;
 }
 
-int cloud_codec_encode_agps_request(struct cloud_codec_data *output,
-				    struct cloud_data_agps_request *agps_request)
+
+int cloud_codec_decode_cloud_location(const char *input, size_t input_len,
+				      struct location_data *location)
+{
+	return -ENOTSUP;
+}
+
+int cloud_codec_encode_agnss_request(struct cloud_codec_data *output,
+				     struct cloud_data_agnss_request *agnss_request)
 {
 	int err;
 	char *buffer;
 
 	__ASSERT_NO_MSG(output != NULL);
-	__ASSERT_NO_MSG(agps_request != NULL);
+	__ASSERT_NO_MSG(agnss_request != NULL);
 
 	cJSON *root_obj = cJSON_CreateObject();
 
@@ -99,8 +105,8 @@ int cloud_codec_encode_agps_request(struct cloud_codec_data *output,
 		return -ENOMEM;
 	}
 
-	err = json_common_agps_request_data_add(root_obj, agps_request,
-						JSON_COMMON_ADD_DATA_TO_OBJECT);
+	err = json_common_agnss_request_data_add(root_obj, agnss_request,
+						 JSON_COMMON_ADD_DATA_TO_OBJECT);
 	if (err) {
 		goto exit;
 	}
@@ -264,8 +270,7 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf,
-			    struct cloud_data_solar *sol_buf)
+			    struct cloud_data_battery *bat_buf)
 {
 	int err;
 	char *buffer;
@@ -341,16 +346,6 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 	err = json_common_battery_data_add(root_obj, bat_buf,
 					   JSON_COMMON_ADD_DATA_TO_OBJECT,
 					   DATA_BATTERY,
-					   NULL);
-	if (err == 0) {
-		object_added = true;
-	} else if (err != -ENODATA) {
-		goto exit;
-	}
-
-	err = json_common_solar_data_add(root_obj, sol_buf,
-					   JSON_COMMON_ADD_DATA_TO_OBJECT,
-					   DATA_SOLAR,
 					   NULL);
 	if (err == 0) {
 		object_added = true;
@@ -479,15 +474,13 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
-				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count,
-				  size_t sol_buf_count)
+				  size_t bat_buf_count)
 {
 	int err;
 	char *buffer;
@@ -557,15 +550,6 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 	err = json_common_batch_data_add(root_obj, JSON_COMMON_BATTERY,
 					 bat_buf, bat_buf_count,
 					 DATA_BATTERY);
-	if (err == 0) {
-		object_added = true;
-	} else if (err != -ENODATA) {
-		goto exit;
-	}
-
-	err = json_common_batch_data_add(root_obj, JSON_COMMON_SOLAR,
-					 sol_buf, sol_buf_count,
-					 DATA_SOLAR);
 	if (err == 0) {
 		object_added = true;
 	} else if (err != -ENODATA) {

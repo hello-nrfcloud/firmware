@@ -14,13 +14,9 @@ if CLOUD_MODULE
 # Only a single cloud MQTT service is supported at a time.
 CLOUD_SERVICE_SELECTOR := choice
 
-# nRF Cloud A-GPS is enabled by default when building for all supported cloud transport services.
-# For LwM2M builds, A-GPS is disabled if P-GPS is enabled.
-# This is because the two methods are currently mutually exclusive for LwM2M builds.
-# For the other cloud configurations, A-GPS and P-GPS can coexist.
-config NRF_CLOUD_AGPS
+# nRF Cloud A-GNSS is enabled by default when building for all supported cloud transport services.
+config NRF_CLOUD_AGNSS
 	depends on LOCATION_MODULE
-	default n if NRF_CLOUD_PGPS && LWM2M_INTEGRATION
 	default y
 
 # Enable MQTT clean session by default. This is to ensure that the configured cloud MQTT service
@@ -30,9 +26,6 @@ config MQTT_CLEAN_SESSION
 
 # Kconfig options that are specific to the nRF Cloud MQTT transport service library.
 if NRF_CLOUD_MQTT
-
-config NRF_CLOUD_SEND_DEVICE_STATUS_SIM
-	default y
 
 config NRF_CLOUD_DEVICE_STATUS_ENCODE_VOLTAGE
 	default n
@@ -47,6 +40,36 @@ endchoice
 
 config NRF_CLOUD_LOCATION
 	default y if !BOARD_QEMU_X86
+
+# The dynamic network info is updated by the application using device messages.
+config NRF_CLOUD_SEND_DEVICE_STATUS_NETWORK
+	default n
+
+# On initial connection to the cloud, add info sections to the shadow.
+config NRF_CLOUD_SEND_DEVICE_STATUS
+	default y
+
+config NRF_CLOUD_SEND_DEVICE_STATUS_SIM
+	default y
+
+config NRF_CLOUD_SEND_SERVICE_INFO_FOTA
+	default y
+
+config NRF_CLOUD_SEND_SERVICE_INFO_UI
+	default y
+
+# Enable cards for sensor data display in the nRF Cloud UI.
+config NRF_CLOUD_ENABLE_SVC_INF_UI_TEMP
+	default y if EXTERNAL_SENSORS
+
+config NRF_CLOUD_ENABLE_SVC_INF_UI_HUMID
+	default y if EXTERNAL_SENSORS
+
+config NRF_CLOUD_ENABLE_SVC_INF_UI_AIR_PRESSURE
+	default y if EXTERNAL_SENSORS
+
+config NRF_CLOUD_ENABLE_SVC_INF_UI_AIR_QUALITY
+	default y if EXTERNAL_SENSORS
 
 endif # NRF_CLOUD_MQTT
 

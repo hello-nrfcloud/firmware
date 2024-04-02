@@ -115,47 +115,6 @@ static void user_association_work_fn(struct k_work *work)
 	cloud_wrapper_notify_event(&cloud_wrap_evt);
 }
 
-static int send_service_info(void)
-{
-	int err;
-	struct nrf_cloud_svc_info_fota fota_info = {
-		.application = nrf_cloud_fota_is_type_enabled(NRF_CLOUD_FOTA_APPLICATION),
-		.bootloader = nrf_cloud_fota_is_type_enabled(NRF_CLOUD_FOTA_BOOTLOADER),
-		.modem = nrf_cloud_fota_is_type_enabled(NRF_CLOUD_FOTA_MODEM_DELTA),
-		.modem_full = nrf_cloud_fota_is_type_enabled(NRF_CLOUD_FOTA_MODEM_FULL)
-	};
-	struct nrf_cloud_svc_info_ui ui_info = {
-		.gnss = true,
-#if defined(CONFIG_BOARD_THINGY91_NRF9160_NS)
-		.humidity = true,
-		.air_pressure = true,
-		.air_quality = true,
-		.temperature = true,
-#endif
-		.rsrp = true,
-		.button = true
-	};
-	struct nrf_cloud_svc_info service_info = {
-		.fota = &fota_info,
-		.ui = &ui_info
-	};
-	struct nrf_cloud_device_status device_status = {
-		.modem = NULL,
-		.svc = &service_info
-
-	};
-
-	err = nrf_cloud_shadow_device_status_update(&device_status);
-	if (err) {
-		LOG_ERR("nrf_cloud_shadow_device_status_update, error: %d", err);
-		return err;
-	}
-
-	LOG_DBG("nRF Cloud service info sent");
-
-	return 0;
-}
-
 static void nrf_cloud_event_handler(const struct nrf_cloud_evt *evt)
 {
 	struct cloud_wrap_event cloud_wrap_evt = { 0 };
@@ -178,12 +137,6 @@ static void nrf_cloud_event_handler(const struct nrf_cloud_evt *evt)
 		LOG_DBG("NRF_CLOUD_EVT_READY");
 		cloud_wrap_evt.type = CLOUD_WRAP_EVT_CONNECTED;
 		notify = true;
-
-		err = send_service_info();
-		if (err) {
-			LOG_ERR("Failed to send nRF Cloud service information");
-			cloud_wrap_evt.type = CLOUD_WRAP_EVT_ERROR;
-		}
 		break;
 	case NRF_CLOUD_EVT_TRANSPORT_DISCONNECTED:
 		LOG_DBG("NRF_CLOUD_EVT_TRANSPORT_DISCONNECTED");
@@ -233,7 +186,16 @@ static void nrf_cloud_event_handler(const struct nrf_cloud_evt *evt)
 		notify = true;
 		break;
 	case NRF_CLOUD_EVT_RX_DATA_LOCATION:
-		LOG_DBG("NRF_CLOUD_EVT_RX_DATA_LOCATION");
+		LOG_DBG("NRF_CLOUD_EVT_RX_DATA_LOCATION: %s", (char *)evt->data.ptr);
+
+		/* If GNSS is NOT the first priority, we'll handle the cloud response */
+		if (!IS_ENABLED(CONFIG_LOCATION_REQUEST_DEFAULT_METHOD_FIRST_GNSS)) {
+			cloud_wrap_evt.type = CLOUD_WRAP_EVT_CLOUD_LOCATION_RESULT_RECEIVED;
+			cloud_wrap_evt.data.buf = (char *)evt->data.ptr;
+			cloud_wrap_evt.data.len = evt->data.len;
+
+			notify = true;
+		}
 		break;
 	case NRF_CLOUD_EVT_USER_ASSOCIATION_REQUEST:
 		LOG_WRN("NRF_CLOUD_EVT_USER_ASSOCIATION_REQUEST");
@@ -440,6 +402,16 @@ int cloud_wrap_cloud_location_send(char *buf, size_t len, bool ack, uint32_t id)
 	return 0;
 }
 
+bool cloud_wrap_cloud_location_response_wait(void)
+{
+	/* If GNSS is the first priority, then we can ignore the location response from the cloud */
+	if (IS_ENABLED(CONFIG_LOCATION_REQUEST_DEFAULT_METHOD_FIRST_GNSS)) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
 #if defined(CONFIG_LOCATION_METHOD_WIFI)
 int cloud_wrap_wifi_access_points_send(char *buf, size_t len, bool ack, uint32_t id)
 {
@@ -478,9 +450,9 @@ int cloud_wrap_data_send(char *buf, size_t len, bool ack, uint32_t id,
 	return -ENOTSUP;
 }
 
-int cloud_wrap_agps_request_send(char *buf, size_t len, bool ack, uint32_t id)
+int cloud_wrap_agnss_request_send(char *buf, size_t len, bool ack, uint32_t id)
 {
-	/* Not supported, A-GPS is requested internally via the nRF Cloud A-GPS library. */
+	/* Not supported, A-GNSS is requested internally via the nRF Cloud A-GNSS library. */
 	return -ENOTSUP;
 }
 
