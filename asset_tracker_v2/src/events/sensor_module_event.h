@@ -47,9 +47,6 @@ enum sensor_module_event_type {
 	/** Environmental sensors are not supported on the current board. */
 	SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED,
 
-	/** Solar shield current measurement is ready. */
-	SENSOR_EVT_SOLAR_DATA_READY,
-
 	/** Battery fuel gauge data has been sampled.
 	 *  Payload is of type @ref sensor_module_data (bat).
 	 */
@@ -101,13 +98,6 @@ struct sensor_module_impact_data {
 	double magnitude;
 };
 
-struct sensor_module_solar_data {
-	/** Uptime when the data was sampled. */
-	int64_t timestamp;
-	float voltage;
-	float current;
-};
-
 /** @brief Structure used to provide battery level. */
 struct sensor_module_batt_lvl_data {
 	/** Uptime when the data was sampled. */
@@ -129,8 +119,6 @@ struct sensor_module_event {
 		struct sensor_module_accel_data accel;
 		/** Variable that contains impact data. */
 		struct sensor_module_impact_data impact;
-		/** Variable that contains solar shield data. */
-		struct sensor_module_solar_data solar;
 		/** Variable that contains battery level data. */
 		struct sensor_module_batt_lvl_data bat;
 		/** Module ID, used when acknowledging shutdown requests. */

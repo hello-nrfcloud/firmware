@@ -221,14 +221,6 @@ int json_common_modem_dynamic_data_add(cJSON *parent,
 		goto exit;
 	}
 
-	if (data->energy_estimate != 0) {
-		err = json_add_number(modem_val_obj, MODEM_ENERGY_ESTIMATE, data->energy_estimate);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
-	}
-
 	json_add_obj(modem_obj, DATA_VALUE, modem_val_obj);
 
 	err = json_add_number(modem_obj, DATA_TIMESTAMP, data->ts);
@@ -788,9 +780,9 @@ cleanup:
 }
 #endif /* CONFIG_LOCATION_METHOD_WIFI */
 
-int json_common_agps_request_data_add(cJSON *parent,
-				      struct cloud_data_agps_request *data,
-				      enum json_common_op_code op)
+int json_common_agnss_request_data_add(cJSON *parent,
+				       struct cloud_data_agnss_request *data,
+				       enum json_common_op_code op)
 {
 	int err;
 
@@ -798,123 +790,129 @@ int json_common_agps_request_data_add(cJSON *parent,
 		return -ENODATA;
 	}
 
-	err = json_add_number(parent, DATA_AGPS_REQUEST_MCC, data->mcc);
+	err = json_add_number(parent, DATA_AGNSS_REQUEST_MCC, data->mcc);
 	if (err) {
 		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 		return err;
 	}
 
-	err = json_add_number(parent, DATA_AGPS_REQUEST_MNC, data->mnc);
+	err = json_add_number(parent, DATA_AGNSS_REQUEST_MNC, data->mnc);
 	if (err) {
 		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 		return err;
 	}
 
-	err = json_add_number(parent, DATA_AGPS_REQUEST_TAC, data->area);
+	err = json_add_number(parent, DATA_AGNSS_REQUEST_TAC, data->area);
 	if (err) {
 		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 		return err;
 	}
 
-	err = json_add_number(parent, DATA_AGPS_REQUEST_CID, data->cell);
+	err = json_add_number(parent, DATA_AGNSS_REQUEST_CID, data->cell);
 	if (err) {
 		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 		return err;
 	}
 
-	cJSON *agps_types = cJSON_CreateArray();
+	cJSON *agnss_types = cJSON_CreateArray();
 
-	if (agps_types == NULL) {
+	if (agnss_types == NULL) {
 		return -ENOMEM;
 	}
 
-	if (data->request.data_flags & NRF_MODEM_GNSS_AGPS_GPS_UTC_REQUEST) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_UTC_PARAMETERS);
+	if (data->request.data_flags & NRF_MODEM_GNSS_AGNSS_GPS_UTC_REQUEST) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_GPS_UTC_PARAMETERS);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (data->request.sv_mask_ephe) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_EPHEMERIDES);
+	/* GPS data need is always expected to be present and first in list. */
+	__ASSERT(data->request.system_count > 0,
+		 "GNSS system data need not found");
+	__ASSERT(data->request.system[0].system_id == NRF_MODEM_GNSS_SYSTEM_GPS,
+		 "GPS data need not found");
+
+	if (data->request.system[0].sv_mask_ephe) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_GPS_EPHEMERIDES);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (data->request.sv_mask_alm) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_ALMANAC);
+	if (data->request.system[0].sv_mask_alm) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_GPS_ALMANAC);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (data->request.data_flags & NRF_MODEM_GNSS_AGPS_KLOBUCHAR_REQUEST) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_KLOBUCHAR_CORRECTION);
+	if (data->request.data_flags & NRF_MODEM_GNSS_AGNSS_KLOBUCHAR_REQUEST) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_KLOBUCHAR_CORRECTION);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (data->request.data_flags & NRF_MODEM_GNSS_AGPS_NEQUICK_REQUEST) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_NEQUICK_CORRECTION);
+	if (data->request.data_flags & NRF_MODEM_GNSS_AGNSS_NEQUICK_REQUEST) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_NEQUICK_CORRECTION);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (data->request.data_flags & NRF_MODEM_GNSS_AGPS_SYS_TIME_AND_SV_TOW_REQUEST) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_GPS_TOWS);
+	if (data->request.data_flags & NRF_MODEM_GNSS_AGNSS_GPS_SYS_TIME_AND_SV_TOW_REQUEST) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_GPS_TOWS);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_GPS_SYSTEM_CLOCK_AND_TOWS);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
-	}
-
-	if (data->request.data_flags & NRF_MODEM_GNSS_AGPS_POSITION_REQUEST) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_LOCATION);
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_GPS_SYSTEM_CLOCK_AND_TOWS);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (data->request.data_flags & NRF_MODEM_GNSS_AGPS_INTEGRITY_REQUEST) {
-		err = json_add_number_to_array(agps_types,
-					       DATA_AGPS_REQUEST_TYPE_INTEGRITY);
+	if (data->request.data_flags & NRF_MODEM_GNSS_AGNSS_POSITION_REQUEST) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_LOCATION);
 		if (err) {
 			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
 			goto exit;
 		}
 	}
 
-	if (cJSON_GetArraySize(agps_types) == 0) {
-		LOG_ERR("No AGPS request types to encode");
+	if (data->request.data_flags & NRF_MODEM_GNSS_AGNSS_INTEGRITY_REQUEST) {
+		err = json_add_number_to_array(agnss_types,
+					       DATA_AGNSS_REQUEST_TYPE_GPS_INTEGRITY);
+		if (err) {
+			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+			goto exit;
+		}
+	}
+
+	if (cJSON_GetArraySize(agnss_types) == 0) {
+		LOG_ERR("No A-GNSS request types to encode");
 		err = -ENODATA;
 		goto exit;
 	}
 
 	err = op_code_handle(parent, JSON_COMMON_ADD_DATA_TO_OBJECT,
-			     DATA_AGPS_REQUEST_TYPES, agps_types, NULL);
+			     DATA_AGNSS_REQUEST_TYPES, agnss_types, NULL);
 	if (err) {
 		goto exit;
 	}
@@ -923,7 +921,7 @@ int json_common_agps_request_data_add(cJSON *parent,
 	return 0;
 
 exit:
-	cJSON_Delete(agps_types);
+	cJSON_Delete(agnss_types);
 	return err;
 }
 
@@ -1011,66 +1009,6 @@ int json_common_battery_data_add(cJSON *parent,
 
 exit:
 	cJSON_Delete(battery_obj);
-	return err;
-}
-
-int json_common_solar_data_add(cJSON *parent,
-				 struct cloud_data_solar *data,
-				 enum json_common_op_code op,
-				 const char *object_label,
-				 cJSON **parent_ref)
-{
-	int err;
-
-	if (!data->queued) {
-		return -ENODATA;
-	}
-
-	err = date_time_uptime_to_unix_time_ms(&data->ts);
-	if (err) {
-		LOG_ERR("date_time_uptime_to_unix_time_ms, error: %d", err);
-		return err;
-	}
-
-	cJSON *solar_obj = cJSON_CreateObject();
-	cJSON *solar_val_obj = cJSON_CreateObject();
-
-	if (solar_obj == NULL || solar_val_obj == NULL) {
-		err = -ENOMEM;
-		goto exit;
-	}
-
-	err = json_add_number(solar_val_obj, DATA_SOLAR_GAIN, data->current * 1000);
-	if (err) {
-		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-		goto exit;
-	}
-
-	err = json_add_number(solar_val_obj, DATA_BATTERY, data->voltage);
-	if (err) {
-		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-		goto exit;
-	}
-
-	json_add_obj(solar_obj, DATA_VALUE, solar_val_obj);
-
-	err = json_add_number(solar_obj, DATA_TIMESTAMP, data->ts);
-	if (err) {
-		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-		goto exit;
-	}
-
-	err = op_code_handle(parent, op, object_label, solar_obj, parent_ref);
-	if (err) {
-		goto exit;
-	}
-
-	data->queued = false;
-
-	return 0;
-
-exit:
-	cJSON_Delete(solar_obj);
 	return err;
 }
 
@@ -1356,16 +1294,6 @@ int json_common_batch_data_add(cJSON *parent, enum json_common_buffer_type type,
 			struct cloud_data_battery *data =
 					(struct cloud_data_battery *)buf;
 			err = json_common_battery_data_add(array_obj,
-							   &data[i],
-							   JSON_COMMON_ADD_DATA_TO_ARRAY,
-							   NULL,
-							   NULL);
-		}
-			break;
-		case JSON_COMMON_SOLAR: {
-			struct cloud_data_solar *data =
-					(struct cloud_data_solar *)buf;
-			err = json_common_solar_data_add(array_obj,
 							   &data[i],
 							   JSON_COMMON_ADD_DATA_TO_ARRAY,
 							   NULL,

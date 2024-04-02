@@ -121,6 +121,7 @@ enum modem_module_event_type {
 	MODEM_EVT_CARRIER_REBOOT_REQUEST,
 	MODEM_EVT_CARRIER_EVENT_LTE_LINK_UP_REQUEST,
 	MODEM_EVT_CARRIER_EVENT_LTE_LINK_DOWN_REQUEST,
+	MODEM_EVT_CARRIER_EVENT_LTE_POWER_OFF_REQUEST
 };
 
 /** @brief LTE cell information. */
@@ -163,7 +164,6 @@ struct modem_module_dynamic_modem_data {
 	int16_t rsrp;
 	uint16_t mcc;
 	uint16_t mnc;
-	uint16_t energy_estimate;
 	char ip_address[INET6_ADDRSTRLEN];
 	char apn[CONFIG_MODEM_APN_LEN_MAX];
 	char mccmnc[7];

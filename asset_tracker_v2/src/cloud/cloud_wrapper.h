@@ -49,14 +49,18 @@ enum cloud_wrap_event_type {
 	CLOUD_WRAP_EVT_DATA_ACK,
 	/** Event received when a ping response has been received. */
 	CLOUD_WRAP_EVT_PING_ACK,
-	/** A-GPS data received from the cloud integration layer.
+	/** A-GNSS data received from the cloud integration layer.
 	 *  Payload is of type @ref cloud_wrap_event_data.
 	 */
-	CLOUD_WRAP_EVT_AGPS_DATA_RECEIVED,
+	CLOUD_WRAP_EVT_AGNSS_DATA_RECEIVED,
 	/** P-GPS data received from the cloud integration layer.
 	 *  Payload is of type @ref cloud_wrap_event_data.
 	 */
 	CLOUD_WRAP_EVT_PGPS_DATA_RECEIVED,
+	/** Data received from cloud integration layer.
+	 *  Payload is of type @ref cloud_wrap_event_data.
+	 */
+	CLOUD_WRAP_EVT_CLOUD_LOCATION_RESULT_RECEIVED,
 	/** Reboot request received from cloud. */
 	CLOUD_WRAP_EVT_REBOOT_REQUEST,
 	/** Request to connect to LTE. */
@@ -211,7 +215,15 @@ int cloud_wrap_ui_send(char *buf, size_t len, bool ack, uint32_t id,
 int cloud_wrap_cloud_location_send(char *buf, size_t len, bool ack, uint32_t id);
 
 /**
- * @brief Send A-GPS request to cloud.
+ * @brief Indicates whether cloud implementation can and is configured to return the resolved
+ *        location back to the device.
+ *
+ * @return Indicates whether resolved location is sent back to the device.
+ */
+bool cloud_wrap_cloud_location_response_wait(void);
+
+/**
+ * @brief Send A-GNSS request to cloud.
  *
  * @note LwM2M builds: This function does not require passing in a list of objects, unlike other
  *		       functions in this API. The underlying LwM2M API called when calling this
@@ -224,7 +236,7 @@ int cloud_wrap_cloud_location_send(char *buf, size_t len, bool ack, uint32_t id)
  *
  * @return 0 on success, or a negative error code on failure.
  */
-int cloud_wrap_agps_request_send(char *buf, size_t len, bool ack, uint32_t id);
+int cloud_wrap_agnss_request_send(char *buf, size_t len, bool ack, uint32_t id);
 
 /**
  * @brief Send P-GPS request to cloud.

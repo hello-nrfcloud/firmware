@@ -174,41 +174,48 @@ static void sub_state_set(enum sub_state_type new_state)
 }
 
 #if defined(CONFIG_NRF_MODEM_LIB)
-/* Check the return code from nRF modem library initialization to ensure that
- * the modem is rebooted if a modem firmware update is ready to be applied or
- * an error condition occurred during firmware update or library initialization.
- */
-static void modem_init(void)
-{
-	int ret = nrf_modem_lib_init();
 
-	/* Handle return values relating to modem firmware update */
-	switch (ret) {
-	case 0:
-		/* Initialization successful, no action required. */
-		return;
+static void on_modem_lib_dfu(int dfu_res, void *ctx)
+{
+	switch (dfu_res) {
 	case NRF_MODEM_DFU_RESULT_OK:
-		LOG_DBG("MODEM UPDATE OK. Will run new modem firmware after reboot");
+		LOG_DBG("MODEM UPDATE OK. Running new firmware");
 		break;
 	case NRF_MODEM_DFU_RESULT_UUID_ERROR:
 	case NRF_MODEM_DFU_RESULT_AUTH_ERROR:
-		LOG_ERR("MODEM UPDATE ERROR %d. Will run old firmware", ret);
+		LOG_ERR("MODEM UPDATE ERROR 0x%x. Running old firmware", dfu_res);
 		break;
 	case NRF_MODEM_DFU_RESULT_HARDWARE_ERROR:
 	case NRF_MODEM_DFU_RESULT_INTERNAL_ERROR:
-		LOG_ERR("MODEM UPDATE FATAL ERROR %d. Modem failure", ret);
+		LOG_ERR("MODEM UPDATE FATAL ERROR 0x%x. Modem failure", dfu_res);
 		break;
 	case NRF_MODEM_DFU_RESULT_VOLTAGE_LOW:
-		LOG_ERR("MODEM UPDATE CANCELLED %d.", ret);
+		LOG_ERR("MODEM UPDATE CANCELLED 0x%x.", dfu_res);
 		LOG_ERR("Please reboot once you have sufficient power for the DFU");
 		break;
 	default:
-		/* All non-zero return codes other than DFU result codes are
-		 * considered irrecoverable and a reboot is needed.
-		 */
-		LOG_ERR("nRF modem lib initialization failed, error: %d", ret);
+		/* Unknown DFU result code */
+		LOG_ERR("nRF modem DFU failed, error: 0x%x", dfu_res);
 		break;
 	}
+}
+
+NRF_MODEM_LIB_ON_DFU_RES(main_dfu_hook, on_modem_lib_dfu, NULL);
+
+/* Check the return code from nRF modem library initialization to ensure that
+ * the modem is rebooted or an error condition occurred during library initialization.
+ */
+static void modem_init(void)
+{
+	int ret;
+
+	ret = nrf_modem_lib_init();
+	if (ret == 0) {
+		LOG_DBG("nRF Modem Library initialized successfully");
+		return;
+	}
+
+	LOG_ERR("nRF modem lib initialization failed, error: %d", ret);
 
 #if defined(CONFIG_NRF_CLOUD_FOTA)
 	/* Ignore return value, rebooting below */
@@ -286,10 +293,15 @@ static void data_sample_timer_handler(struct k_timer *timer)
 {
 	ARG_UNUSED(timer);
 
-	/* Cancel if a previous sample request has not completed or the device is not under
-	 * activity in passive mode.
+	/* Cancel if a previous sample request has not completed. */
+	if (sample_request_ongoing) {
+		return;
+	}
+
+	/* Cancel if the data sample timer expired and device is not under activity in passive mode.
+	 * Movement timeout timer triggers sampling also when there is no movement.
 	 */
-	if (sample_request_ongoing || ((sub_state == SUB_STATE_PASSIVE_MODE) && !activity)) {
+	if (timer == &data_sample_timer && sub_state == SUB_STATE_PASSIVE_MODE && !activity) {
 		return;
 	}
 
@@ -369,15 +381,17 @@ static void data_get(void)
 
 	/* Specify which data that is to be included in the transmission. */
 	app_module_event->data_list[count++] = APP_DATA_MODEM_DYNAMIC;
-	app_module_event->data_list[count++] = APP_DATA_BATTERY;
-	app_module_event->data_list[count++] = APP_DATA_ENVIRONMENTAL;
-	app_module_event->data_list[count++] = APP_DATA_SOLAR;
-
 	if (!modem_static_sampled) {
 		app_module_event->data_list[count++] = APP_DATA_MODEM_STATIC;
 	}
 
-	if (!app_cfg.no_data.neighbor_cell || !app_cfg.no_data.gnss || !app_cfg.no_data.wifi) {
+	if (IS_ENABLED(CONFIG_SENSOR_MODULE)) {
+		app_module_event->data_list[count++] = APP_DATA_BATTERY;
+		app_module_event->data_list[count++] = APP_DATA_ENVIRONMENTAL;
+	}
+
+	if (IS_ENABLED(CONFIG_LOCATION_MODULE) &&
+	    (!app_cfg.no_data.neighbor_cell || !app_cfg.no_data.gnss || !app_cfg.no_data.wifi)) {
 		app_module_event->data_list[count++] = APP_DATA_LOCATION;
 
 		/* Set application module timeout when location sampling is requested.
@@ -424,8 +438,15 @@ static void on_state_init(struct app_msg_data *msg)
 /* Message handler for STATE_RUNNING. */
 static void on_state_running(struct app_msg_data *msg)
 {
-	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONNECTED)) {
+	/* A flag used to trigger sampling when connected to the cloud for the first time. Cloud
+	 * connection re-establishment should not trigger sampling.
+	 */
+	static bool initial_sampling_requested;
+
+	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONNECTED) && !initial_sampling_requested) {
 		data_get();
+
+		initial_sampling_requested = true;
 	}
 
 	if (IS_EVENT(msg, app, APP_EVT_DATA_GET_ALL)) {

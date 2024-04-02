@@ -37,7 +37,6 @@
 #define APP_ID_RSRP		NRF_CLOUD_JSON_APPID_VAL_RSRP
 #define APP_ID_CELL_POS		NRF_CLOUD_JSON_APPID_VAL_LOCATION
 #define APP_ID_IMPACT		"IMPACT"
-#define APP_ID_SOLAR		"SOLAR"
 
 #define MODEM_CURRENT_BAND     "currentBand"
 #define MODEM_NETWORK_MODE     "networkMode"
@@ -46,7 +45,6 @@
 #define MODEM_MCCMNC	       "mccmnc"
 #define MODEM_CELL_ID	       "cellID"
 #define MODEM_IP_ADDRESS       "ipAddress"
-#define MODEM_ENERGY_ESTIMATE  "eest"
 
 #define CONFIG_DEVICE_MODE		  "activeMode"
 #define CONFIG_ACTIVE_TIMEOUT		  "activeWaitTime"

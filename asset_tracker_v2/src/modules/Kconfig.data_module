@@ -21,7 +21,7 @@ config DATA_SEND_ALL_DEVICE_CONFIGURATIONS
 
 config DATA_THREAD_STACK_SIZE
 	int "Data module thread stack size"
-	default 5632 if NRF_CLOUD_AGPS || LOCATION_METHOD_WIFI
+	default 5632 if NRF_CLOUD_AGNSS || LOCATION_METHOD_WIFI
 	default 3200
 
 config DATA_GNSS_BUFFER_COUNT
@@ -106,7 +106,7 @@ endchoice # DATA_DEVICE_MODE #
 
 config DATA_ACTIVE_TIMEOUT_SECONDS
 	int "Default active wait timeout in seconds"
-	default 120
+	default 300
 	help
 	  Number of seconds between sampling/publication in active mode.
 
@@ -168,6 +168,14 @@ config DATA_SAMPLE_NEIGHBOR_CELLS_DEFAULT
 	  If this configuration is enabled the application will by default include neighbor cell
 	  data in sample requests sent to other modules. This configuration can be overwritten by
 	  changing the application's real-time configuration using the cloud-side state.
+
+config DATA_SAMPLE_WIFI_DEFAULT
+	bool "Include Wi-Fi APs in sample requests"
+	default y
+	help
+	  If this configuration is enabled the application will by default include Wi-Fi AP data in
+	  sample requests sent to other modules. This configuration can be overwritten by changing
+	  the application's real-time configuration using the cloud-side state.
 
 config DATA_GRANT_SEND_ON_CONNECTION_QUALITY
 	bool "Grant or deny encoding and sending of data based on LTE connection quality"

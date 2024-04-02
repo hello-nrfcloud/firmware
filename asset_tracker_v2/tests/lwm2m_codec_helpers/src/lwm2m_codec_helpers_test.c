@@ -112,6 +112,20 @@ void test_codec_helpers_setup_resource_buffers(void)
 		LWM2M_RES_DATA_FLAG_RW, 0);
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
+		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, MODEL_NUMBER_RID), CONFIG_BOARD,
+		sizeof(CONFIG_BOARD), sizeof(CONFIG_BOARD), LWM2M_RES_DATA_FLAG_RO, 0);
+
+	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
+		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, HARDWARE_VERSION_RID), CONFIG_SOC,
+		sizeof(CONFIG_SOC), sizeof(CONFIG_SOC), LWM2M_RES_DATA_FLAG_RO, 0);
+
+	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
+		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, MANUFACTURER_RID),
+		CONFIG_CLOUD_CODEC_MANUFACTURER, sizeof(CONFIG_CLOUD_CODEC_MANUFACTURER),
+		sizeof(CONFIG_CLOUD_CODEC_MANUFACTURER), LWM2M_RES_DATA_FLAG_RO, 0);
+
+
+	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(IPSO_OBJECT_PRESSURE_ID, 0, TIMESTAMP_RID),
 		&pressure_ts, sizeof(pressure_ts), sizeof(pressure_ts),
 		LWM2M_RES_DATA_FLAG_RW, 0);
@@ -128,20 +142,22 @@ void test_codec_helpers_setup_resource_buffers(void)
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(IPSO_OBJECT_TEMP_SENSOR_ID, 0, SENSOR_UNITS_RID), BME680_TEMP_UNIT,
-		strlen(BME680_TEMP_UNIT), strlen(BME680_TEMP_UNIT), LWM2M_RES_DATA_FLAG_RO, 0);
-
-	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
-		&LWM2M_OBJ(IPSO_OBJECT_HUMIDITY_SENSOR_ID, 0, SENSOR_UNITS_RID), BME680_HUMID_UNIT,
-		strlen(BME680_HUMID_UNIT), strlen(BME680_HUMID_UNIT), LWM2M_RES_DATA_FLAG_RO, 0);
-
-	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
-		&LWM2M_OBJ(IPSO_OBJECT_PRESSURE_ID, 0, SENSOR_UNITS_RID), BME680_PRESSURE_UNIT,
-		strlen(BME680_PRESSURE_UNIT), strlen(BME680_PRESSURE_UNIT), LWM2M_RES_DATA_FLAG_RO,
+		strlen(BME680_TEMP_UNIT) + 1, strlen(BME680_TEMP_UNIT) + 1, LWM2M_RES_DATA_FLAG_RO,
 		0);
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
+		&LWM2M_OBJ(IPSO_OBJECT_HUMIDITY_SENSOR_ID, 0, SENSOR_UNITS_RID), BME680_HUMID_UNIT,
+		strlen(BME680_HUMID_UNIT) + 1, strlen(BME680_HUMID_UNIT) + 1,
+		LWM2M_RES_DATA_FLAG_RO, 0);
+
+	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
+		&LWM2M_OBJ(IPSO_OBJECT_PRESSURE_ID, 0, SENSOR_UNITS_RID), BME680_PRESSURE_UNIT,
+		strlen(BME680_PRESSURE_UNIT) + 1, strlen(BME680_PRESSURE_UNIT) + 1,
+		LWM2M_RES_DATA_FLAG_RO, 0);
+
+	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(IPSO_OBJECT_PUSH_BUTTON_ID, BUTTON1_OBJ_INST_ID, APPLICATION_TYPE_RID),
-		BUTTON1_APP_NAME, strlen(BUTTON1_APP_NAME), strlen(BUTTON1_APP_NAME),
+		BUTTON1_APP_NAME, strlen(BUTTON1_APP_NAME) + 1, strlen(BUTTON1_APP_NAME) + 1,
 		LWM2M_RES_DATA_FLAG_RO, 0);
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
@@ -151,7 +167,7 @@ void test_codec_helpers_setup_resource_buffers(void)
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(IPSO_OBJECT_PUSH_BUTTON_ID, BUTTON2_OBJ_INST_ID, APPLICATION_TYPE_RID),
-		BUTTON2_APP_NAME, strlen(BUTTON2_APP_NAME), strlen(BUTTON2_APP_NAME),
+		BUTTON2_APP_NAME, strlen(BUTTON2_APP_NAME) + 1, strlen(BUTTON2_APP_NAME) + 1,
 		LWM2M_RES_DATA_FLAG_RO, 0);
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
@@ -201,36 +217,36 @@ void test_codec_helpers_set_sensor_boundaries(void)
 	TEST_ASSERT_EQUAL(0, lwm2m_codec_helpers_setup_resources());
 }
 
-void test_codec_helpers_set_agps_data(void)
+void test_codec_helpers_set_agnss_data(void)
 {
-	struct cloud_data_agps_request agps = {
+	struct cloud_data_agnss_request agnss = {
 		.mnc = 1,
 		.mcc = 242,
 		.area = 30601,
 		.cell = 52118273,
-		.request.sv_mask_ephe = 0xFFFFFFFFu,
-		.request.sv_mask_alm = 0xFFFFFFFFu,
+		.request.system[0].sv_mask_ephe = 0xFFFFFFFFu,
+		.request.system[0].sv_mask_alm = 0xFFFFFFFFu,
 		.request.data_flags = 0xFFFFFFFFu,
 		.queued = true,
 	};
 
-	__cmock_location_assistance_agps_set_mask_ExpectAndReturn(&agps.request, 0);
+	__cmock_location_assistance_agnss_set_mask_ExpectAndReturn(&agnss.request, 0);
 
-	__cmock_location_assist_agps_set_elevation_mask_Expect(-1);
+	__cmock_location_assist_agnss_set_elevation_mask_Expect(-1);
 
 	__cmock_lwm2m_set_u32_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, CELLID), agps.cell, 0);
+		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, CELLID), agnss.cell, 0);
 
 	__cmock_lwm2m_set_u16_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, SMNC), agps.mnc, 0);
+		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, SMNC), agnss.mnc, 0);
 
 	__cmock_lwm2m_set_u16_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, SMCC), agps.mcc, 0);
+		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, SMCC), agnss.mcc, 0);
 
 	__cmock_lwm2m_set_u16_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, LAC), agps.area, 0);
+		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, LAC), agnss.area, 0);
 
-	TEST_ASSERT_EQUAL(0, lwm2m_codec_helpers_set_agps_data(&agps));
+	TEST_ASSERT_EQUAL(0, lwm2m_codec_helpers_set_agnss_data(&agnss));
 }
 
 void test_codec_helpers_set_pgps_data(void)
@@ -560,7 +576,7 @@ void test_codec_helpers_set_modem_dynamic_data(void)
 	__cmock_lwm2m_set_res_buf_ExpectAnyArgsAndReturn(0);
 	__cmock_lwm2m_set_res_buf_ExpectAnyArgsAndReturn(0);
 
-	__cmock_lwm2m_set_s8_ExpectAndReturn(
+	__cmock_lwm2m_set_s16_ExpectAndReturn(
 		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, RSS),
 		modem_dynamic.rsrp, 0);
 
@@ -597,29 +613,19 @@ void test_codec_helpers_set_modem_static_data(void)
 	};
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, MODEL_NUMBER_RID), CONFIG_BOARD,
-		strlen(CONFIG_BOARD), strlen(CONFIG_BOARD), LWM2M_RES_DATA_FLAG_RO, 0);
-
-	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, HARDWARE_VERSION_RID), CONFIG_SOC,
-		strlen(CONFIG_SOC), strlen(CONFIG_SOC), LWM2M_RES_DATA_FLAG_RO, 0);
-
-	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
-		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, MANUFACTURER_RID),
-		CONFIG_CLOUD_CODEC_MANUFACTURER, strlen(CONFIG_CLOUD_CODEC_MANUFACTURER),
-		strlen(CONFIG_CLOUD_CODEC_MANUFACTURER), LWM2M_RES_DATA_FLAG_RO, 0);
-
-	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, FIRMWARE_VERSION_RID), modem_static.appv,
-		strlen(modem_static.appv), strlen(modem_static.appv), LWM2M_RES_DATA_FLAG_RO, 0);
+		strlen(modem_static.appv) + 1, strlen(modem_static.appv) + 1,
+		LWM2M_RES_DATA_FLAG_RO, 0);
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, SOFTWARE_VERSION_RID), modem_static.fw,
-		strlen(modem_static.fw), strlen(modem_static.fw), LWM2M_RES_DATA_FLAG_RO, 0);
+		strlen(modem_static.fw) + 1, strlen(modem_static.fw) + 1, LWM2M_RES_DATA_FLAG_RO,
+		0);
 
 	__cmock_lwm2m_set_res_buf_ExpectAndReturn(
 		&LWM2M_OBJ(LWM2M_OBJECT_DEVICE_ID, 0, DEVICE_SERIAL_NUMBER_ID), modem_static.imei,
-		strlen(modem_static.imei), strlen(modem_static.imei), LWM2M_RES_DATA_FLAG_RO, 0);
+		strlen(modem_static.imei) + 1, strlen(modem_static.imei) + 1,
+		LWM2M_RES_DATA_FLAG_RO, 0);
 
 	TEST_ASSERT_EQUAL(0, lwm2m_codec_helpers_set_modem_static_data(&modem_static));
 }
@@ -716,7 +722,7 @@ void test_codec_helpers_set_neighbor_cell_data(void)
 	__cmock_lwm2m_update_signal_meas_objects_ExpectAndReturn(
 		(const struct lte_lc_cells_info *)cells, 0);
 
-	__cmock_lwm2m_set_s8_ExpectAndReturn(
+	__cmock_lwm2m_set_s16_ExpectAndReturn(
 		&LWM2M_OBJ(LWM2M_OBJECT_CONNECTIVITY_MONITORING_ID, 0, RSS),
 		ncell.cell_data.current_cell.rsrp, 0);
 

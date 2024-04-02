@@ -7,6 +7,7 @@
 #include <zephyr/kernel.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <app_event_manager.h>
 #include <math.h>
 #include <nrf_modem.h>
@@ -34,9 +35,6 @@
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_MODEM_MODULE_LOG_LEVEL);
-
-BUILD_ASSERT(!IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT),
-		"The Modem module does not support this configuration");
 
 
 struct modem_msg_data {
@@ -86,16 +84,6 @@ NRF_MODEM_LIB_ON_INIT(asset_tracker_init_hook, on_modem_lib_init, NULL);
 
 static void on_modem_lib_init(int ret, void *ctx)
 {
-	int err;
-
-	if (ret == 0) {
-		/* LTE LC is uninitialized on every modem shutdown. */
-		err = lte_lc_init();
-		if (err) {
-			LOG_ERR("lte_lc_init, error: %d", err);
-		}
-	}
-
 	k_sem_give(&nrf_modem_initialized);
 }
 
@@ -404,9 +392,11 @@ int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *evt)
 		SEND_EVENT(modem, MODEM_EVT_CARRIER_EVENT_LTE_LINK_DOWN_REQUEST);
 		break;
 	}
-	case LWM2M_CARRIER_EVENT_LTE_POWER_OFF:
+	case LWM2M_CARRIER_EVENT_LTE_POWER_OFF: {
 		LOG_INF("LWM2M_CARRIER_EVENT_LTE_POWER_OFF");
+		SEND_EVENT(modem, MODEM_EVT_CARRIER_EVENT_LTE_POWER_OFF_REQUEST);
 		break;
+	}
 	case LWM2M_CARRIER_EVENT_BOOTSTRAPPED:
 		LOG_INF("LWM2M_CARRIER_EVENT_BOOTSTRAPPED");
 		break;
@@ -436,6 +426,12 @@ int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *evt)
 		 */
 		return 1;
 	}
+	case LWM2M_CARRIER_EVENT_MODEM_DOMAIN:
+		LOG_INF("LWM2M_CARRIER_EVENT_MODEM_DOMAIN");
+		break;
+	case LWM2M_CARRIER_EVENT_APP_DATA:
+		LOG_INF("LWM2M_CARRIER_EVENT_APP_DATA");
+		break;
 	case LWM2M_CARRIER_EVENT_MODEM_INIT:
 		LOG_INF("LWM2M_CARRIER_EVENT_MODEM_INIT");
 		err = nrf_modem_lib_init();
@@ -594,16 +590,6 @@ static void populate_event_with_dynamic_modem_data(struct modem_module_event *ev
 
 	event->data.modem_dynamic.mccmnc
 		[sizeof(event->data.modem_dynamic.mccmnc) - 1] = '\0';
-
-	struct lte_lc_conn_eval_params coneval = { 0 };
-	int err = lte_lc_conn_eval_params_get(&coneval);
-
-	if (err) {
-		LOG_ERR("Couldn't get CONEVAL data, err: %d", err);
-		event->data.modem_dynamic.energy_estimate = 0;
-	} else {
-		event->data.modem_dynamic.energy_estimate = coneval.energy_estimate;
-	}
 }
 
 static int dynamic_modem_data_get(void)
@@ -776,6 +762,19 @@ static void on_state_connected(struct modem_msg_data *msg)
 		err = lte_lc_offline();
 		if (err) {
 			LOG_ERR("LTE disconnect failed, error: %d", err);
+			SEND_ERROR(modem, MODEM_EVT_ERROR, err);
+			return;
+		}
+
+		state_set(STATE_DISCONNECTED);
+	}
+
+	if (IS_EVENT(msg, modem, MODEM_EVT_CARRIER_EVENT_LTE_POWER_OFF_REQUEST)) {
+		int err;
+
+		err = lte_lc_power_off();
+		if (err) {
+			LOG_ERR("LTE power off failed, error: %d", err);
 			SEND_ERROR(modem, MODEM_EVT_ERROR, err);
 			return;
 		}
