@@ -1,0 +1,18 @@
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "Location"
+	depends on LOCATION
+	depends on LOCATION_DATA_DETAILS
+
+config APP_LOCATION_THREAD_STACK_SIZE
+	int "Thread stack size"
+	default 4096
+
+module = APP_LOCATION
+module-str = Location
+source "subsys/logging/Kconfig.template.log_config"
+
+endmenu # Network

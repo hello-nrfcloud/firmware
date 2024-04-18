@@ -27,7 +27,8 @@ extern "C" {
 	}
 
 struct payload {
-	char string[CONFIG_MQTT_SAMPLE_PAYLOAD_CHANNEL_STRING_MAX_SIZE];
+	char string[CONFIG_APP_PAYLOAD_CHANNEL_STRING_MAX_SIZE];
+	size_t string_len;
 };
 
 enum network_status {
@@ -35,7 +36,19 @@ enum network_status {
 	NETWORK_CONNECTED,
 };
 
-ZBUS_CHAN_DECLARE(TRIGGER_CHAN, PAYLOAD_CHAN, NETWORK_CHAN, FATAL_ERROR_CHAN);
+enum cloud_status {
+	CLOUD_CONNECTED,
+	CLOUD_DISCONNECTED,
+};
+
+ZBUS_CHAN_DECLARE(
+	TRIGGER_CHAN,
+	PAYLOAD_CHAN,
+	NETWORK_CHAN,
+	FATAL_ERROR_CHAN,
+	LED_CHAN,
+	CLOUD_CHAN
+);
 
 #ifdef __cplusplus
 }

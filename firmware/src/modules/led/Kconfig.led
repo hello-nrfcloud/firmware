@@ -4,15 +4,15 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-menuconfig MQTT_SAMPLE_LED
+menuconfig APP_LED
 	bool "LED"
 	select LED
 	default y if !BOARD_NATIVE_POSIX
 
-if MQTT_SAMPLE_LED
+if APP_LED
 
-module = MQTT_SAMPLE_LED
+module = APP_LED
 module-str = LED
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # MQTT_SAMPLE_LED
+endif # APP_LED

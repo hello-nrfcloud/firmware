@@ -12,19 +12,19 @@
 #include "message_channel.h"
 
 /* Register log module */
-LOG_MODULE_REGISTER(led, CONFIG_MQTT_SAMPLE_LED_LOG_LEVEL);
+LOG_MODULE_REGISTER(led, CONFIG_APP_LED_LOG_LEVEL);
 
 const static struct device *led_device = DEVICE_DT_GET_ANY(gpio_leds);
 
 /* LED 1, green on Thingy:91 boards. */
-#define LED_1_GREEN 1
+#define LED_1_GREEN 0
 
 void led_callback(const struct zbus_channel *chan)
 {
 	int err = 0;
-	const enum network_status *status;
+	const int *status;
 
-	if (&NETWORK_CHAN == chan) {
+	if (&LED_CHAN == chan) {
 
 		if (!device_is_ready(led_device)) {
 			LOG_ERR("LED device is not ready");
@@ -34,22 +34,16 @@ void led_callback(const struct zbus_channel *chan)
 		/* Get network status from channel. */
 		status = zbus_chan_const_msg(chan);
 
-		switch (*status) {
-		case NETWORK_CONNECTED:
+		if (*status) {
 			err = led_on(led_device, LED_1_GREEN);
 			if (err) {
 				LOG_ERR("led_on, error: %d", err);
 			}
-			break;
-		case NETWORK_DISCONNECTED:
+		} else {
 			err = led_off(led_device, LED_1_GREEN);
 			if (err) {
 				LOG_ERR("led_off, error: %d", err);
 			}
-			break;
-		default:
-			LOG_ERR("Unknown event: %d", *status);
-			break;
 		}
 	}
 }

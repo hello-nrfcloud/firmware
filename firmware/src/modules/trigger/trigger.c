@@ -14,7 +14,7 @@
 #include "message_channel.h"
 
 /* Register log module */
-LOG_MODULE_REGISTER(trigger, CONFIG_MQTT_SAMPLE_TRIGGER_LOG_LEVEL);
+LOG_MODULE_REGISTER(trigger, CONFIG_APP_TRIGGER_LOG_LEVEL);
 
 static void message_send(void)
 {
@@ -51,10 +51,10 @@ static void trigger_task(void)
 
 	while (true) {
 		message_send();
-		k_sleep(K_SECONDS(CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS));
+		k_sleep(K_SECONDS(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS));
 	}
 }
 
 K_THREAD_DEFINE(trigger_task_id,
-		CONFIG_MQTT_SAMPLE_TRIGGER_THREAD_STACK_SIZE,
+		CONFIG_APP_TRIGGER_THREAD_STACK_SIZE,
 		trigger_task, NULL, NULL, NULL, 3, 0, 0);

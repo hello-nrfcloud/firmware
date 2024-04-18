@@ -8,19 +8,17 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/smf.h>
-#include <net/mqtt_helper.h>
+#include <net/nrf_cloud.h>
+#include <net/nrf_cloud_coap.h>
+#include <date_time.h>
 
-#include "client_id.h"
 #include "message_channel.h"
 
 /* Register log module */
-LOG_MODULE_REGISTER(transport, CONFIG_MQTT_SAMPLE_TRANSPORT_LOG_LEVEL);
+LOG_MODULE_REGISTER(transport, CONFIG_APP_TRANSPORT_LOG_LEVEL);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(transport, CONFIG_MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE);
-
-/* ID for subscribe topic - Used to verify that a subscription succeeded in on_mqtt_suback(). */
-#define SUBSCRIBE_TOPIC_ID 2469
+ZBUS_SUBSCRIBER_DEFINE(transport, CONFIG_APP_TRANSPORT_MESSAGE_QUEUE_SIZE);
 
 /* Forward declarations */
 static const struct smf_state state[];
@@ -30,21 +28,15 @@ static void connect_work_fn(struct k_work *work);
 static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_fn);
 
 /* Define stack_area of application workqueue */
-K_THREAD_STACK_DEFINE(stack_area, CONFIG_MQTT_SAMPLE_TRANSPORT_WORKQUEUE_STACK_SIZE);
+K_THREAD_STACK_DEFINE(stack_area, CONFIG_APP_TRANSPORT_WORKQUEUE_STACK_SIZE);
 
 /* Declare application workqueue. This workqueue is used to call mqtt_helper_connect(), and
  * schedule reconnectionn attempts upon network loss or disconnection from MQTT.
  */
 static struct k_work_q transport_queue;
 
-/* Internal states */
-enum module_state { MQTT_CONNECTED, MQTT_DISCONNECTED };
-
-/* MQTT client ID buffer */
-static char client_id[CONFIG_MQTT_SAMPLE_TRANSPORT_CLIENT_ID_BUFFER_SIZE];
-
-static uint8_t pub_topic[sizeof(client_id) + sizeof(CONFIG_MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC)];
-static uint8_t sub_topic[sizeof(client_id) + sizeof(CONFIG_MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC)];
+/* Semaphore to mark when we have a valid time */
+K_SEM_DEFINE(date_time_ready_sem, 0, 1);
 
 /* User defined state object.
  * Used to transfer data between state changes.
@@ -63,119 +55,6 @@ static struct s_object {
 	struct payload payload;
 } s_obj;
 
-/* Callback handlers from MQTT helper library.
- * The functions are called whenever specific MQTT packets are received from the broker, or
- * some library state has changed.
- */
-static void on_mqtt_connack(enum mqtt_conn_return_code return_code, bool session_present)
-{
-	ARG_UNUSED(return_code);
-
-	smf_set_state(SMF_CTX(&s_obj), &state[MQTT_CONNECTED]);
-}
-
-static void on_mqtt_disconnect(int result)
-{
-	ARG_UNUSED(result);
-
-	smf_set_state(SMF_CTX(&s_obj), &state[MQTT_DISCONNECTED]);
-}
-
-static void on_mqtt_publish(struct mqtt_helper_buf topic, struct mqtt_helper_buf payload)
-{
-	LOG_INF("Received payload: %.*s on topic: %.*s", payload.size,
-							 payload.ptr,
-							 topic.size,
-							 topic.ptr);
-}
-
-static void on_mqtt_suback(uint16_t message_id, int result)
-{
-	if ((message_id == SUBSCRIBE_TOPIC_ID) && (result == 0)) {
-		LOG_INF("Subscribed to topic %s", sub_topic);
-	} else if (result) {
-		LOG_ERR("Topic subscription failed, error: %d", result);
-	} else {
-		LOG_WRN("Subscribed to unknown topic, id: %d", message_id);
-	}
-}
-
-/* Local convenience functions */
-
-/* Function that prefixes topics with the Client ID. */
-static int topics_prefix(void)
-{
-	int len;
-
-	len = snprintk(pub_topic, sizeof(pub_topic), "%s/%s", client_id,
-		       CONFIG_MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC);
-	if ((len < 0) || (len >= sizeof(pub_topic))) {
-		LOG_ERR("Publish topic buffer too small");
-		return -EMSGSIZE;
-	}
-
-	len = snprintk(sub_topic, sizeof(sub_topic), "%s/%s", client_id,
-		       CONFIG_MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC);
-	if ((len < 0) || (len >= sizeof(sub_topic))) {
-		LOG_ERR("Subscribe topic buffer too small");
-		return -EMSGSIZE;
-	}
-
-	return 0;
-}
-
-static void publish(struct payload *payload)
-{
-	int err;
-
-	struct mqtt_publish_param param = {
-		.message.payload.data = payload->string,
-		.message.payload.len = strlen(payload->string),
-		.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE,
-		.message_id = k_uptime_get_32(),
-		.message.topic.topic.utf8 = pub_topic,
-		.message.topic.topic.size = strlen(pub_topic),
-	};
-
-	err = mqtt_helper_publish(&param);
-	if (err) {
-		LOG_WRN("Failed to send payload, err: %d", err);
-		return;
-	}
-
-	LOG_INF("Published message: \"%.*s\" on topic: \"%.*s\"", param.message.payload.len,
-								  param.message.payload.data,
-								  param.message.topic.topic.size,
-								  param.message.topic.topic.utf8);
-}
-
-static void subscribe(void)
-{
-	int err;
-
-	struct mqtt_topic topics[] = {
-		{
-			.topic.utf8 = sub_topic,
-			.topic.size = strlen(sub_topic),
-		},
-	};
-	struct mqtt_subscription_list list = {
-		.list = topics,
-		.list_count = ARRAY_SIZE(topics),
-		.message_id = SUBSCRIBE_TOPIC_ID,
-	};
-
-	for (size_t i = 0; i < list.list_count; i++) {
-		LOG_INF("Subscribing to: %s", (char *)list.list[i].topic.utf8);
-	}
-
-	err = mqtt_helper_subscribe(&list);
-	if (err) {
-		LOG_ERR("Failed to subscribe to topics, error: %d", err);
-		return;
-	}
-}
-
 /* Connect work - Used to establish a connection to the MQTT broker and schedule reconnection
  * attempts.
  */
@@ -184,34 +63,52 @@ static void connect_work_fn(struct k_work *work)
 	ARG_UNUSED(work);
 
 	int err;
-	struct mqtt_helper_conn_params conn_params = {
-		.hostname.ptr = CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME,
-		.hostname.size = strlen(CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME),
-		.device_id.ptr = client_id,
-		.device_id.size = strlen(client_id),
+	char buf[NRF_CLOUD_CLIENT_ID_MAX_LEN];
+
+	err = nrf_cloud_client_id_get(buf, sizeof(buf));
+	if (!err) {
+		LOG_INF("Connecting to nRF Cloud CoAP with client ID: %s", buf);
+	} else {
+		LOG_ERR("nrf_cloud_client_id_get, error: %d", err);
+		SEND_FATAL_ERROR();
+	}
+
+	err = nrf_cloud_coap_connect(NULL);
+	if (err)
+	{
+		LOG_ERR("nrf_cloud_coap_connect, error: %d", err);
+		goto retry;
+	} else {
+		LOG_INF("Connected to Cloud");
+	}
+
+	struct nrf_cloud_svc_info_ui ui_info = {
+	    .gnss = true,
 	};
+	struct nrf_cloud_svc_info service_info = {
+	    .ui = &ui_info};
+	struct nrf_cloud_modem_info modem_info = {
+	    .device = NRF_CLOUD_INFO_SET,
+	    .network = NRF_CLOUD_INFO_SET,
+	};
+	struct nrf_cloud_device_status device_status = {
+	    .modem = &modem_info,
+	    .svc = &service_info};
 
-	err = client_id_get(client_id, sizeof(client_id));
-	if (err) {
-		LOG_ERR("client_id_get, error: %d", err);
+	/* sending device info to shadow */
+	err = nrf_cloud_coap_shadow_device_status_update(&device_status);
+	if (err)
+	{
+		LOG_ERR("nrf_cloud_coap_shadow_device_status_update, error: %d", err);
 		SEND_FATAL_ERROR();
+	} else {
+		smf_set_state(SMF_CTX(&s_obj), &state[CLOUD_CONNECTED]);
 		return;
 	}
 
-	err = topics_prefix();
-	if (err) {
-		LOG_ERR("topics_prefix, error: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
-
-	err = mqtt_helper_connect(&conn_params);
-	if (err) {
-		LOG_ERR("Failed connecting to MQTT, error code: %d", err);
-	}
-
+retry:
 	k_work_reschedule_for_queue(&transport_queue, &connect_work,
-			  K_SECONDS(CONFIG_MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS));
+			  K_SECONDS(CONFIG_APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS));
 }
 
 /* Zephyr State Machine framework handlers */
@@ -220,12 +117,27 @@ static void connect_work_fn(struct k_work *work)
 static void disconnected_entry(void *o)
 {
 	struct s_object *user_object = o;
+	int err;
+
+	enum cloud_status status = CLOUD_DISCONNECTED;
+	err = zbus_chan_pub(&CLOUD_CHAN, &status, K_NO_WAIT);
+
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+	}
 
 	/* Reschedule a connection attempt if we are connected to network and we enter the
 	 * disconnected state.
 	 */
 	if (user_object->status == NETWORK_CONNECTED) {
 		k_work_reschedule_for_queue(&transport_queue, &connect_work, K_NO_WAIT);
+	} else {
+		err = nrf_cloud_coap_disconnect();
+		if (err && (err != -ENOTCONN)) {
+			LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
 	}
 }
 
@@ -249,23 +161,27 @@ static void disconnected_run(void *o)
 		 */
 		k_work_reschedule_for_queue(&transport_queue, &connect_work, K_SECONDS(5));
 	}
+
+	if (user_object->chan == &PAYLOAD_CHAN) {
+		LOG_ERR("Discarding payload since we are not connected to cloud.");
+	}
 }
 
 /* Function executed when the module enters the connected state. */
 static void connected_entry(void *o)
 {
-	LOG_INF("Connected to MQTT broker");
-	LOG_INF("Hostname: %s", CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME);
-	LOG_INF("Client ID: %s", client_id);
-	LOG_INF("Port: %d", CONFIG_MQTT_HELPER_PORT);
-	LOG_INF("TLS: %s", IS_ENABLED(CONFIG_MQTT_LIB_TLS) ? "Yes" : "No");
-
 	ARG_UNUSED(o);
+
+	enum cloud_status status = CLOUD_CONNECTED;
+	int err = zbus_chan_pub(&CLOUD_CHAN, &status, K_NO_WAIT);
+
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+	}
 
 	/* Cancel any ongoing connect work when we enter connected state */
 	k_work_cancel_delayable(&connect_work);
-
-	subscribe();
 }
 
 /* Function executed when the module is in the connected state. */
@@ -274,19 +190,16 @@ static void connected_run(void *o)
 	struct s_object *user_object = o;
 
 	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
-		/* Explicitly disconnect the MQTT transport when losing network connectivity.
-		 * This is to cleanup any internal library state.
-		 * The call to this function will cause on_mqtt_disconnect() to be called.
-		 */
-		(void)mqtt_helper_disconnect();
+		smf_set_state(SMF_CTX(&s_obj), &state[CLOUD_DISCONNECTED]);
 		return;
 	}
 
-	if (user_object->chan != &PAYLOAD_CHAN) {
-		return;
+	if (user_object->chan == &PAYLOAD_CHAN) {
+		LOG_INF("Sending payload to cloud");
+		nrf_cloud_coap_bytes_send(user_object->payload.string,
+					  user_object->payload.string_len,
+					  false);
 	}
-
-	publish(&user_object->payload);
 }
 
 /* Function executed when the module exits the connected state. */
@@ -294,14 +207,20 @@ static void connected_exit(void *o)
 {
 	ARG_UNUSED(o);
 
-	LOG_INF("Disconnected from MQTT broker");
+	LOG_INF("Disconnected from Cloud");
 }
 
 /* Construct state table */
 static const struct smf_state state[] = {
-	[MQTT_DISCONNECTED] = SMF_CREATE_STATE(disconnected_entry, disconnected_run, NULL),
-	[MQTT_CONNECTED] = SMF_CREATE_STATE(connected_entry, connected_run, connected_exit),
+	[CLOUD_DISCONNECTED] = SMF_CREATE_STATE(disconnected_entry, disconnected_run, NULL),
+	[CLOUD_CONNECTED] = SMF_CREATE_STATE(connected_entry, connected_run, connected_exit),
 };
+
+static void date_time_handler(const struct date_time_evt *evt) {
+	if (evt->type != DATE_TIME_NOT_OBTAINED) {
+		k_sem_give(&date_time_ready_sem);
+	}
+}
 
 static void transport_task(void)
 {
@@ -309,14 +228,9 @@ static void transport_task(void)
 	const struct zbus_channel *chan;
 	enum network_status status;
 	struct payload payload;
-	struct mqtt_helper_cfg cfg = {
-		.cb = {
-			.on_connack = on_mqtt_connack,
-			.on_disconnect = on_mqtt_disconnect,
-			.on_publish = on_mqtt_publish,
-			.on_suback = on_mqtt_suback,
-		},
-	};
+
+	/* Setup handler for date_time library */
+	date_time_register_handler(date_time_handler);
 
 	/* Initialize and start application workqueue.
 	 * This workqueue can be used to offload tasks and/or as a timer when wanting to
@@ -328,15 +242,18 @@ static void transport_task(void)
 			   K_HIGHEST_APPLICATION_THREAD_PRIO,
 			   NULL);
 
-	err = mqtt_helper_init(&cfg);
-	if (err) {
-		LOG_ERR("mqtt_helper_init, error: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
-
 	/* Set initial state */
-	smf_set_initial(SMF_CTX(&s_obj), &state[MQTT_DISCONNECTED]);
+	smf_set_initial(SMF_CTX(&s_obj), &state[CLOUD_DISCONNECTED]);
+
+	/* Wait for initial time */
+	k_sem_take(&date_time_ready_sem, K_FOREVER);
+
+	err = nrf_cloud_coap_init();
+	if (err)
+	{
+		LOG_ERR("nrf_cloud_coap_init, error: %d", err);
+		SEND_FATAL_ERROR();
+	}
 
 	while (!zbus_sub_wait(&transport, &chan, K_FOREVER)) {
 
@@ -353,6 +270,8 @@ static void transport_task(void)
 
 			s_obj.status = status;
 
+			/* connect/disconnect depending on network state */
+			/* TODO: run provisioning service */
 			err = smf_run_state(SMF_CTX(&s_obj));
 			if (err) {
 				LOG_ERR("smf_run_state, error: %d", err);
@@ -383,5 +302,5 @@ static void transport_task(void)
 }
 
 K_THREAD_DEFINE(transport_task_id,
-		CONFIG_MQTT_SAMPLE_TRANSPORT_THREAD_STACK_SIZE,
+		CONFIG_APP_TRANSPORT_THREAD_STACK_SIZE,
 		transport_task, NULL, NULL, NULL, 3, 0, 0);

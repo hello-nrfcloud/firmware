@@ -51,37 +51,37 @@ Check and configure the following Kconfig options:
 General options
 ---------------
 
-.. _CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS:
+.. _CONFIG_APP_TRIGGER_TIMEOUT_SECONDS:
 
-CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS - Trigger timeout
+CONFIG_APP_TRIGGER_TIMEOUT_SECONDS - Trigger timeout
 	This configuration option sets the interval at which the sample publishes a message to the MQTT broker.
 
-.. _CONFIG_MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS:
+.. _CONFIG_APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS:
 
-CONFIG_MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS - Transport reconnection timeout
+CONFIG_APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS - Transport reconnection timeout
 	This configuration option sets the interval at which the sample tries to reconnect to the MQTT broker upon a lost connection.
 
-.. _CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME:
+.. _CONFIG_APP_TRANSPORT_BROKER_HOSTNAME:
 
-CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME - MQTT broker hostname
+CONFIG_APP_TRANSPORT_BROKER_HOSTNAME - MQTT broker hostname
 	This configuration sets the MQTT broker hostname.
 	Default is `test.mosquitto.org`_.
 
-.. _CONFIG_MQTT_SAMPLE_TRANSPORT_CLIENT_ID:
+.. _CONFIG_APP_TRANSPORT_CLIENT_ID:
 
-CONFIG_MQTT_SAMPLE_TRANSPORT_CLIENT_ID - MQTT client ID
+CONFIG_APP_TRANSPORT_CLIENT_ID - MQTT client ID
 	This configuration sets the MQTT client ID name.
 	If not set, the client ID will default to the modem's IMEI number for nRF91 Series devices, MAC address for nRF70 Series devices, or a random number for Native Posix.
 
-.. _CONFIG_MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC:
+.. _CONFIG_APP_TRANSPORT_PUBLISH_TOPIC:
 
-CONFIG_MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC - MQTT publish topic
+CONFIG_APP_TRANSPORT_PUBLISH_TOPIC - MQTT publish topic
 	This configuration option sets the topic to which the sample publishes messages.
 	Default is ``<clientID>/my/publish/topic``.
 
-.. _CONFIG_MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC:
+.. _CONFIG_APP_TRANSPORT_SUBSCRIBE_TOPIC:
 
-CONFIG_MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC - MQTT subscribe topic
+CONFIG_APP_TRANSPORT_SUBSCRIBE_TOPIC - MQTT subscribe topic
 	This configuration option sets the topic to which the sample subscribes.
 	Default is ``<clientID>/my/subscribe/topic``.
 
@@ -154,11 +154,11 @@ Testing
 1. |connect_kit|
 #. |connect_terminal|
 #. Reset your board.
-#. Observe that the board connects to the network and the configured MQTT broker (:ref:`CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME <CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME>`).
+#. Observe that the board connects to the network and the configured MQTT broker (:ref:`CONFIG_APP_TRANSPORT_BROKER_HOSTNAME <CONFIG_APP_TRANSPORT_BROKER_HOSTNAME>`).
    When a network connection has been established, LED 1 (green) on the board lights up.
-   After the connection has been established the board starts to publish messages to the topic set by :ref:`CONFIG_MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC <CONFIG_MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC>`.
-   The frequency of the messages that are published to the broker can be set by :ref:`CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS <CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS>` or triggered asynchronously by pressing any of the buttons on the board.
-   At any time, the sample can receive messages published to the subscribe topic set by :ref:`CONFIG_MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC <CONFIG_MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC>`.
+   After the connection has been established the board starts to publish messages to the topic set by :ref:`CONFIG_APP_TRANSPORT_PUBLISH_TOPIC <CONFIG_APP_TRANSPORT_PUBLISH_TOPIC>`.
+   The frequency of the messages that are published to the broker can be set by :ref:`CONFIG_APP_TRIGGER_TIMEOUT_SECONDS <CONFIG_APP_TRIGGER_TIMEOUT_SECONDS>` or triggered asynchronously by pressing any of the buttons on the board.
+   At any time, the sample can receive messages published to the subscribe topic set by :ref:`CONFIG_APP_TRANSPORT_SUBSCRIBE_TOPIC <CONFIG_APP_TRANSPORT_SUBSCRIBE_TOPIC>`.
 #. Use an MQTT client like `Mosquitto`_ or `VSMQTT`_ to subscribe to, and publish data to the broker.
 
 Sample output
@@ -262,7 +262,7 @@ If the TCP/IP (MQTT) connection is lost, the following log output is displayed:
      <inf> transport: Disconnected from MQTT broker
 
 If this occurs, the sample's transport module has built-in reconnection logic that will try to reconnect at the frequency set by
-:ref:`CONFIG_MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS <CONFIG_MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS>`.
+:ref:`CONFIG_APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS <CONFIG_APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS>`.
 
 Emulation
 =========
@@ -285,7 +285,7 @@ To enable more verbose logging from the MQTT helper library, enable the :kconfig
 * If you have issues with connectivity on nRF91 Series devices, see the `Cellular Monitor`_ documentation to learn how to capture modem traces in order to debug network traffic in Wireshark.
   The sample enables modem traces by default.
 * Public MQTT brokers might be unstable.
-  If you have trouble connecting to the MQTT broker, try switching to another broker by changing the value of the :ref:`CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME <CONFIG_MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME>` configuration option.
+  If you have trouble connecting to the MQTT broker, try switching to another broker by changing the value of the :ref:`CONFIG_APP_TRANSPORT_BROKER_HOSTNAME <CONFIG_APP_TRANSPORT_BROKER_HOSTNAME>` configuration option.
   If you are switching to another broker, remember to update the CA certificate. To know more on certificates and provisioning, see :ref:`mqtt_sample_provisioning`.
 
 Dependencies
