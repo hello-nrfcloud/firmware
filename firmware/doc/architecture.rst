@@ -51,14 +51,14 @@ The following code snippet shows how a module thread polls for incoming messages
     }
 
     K_THREAD_DEFINE(sampler_task_id,
-		    CONFIG_MQTT_SAMPLE_SAMPLER_THREAD_STACK_SIZE,
+		    CONFIG_APP_SAMPLER_THREAD_STACK_SIZE,
 		    sampler_task, NULL, NULL, NULL, 3, 0, 0);
 
 .. note::
    Zbus implements internal message queues for subscribers.
    In some cases, depending on the use case, it might be necessary to increase the queue size for a particular subscriber.
    Especially if the module thread can block for some time.
-   To increase the message queue associated with a subscriber, increase the value of the corresponding Kconfig option, ``CONFIG_MQTT_SAMPLE_<MODULE_NAME>_MESSAGE_QUEUE_SIZE``.
+   To increase the message queue associated with a subscriber, increase the value of the corresponding Kconfig option, ``CONFIG_APP_<MODULE_NAME>_MESSAGE_QUEUE_SIZE``.
 
 Modules that are setup as listeners have dedicated callbacks that are invoked every time there is a change to an observing channel.
 The difference between a listener and a subscriber is that listeners do not require a dedicated thread to process incoming messages.
@@ -118,7 +118,7 @@ The following code snippet shows how this is typically carried out throughout th
 +-------------+------------------+-----------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Module name | Observes channel | Subscriber / Listener | Description                                                                                                                                                                              |
 +=============+==================+=======================+==========================================================================================================================================================================================+
-| Trigger     | None             |                       | Sends messages on the trigger channel at an interval set by the :ref:`CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS <CONFIG_MQTT_SAMPLE_TRIGGER_TIMEOUT_SECONDS>` and upon a button press.  |
+| Trigger     | None             |                       | Sends messages on the trigger channel at an interval set by the :ref:`CONFIG_APP_TRIGGER_TIMEOUT_SECONDS <CONFIG_APP_TRIGGER_TIMEOUT_SECONDS>` and upon a button press.  |
 +-------------+------------------+-----------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Sampler     | Trigger          | Subscriber            | Samples data every time a message is received on the trigger channel.                                                                                                                    |
 |             |                  |                       | The sampled payload is sent on the payload channel.                                                                                                                                      |

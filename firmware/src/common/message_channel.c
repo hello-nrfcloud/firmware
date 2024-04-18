@@ -14,7 +14,7 @@ ZBUS_CHAN_DEFINE(TRIGGER_CHAN,			/* Name */
 		 int,				/* Message type */
 		 NULL,				/* Validator */
 		 NULL,				/* User data */
-		 ZBUS_OBSERVERS(sampler),	/* Observers */
+		 ZBUS_OBSERVERS(sampler, app, location),	/* Observers */
 		 ZBUS_MSG_INIT(0)		/* Initial value {0} */
 );
 
@@ -30,8 +30,8 @@ ZBUS_CHAN_DEFINE(NETWORK_CHAN,
 		 enum network_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(transport IF_ENABLED(CONFIG_MQTT_SAMPLE_LED, (, led)), sampler),
-		 ZBUS_MSG_INIT(0)
+		 ZBUS_OBSERVERS(transport, sampler),
+		 NETWORK_DISCONNECTED
 );
 
 ZBUS_CHAN_DEFINE(FATAL_ERROR_CHAN,
@@ -40,4 +40,20 @@ ZBUS_CHAN_DEFINE(FATAL_ERROR_CHAN,
 		 NULL,
 		 ZBUS_OBSERVERS(error),
 		 ZBUS_MSG_INIT(0)
+);
+
+ZBUS_CHAN_DEFINE(LED_CHAN,
+		 int,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(led),
+		 ZBUS_MSG_INIT(0)
+);
+
+ZBUS_CHAN_DEFINE(CLOUD_CHAN,
+		 enum cloud_status,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(app, location),
+		 CLOUD_DISCONNECTED
 );

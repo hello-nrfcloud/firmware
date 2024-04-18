@@ -5,58 +5,38 @@
 #
 
 menu "Transport"
-	depends on MQTT_HELPER
-	depends on HW_ID_LIBRARY
+	depends on NRF_CLOUD_COAP
+	depends on SIMPLE_CONFIG
 
-config MQTT_SAMPLE_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS
+config APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS
 	int "Reconnection timeout in seconds"
 	default 60
 	help
 	  Time in between reconnection attempts to the MQTT broker.
 
-config MQTT_SAMPLE_TRANSPORT_THREAD_STACK_SIZE
+config APP_TRANSPORT_THREAD_STACK_SIZE
 	int "Thread stack size"
 	default 2048
 
-config MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE
+config APP_TRANSPORT_MESSAGE_QUEUE_SIZE
 	int "Message queue size"
 	default 5
 	help
 	  ZBus subscriber message queue size.
 
-config MQTT_SAMPLE_TRANSPORT_WORKQUEUE_STACK_SIZE
+config APP_TRANSPORT_WORKQUEUE_STACK_SIZE
 	int "Workqueue stack size"
 	default 4096
 	help
 	  Stack size of the module's internal workqueue.
 
-config MQTT_SAMPLE_TRANSPORT_BROKER_HOSTNAME
-	string "MQTT broker hostname"
-	default "test.mosquitto.org"
-
-config MQTT_SAMPLE_TRANSPORT_CLIENT_ID
-	string "MQTT Client ID"
-	default ""
+config APP_TRANSPORT_POLL_INTERVAL_SECONDS
+	int "Poll interval in seconds"
+	default 10
 	help
-	  Use a custom client ID string. If not set, the client ID will default to the
-	  modem's IMEI number for nRF91 Series devices, MAC address for nRF7 Series devices,
-	  or a random number for Native Posix.
+	  Interval in seconds between polling nRF Cloud CoAP.
 
-config MQTT_SAMPLE_TRANSPORT_CLIENT_ID_BUFFER_SIZE
-	int "MQTT Client ID buffer size"
-	default 50
-	help
-	  Size of buffer used to store the MQTT client ID.
-
-config MQTT_SAMPLE_TRANSPORT_PUBLISH_TOPIC
-	string "MQTT publish topic"
-	default "my/publish/topic"
-
-config MQTT_SAMPLE_TRANSPORT_SUBSCRIBE_TOPIC
-	string "MQTT subscribe topic"
-	default "my/subscribe/topic"
-
-module = MQTT_SAMPLE_TRANSPORT
+module = APP_TRANSPORT
 module-str = Transport
 source "subsys/logging/Kconfig.template.log_config"
 

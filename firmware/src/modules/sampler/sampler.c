@@ -13,10 +13,10 @@
 #define FORMAT_STRING "Hello MQTT! Current uptime is: %d"
 
 /* Register log module */
-LOG_MODULE_REGISTER(sampler, CONFIG_MQTT_SAMPLE_SAMPLER_LOG_LEVEL);
+LOG_MODULE_REGISTER(sampler, CONFIG_APP_SAMPLER_LOG_LEVEL);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(sampler, CONFIG_MQTT_SAMPLE_SAMPLER_MESSAGE_QUEUE_SIZE);
+ZBUS_SUBSCRIBER_DEFINE(sampler, CONFIG_APP_SAMPLER_MESSAGE_QUEUE_SIZE);
 
 static void sample(void)
 {
@@ -34,6 +34,7 @@ static void sample(void)
 		SEND_FATAL_ERROR();
 		return;
 	}
+	payload.string_len = len;
 
 	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
 	if (err) {
@@ -54,5 +55,5 @@ static void sampler_task(void)
 }
 
 K_THREAD_DEFINE(sampler_task_id,
-		CONFIG_MQTT_SAMPLE_SAMPLER_THREAD_STACK_SIZE,
+		CONFIG_APP_SAMPLER_THREAD_STACK_SIZE,
 		sampler_task, NULL, NULL, NULL, 3, 0, 0);
