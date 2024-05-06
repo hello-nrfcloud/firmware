@@ -21,7 +21,7 @@ following command:
 
 ```shell
 # initialize thingy-oob workspace
-west init -m https://github.com/hello-nrfcloud/firmware --mr saga thingy-oob
+west init -m https://github.com/hello-nrfcloud/firmware --mr main thingy-oob
 # update nRF Connect SDK modules
 cd thingy-oob
 west update
