@@ -44,7 +44,7 @@
   },
   "release": {
     "branches": [
-      "saga"
+      "main"
     ],
     "remoteTags": true,
     "plugins": [

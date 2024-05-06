@@ -289,7 +289,7 @@ jobs:
         continue-on-error: true
         if:
           contains(matrix.configuration, 'mmflt') && github.ref ==
-          'refs/heads/saga' && (github.event_name == 'push' || github.event_name
+          'refs/heads/main' && (github.event_name == 'push' || github.event_name
           == 'workflow_dispatch' || github.event_name == 'repository_dispatch')
         working-directory: project/asset_tracker_v2
         run: |
@@ -321,7 +321,7 @@ jobs:
     name: Release
     runs-on: ubuntu-22.04
     if:
-      github.ref == 'refs/heads/saga' && (github.event_name == 'push' ||
+      github.ref == 'refs/heads/main' && (github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' || github.event_name ==
       'repository_dispatch')
 
