@@ -8,7 +8,7 @@ menu "Trigger"
 
 config APP_TRIGGER_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 512
+	default 2048
 
 config APP_TRIGGER_TIMEOUT_SECONDS
 	int "Trigger timer timeout"

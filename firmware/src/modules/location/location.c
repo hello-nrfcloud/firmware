@@ -74,15 +74,17 @@ static void trigger_callback(const struct zbus_channel *chan)
 {
 	if (&TRIGGER_CHAN == chan)
 	{
+		LOG_DBG("Trigger received");
 		k_sem_give(&trigger_sem);
 	}
 	if (&CLOUD_CHAN == chan)
 	{
-		enum cloud_status status = CLOUD_DISCONNECTED;
-		int err = zbus_chan_read(chan, &status, K_NO_WAIT);
+		LOG_DBG("Cloud status received");
+		enum cloud_status *status = zbus_chan_const_msg(chan);
 
-		if (!err && status == CLOUD_CONNECTED)
+		if (*status == CLOUD_CONNECTED)
 		{
+			LOG_DBG("Cloud connected, initializing location");
 			k_sem_give(&modem_init_sem);
 		}
 	}
@@ -139,9 +141,9 @@ static void location_event_handler(const struct location_event_data *event_data)
 	{
 	case LOCATION_EVT_LOCATION:
 		LOG_DBG("Got location: lat: %f, lon: %f, acc: %f",
-			event_data->location.latitude,
-			event_data->location.longitude,
-			event_data->location.accuracy);
+			(double) event_data->location.latitude,
+			(double) event_data->location.longitude,
+			(double) event_data->location.accuracy);
 
 		/* GNSS location needs to be reported manually */
 		if (event_data->method == LOCATION_METHOD_GNSS) {
