@@ -105,6 +105,7 @@ static void app_task(void)
 				wait_for_cloud_connection();
 			}
 		} else if (&TRIGGER_CHAN == chan) {
+			LOG_DBG("Trigger received");
 			/* handle incoming cloud settings */
 			simple_config_update();
 		}

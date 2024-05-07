@@ -20,6 +20,7 @@ add_subdirectory(src/modules/transport)
 add_subdirectory(src/modules/error)
 add_subdirectory(src/modules/location)
 add_subdirectory(src/modules/app)
+add_subdirectory(src/modules/fota)
 
 # Optional modules
 add_subdirectory_ifdef(CONFIG_APP_LED src/modules/led)

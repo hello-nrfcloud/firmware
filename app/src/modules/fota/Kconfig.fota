@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig APP_FOTA
+	bool "FOTA"
+	select FOTA
+	default y if !BOARD_NATIVE_POSIX
+
+if APP_FOTA
+
+module = APP_FOTA
+module-str = FOTA
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # APP_FOTA

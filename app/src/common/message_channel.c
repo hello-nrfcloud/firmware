@@ -14,8 +14,16 @@ ZBUS_CHAN_DEFINE(TRIGGER_CHAN,			/* Name */
 		 int,				/* Message type */
 		 NULL,				/* Validator */
 		 NULL,				/* User data */
-		 ZBUS_OBSERVERS(sampler, app, location),	/* Observers */
+		 ZBUS_OBSERVERS(fota, app, sampler, location),	/* Observers */
 		 ZBUS_MSG_INIT(0)		/* Initial value {0} */
+);
+
+ZBUS_CHAN_DEFINE(FOTA_ONGOING_CHAN,
+		 bool,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(false)
 );
 
 ZBUS_CHAN_DEFINE(PAYLOAD_CHAN,
@@ -54,6 +62,6 @@ ZBUS_CHAN_DEFINE(CLOUD_CHAN,
 		 enum cloud_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(app, location),
+		 ZBUS_OBSERVERS(fota, app, location),
 		 CLOUD_DISCONNECTED
 );
