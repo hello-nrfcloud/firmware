@@ -80,7 +80,7 @@ static void trigger_callback(const struct zbus_channel *chan)
 	if (&CLOUD_CHAN == chan)
 	{
 		LOG_DBG("Cloud status received");
-		enum cloud_status *status = zbus_chan_const_msg(chan);
+		const enum cloud_status *status = zbus_chan_const_msg(chan);
 
 		if (*status == CLOUD_CONNECTED)
 		{
@@ -92,6 +92,7 @@ static void trigger_callback(const struct zbus_channel *chan)
 
 ZBUS_LISTENER_DEFINE(location, trigger_callback);
 
+#if defined(CONFIG_LOCATION_METHOD_GNSS)
 /* Take time from PVT data and apply it to system time. */
 static void apply_gnss_time(const struct nrf_modem_gnss_pvt_data_frame *pvt_data)
 {
@@ -134,6 +135,7 @@ static void report_gnss_location(const struct nrf_modem_gnss_pvt_data_frame *pvt
 		LOG_ERR("Failed to send location data: %d", err);
 	}
 }
+#endif /* CONFIG_LOCATION_METHOD_GNSS */
 
 static void location_event_handler(const struct location_event_data *event_data)
 {
@@ -145,6 +147,7 @@ static void location_event_handler(const struct location_event_data *event_data)
 			(double) event_data->location.longitude,
 			(double) event_data->location.accuracy);
 
+#if defined(CONFIG_LOCATION_METHOD_GNSS)
 		/* GNSS location needs to be reported manually */
 		if (event_data->method == LOCATION_METHOD_GNSS) {
 			struct nrf_modem_gnss_pvt_data_frame pvt_data =
@@ -158,6 +161,7 @@ static void location_event_handler(const struct location_event_data *event_data)
 			}
 			report_gnss_location(&pvt_data);
 		}
+#endif /* CONFIG_LOCATION_METHOD_GNSS */
 		break;
 	case LOCATION_EVT_RESULT_UNKNOWN:
 		LOG_DBG("Getting location completed with undefined result");
