@@ -1,17 +1,24 @@
-# editors
-.vscode
+*.o
+*.d
+*.cmd
+*.log
+*.pyc
 *.swp
+*.swo
 *~
-
-# python
+build
+build-*
+build_*
+cscope.*
+.dir
+venv
 .venv
+.idea
 
-# build
-build*
-*/build*
+/*.patch
 
-__pycache__/
-
+.xxproject
+.envrc
+.vscode
+sanity-out*
 twister-out*
-*/twister-out*
-node_modules/
