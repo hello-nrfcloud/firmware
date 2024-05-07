@@ -49,6 +49,7 @@ static void sampler_task(void)
 
 	while (!zbus_sub_wait(&sampler, &chan, K_FOREVER)) {
 		if (&TRIGGER_CHAN == chan) {
+			LOG_DBG("Trigger received");
 			sample();
 		}
 	}

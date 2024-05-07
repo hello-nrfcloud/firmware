@@ -20,7 +20,21 @@ static void message_send(void)
 {
 	int not_used = -1;
 	int err;
+	bool fota_ongoing = true;
 
+	err = zbus_chan_read(&FOTA_ONGOING_CHAN, &fota_ongoing, K_NO_WAIT);
+	if (err) {
+		LOG_ERR("zbus_chan_read, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	if (fota_ongoing) {
+		LOG_DBG("FOTA ongoing, skipping trigger message");
+		return;
+	}
+
+	LOG_DBG("Sending trigger message");
 	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
