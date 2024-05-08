@@ -1,1 +1,1 @@
-See <https://github.com/bifravst/.github/blob/main/CONTRIBUTING.md>
+See <https://github.com/bifravst/.github/blob/saga/CONTRIBUTING.md>
