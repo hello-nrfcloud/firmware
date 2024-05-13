@@ -36,5 +36,5 @@ west build -b thingy91x/nrf9151/ns app
 When using an external debugger, you can flash using this command:
 
 ```shell
-west flash
+west flash --erase
 ```
