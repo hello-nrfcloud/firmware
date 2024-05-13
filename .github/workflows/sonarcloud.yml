@@ -1,0 +1,50 @@
+name: SonarCloud
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: ubuntu-latest
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.12
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+      CMAKE_PREFIX_PATH: /opt/toolchains
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          path: thingy91x-oob
+
+      - name: Initialize
+        working-directory: thingy91x-oob
+        run: |
+            west init -l .
+            west update -o=--depth=1 -n
+
+      - name: Install dependencies
+        run: |
+            pip install -r nrf/scripts/requirements-build.txt
+            apt-get update
+            apt install -y curl
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
+
+      - name: Run build-wrapper
+        working-directory: thingy91x-oob
+        run: |
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T app -v --inline-logs --integration
+
+      - name: Run sonar-scanner
+        working-directory: thingy91x-oob
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner \
+            --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" \
+            --define project.settings=sonar-project.properties \
+            --define sonar.inclusions=**/*.c,**/*.h
