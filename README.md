@@ -1,6 +1,6 @@
 # Thingy:91 Out-of-Box Experience Application
 
-![Build and Release](https://github.com/hello-nrfcloud/firmware/workflows/Build%2C%20Test%2C%20Release/badge.svg)
+[![Build](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml/badge.svg)](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml)
 
 This project is based on the
 [NCS Example Application](https://github.com/nrfconnect/ncs-example-application).
