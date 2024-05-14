@@ -7,4 +7,5 @@ tests:
       - thingy91x/nrf9151/ns
     platform_allow:
       - thingy91x/nrf9151/ns
+    extra_args: CMAKE_C_FLAGS='-Wno-maybe-uninitialized'
     tags: ci_build
