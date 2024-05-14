@@ -13,7 +13,7 @@ config APP_PAYLOAD_CHANNEL_STRING_MAX_SIZE
 	  Maximum size of the string included messages that are sent over the payload channel.
 
 rsource "src/modules/trigger/Kconfig.trigger"
-rsource "src/modules/sampler/Kconfig.sampler"
+rsource "src/modules/battery/Kconfig.battery"
 rsource "src/modules/network/Kconfig.network"
 rsource "src/modules/transport/Kconfig.transport"
 rsource "src/modules/error/Kconfig.error"
