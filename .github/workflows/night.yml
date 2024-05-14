@@ -1,0 +1,79 @@
+name: Nightly
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_test:
+        description: 'Skip the test stage'
+        required: false
+        default: 'false'
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.12
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: thingy91x-oob
+
+      - name: Initialize
+        working-directory: thingy91x-oob
+        run: |
+          west init -l .
+          west config manifest.group-filter +bsec
+          west update -o=--depth=1 -n
+
+      - name: Install dependencies
+        run: |
+          pip install -r nrf/scripts/requirements-build.txt
+
+      - name: Build firmware
+        working-directory: thingy91x-oob
+        run: |
+          west build -b thingy91x/nrf9151/ns app -p -- -DCONFIG_NRF_CLOUD_CLIENT_ID_PREFIX=\"oob-\" -DCONFIG_NRF_CLOUD_SEC_TAG=4242
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oob-t91x-hex
+          path: thingy91x-oob/build/zephyr/merged.hex
+
+  test:
+    if: ${{ !github.event.inputs.skip_test || github.event.inputs.skip_test != 'true' }}
+    name: Test
+    needs: build
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/dematteisgiacomo/ubuntu-jlink-nrfutil:latest
+      options: --privileged
+      volumes:
+        - /dev:/dev:rw
+        - /run/udev:/run/udev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: thingy91x-oob
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: oob-t91x-hex
+          path: thingy91x-oob/tests/night/artifacts
+
+      - name: Verify artifact path
+        working-directory: thingy91x-oob
+        run: |
+          ls -l tests/night/artifacts
+
+      - name: Run tests
+        working-directory: thingy91x-oob
+        run: |
+          ./tests/night/run-tests.sh
