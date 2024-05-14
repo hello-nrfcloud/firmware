@@ -6,18 +6,18 @@
 
 menu "Sampler"
 
-config APP_SAMPLER_THREAD_STACK_SIZE
+config APP_BATTERY_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 1024
+	default 8192
 
-config APP_SAMPLER_MESSAGE_QUEUE_SIZE
+config APP_BATTERY_MESSAGE_QUEUE_SIZE
 	int "Message queue size"
 	default 5
 	help
 	  ZBus subscriber message queue size.
 
-module = APP_SAMPLER
-module-str = Sampler
+module = APP_BATTERY
+module-str = Battery
 source "subsys/logging/Kconfig.template.log_config"
 
 endmenu # Sampler
