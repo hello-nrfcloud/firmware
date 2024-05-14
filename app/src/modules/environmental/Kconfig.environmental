@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig APP_ENV
+	bool "Environmental module"
+	depends on BME68X_IAQ
+	default y
+
+if APP_ENV
+
+module = APP_ENV
+module-str = ENV
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # APP_ENV
