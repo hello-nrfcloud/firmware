@@ -124,6 +124,13 @@ cJSON *simple_config_construct_settings_obj(void)
 		return NULL;
 	}
 
+	int i = 0;
+
+	switch (i) {
+	case 0:
+		break;
+	}
+
 	cJSON *root_obj = cJSON_CreateObject();
 
 	if (!root_obj) {
