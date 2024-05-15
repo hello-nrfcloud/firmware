@@ -18,7 +18,7 @@
 LOG_MODULE_REGISTER(transport, CONFIG_APP_TRANSPORT_LOG_LEVEL);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(transport, CONFIG_APP_TRANSPORT_MESSAGE_QUEUE_SIZE);
+ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
 
 /* Forward declarations */
 static const struct smf_state state[];
@@ -226,8 +226,7 @@ static void transport_task(void)
 {
 	int err;
 	const struct zbus_channel *chan;
-	enum network_status status;
-	struct payload payload;
+	uint8_t msg_buf[MAX(sizeof(struct payload), sizeof(enum network_status))];
 
 	/* Setup handler for date_time library */
 	date_time_register_handler(date_time_handler);
@@ -255,20 +254,13 @@ static void transport_task(void)
 		SEND_FATAL_ERROR();
 	}
 
-	while (!zbus_sub_wait(&transport, &chan, K_FOREVER)) {
-
+	while (!zbus_sub_wait_msg(&transport, &chan, &msg_buf, K_FOREVER)) {
 		s_obj.chan = chan;
 
 		if (&NETWORK_CHAN == chan) {
+			const enum network_status *status = (const enum network_status *)msg_buf;
 
-			err = zbus_chan_read(&NETWORK_CHAN, &status, K_SECONDS(1));
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-
-			s_obj.status = status;
+			s_obj.status = *status;
 
 			/* connect/disconnect depending on network state */
 			/* TODO: run provisioning service */
@@ -281,15 +273,12 @@ static void transport_task(void)
 		}
 
 		if (&PAYLOAD_CHAN == chan) {
+			const struct payload *payload = (const struct payload *)msg_buf;
 
-			err = zbus_chan_read(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
+			s_obj.payload = *payload;
 
-			s_obj.payload = payload;
+			LOG_DBG("Payload received");
+			LOG_HEXDUMP_DBG(s_obj.payload.string, s_obj.payload.string_len, "payload");
 
 			err = smf_run_state(SMF_CTX(&s_obj));
 			if (err) {
