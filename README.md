@@ -23,6 +23,7 @@ west init -m https://github.com/hello-nrfcloud/firmware --mr main thingy91x-oob
 # update nRF Connect SDK modules
 cd thingy91x-oob
 west update
+west config build.sysbuild True
 ```
 
 ### Building and running
