@@ -10,10 +10,12 @@
 #include <zephyr/drivers/sensor/npm1300_charger.h>
 #include <zephyr/sys/util.h>
 #include <nrf_fuel_gauge.h>
+#include <date_time.h>
 #include <math.h>
 
 #include "lp803448_model.h"
 #include "message_channel.h"
+#include "bat_object_encode.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(battery, CONFIG_APP_BATTERY_LOG_LEVEL);
@@ -69,6 +71,15 @@ static void sample(void)
 	float temp;
 	float state_of_charge;
 	float delta;
+	struct bat_object bat_object = { 0 };
+	struct payload payload = { 0 };
+	int64_t system_time = k_uptime_get();
+
+	err = date_time_uptime_to_unix_time_ms(&system_time);
+	if (err) {
+		LOG_ERR("Failed to convert uptime to unix time, error: %d", err);
+		return;
+	}
 
 	err = charger_read_sensors(&voltage, &current, &temp, &chg_status);
 	if (err) {
@@ -88,16 +99,25 @@ static void sample(void)
 	LOG_DBG("State of charge: %f", (double)roundf(state_of_charge));
 	LOG_DBG("The battery is %s", charging ? "charging" : "not charging");
 
-	/* TODO: Encode in CBOR and publish to PAYLOAD channel
+	bat_object.state_of_charge_m.vi = (int32_t)(state_of_charge + 0.5f);
+	bat_object.voltage_m.vf = voltage;
+	bat_object.temperature_m.vf = temp;
+	bat_object.timestamp_m.vi = system_time;
 
-		struct payload payload = { 0 };
+	err = cbor_encode_bat_object(payload.string, sizeof(payload.string),
+				     &bat_object, &payload.string_len);
+	if (err) {
+		LOG_ERR("Failed to encode env object, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
 
-		err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
-		if (err) {
-			LOG_ERR("zbus_chan_pub, error:%d", err);
-			SEND_FATAL_ERROR();
-		}
-	*/
+	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_FOREVER);
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
 }
 
 static void battery_task(void)
