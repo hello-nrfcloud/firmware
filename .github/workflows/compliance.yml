@@ -20,6 +20,7 @@ jobs:
       working-directory: thingy91x-oob
       run: |
         west init -l .
+        west config manifest.group-filter +bsec
         west update -o=--depth=1 -n
 
     - name: Run Compliance Tests
