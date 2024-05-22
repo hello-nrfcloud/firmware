@@ -69,7 +69,7 @@ void env_callback(const struct zbus_channel *chan)
 		ret = date_time_uptime_to_unix_time_ms(&system_time);
 		if (ret) {
 			LOG_ERR("Failed to convert uptime to unix time, error: %d", ret);
-			system_time = 0;
+			return;
 		}
 
 		env_obj.temperature_m.vf = sensor_value_to_double(&temp);
