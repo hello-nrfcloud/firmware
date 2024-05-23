@@ -28,6 +28,12 @@ void simple_config_set_callback(simple_config_callback_t cb)
 	callback = cb;
 }
 
+void awdawd(simple_config_callback_t cb)
+{
+	cJSON_Init();
+	callback = cb;
+}
+
 int simple_config_handle_incoming_settings(char *buf, size_t buf_len)
 {
 	int err = 0;
