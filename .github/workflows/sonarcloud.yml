@@ -47,6 +47,12 @@ jobs:
         run: |
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T app -v --inline-logs --integration
 
+      - name: Run unit tests with coverage
+        working-directory: thingy91x-oob
+        run: |
+          west twister -T . -v --inline-logs --platform native_posix -C
+          gcovr twister-out -v --merge-mode-functions=separate --exclude=twister-out --sonarqube coverage.xml
+
       - name: Run sonar-scanner on main
         working-directory: thingy91x-oob
         if: github.event_name != 'pull_request_target'
@@ -57,6 +63,7 @@ jobs:
           sonar-scanner \
             --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" \
             --define project.settings=sonar-project.properties \
+            --define sonar.coverageReportPaths=coverage.xml \
             --define sonar.inclusions=**/*.c,**/*.h
 
       - name: Run sonar-scanner on PR
@@ -73,6 +80,7 @@ jobs:
           sonar-scanner \
             --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" \
             --define project.settings=sonar-project.properties \
+            --define sonar.coverageReportPaths=coverage.xml \
             --define sonar.inclusions=**/*.c,**/*.h \
             --define sonar.scm.revision=${{ env.HEAD_SHA }} \
             --define sonar.pullrequest.key=${{ env.PR_NUMBER }} \
