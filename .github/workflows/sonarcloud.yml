@@ -37,7 +37,7 @@ jobs:
         run: |
             pip install -r nrf/scripts/requirements-build.txt
             apt-get update
-            apt install -y curl
+            apt install -y curl ruby-full
 
       - name: Install sonar-scanner and build-wrapper
         uses: SonarSource/sonarcloud-github-c-cpp@v2
