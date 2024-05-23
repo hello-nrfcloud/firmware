@@ -57,6 +57,10 @@ void location_module_entry(void)
 		k_sem_take(&trigger_sem, K_FOREVER);
 		location_config_defaults_set(&config, 0, NULL);
 		config.mode = LOCATION_REQ_MODE_ALL;
+		if(config.methods[0].method==LOCATION_METHOD_GNSS) {
+			config.methods[0].gnss.visibility_detection=true;
+
+		}
 		err = location_request(&config);
 		if (err)
 		{
