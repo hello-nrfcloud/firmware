@@ -42,15 +42,14 @@ jobs:
       - name: Install sonar-scanner and build-wrapper
         uses: SonarSource/sonarcloud-github-c-cpp@v2
 
-      - name: Run build-wrapper
+      - name: Build and test
         working-directory: thingy91x-oob
         run: |
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T . --build-only -C -v --inline-logs --integration
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T . -C --coverage-platform=native_posix -v --inline-logs --integration
 
-      - name: Run native_posix tests
+      - name: Extract coverage into sonarqube xml format
         working-directory: thingy91x-oob
         run: |
-          west twister --test-only -v -i -C -T . -p native_posix
           gcovr twister-out -v --merge-mode-functions=separate --exclude=twister-out --sonarqube coverage.xml
 
       - name: Run sonar-scanner on main
