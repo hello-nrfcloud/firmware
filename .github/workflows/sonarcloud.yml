@@ -45,12 +45,12 @@ jobs:
       - name: Run build-wrapper
         working-directory: thingy91x-oob
         run: |
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T app -v --inline-logs --integration
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T . --build-only -C -v --inline-logs --integration
 
-      - name: Run unit tests with coverage
+      - name: Run native_posix tests
         working-directory: thingy91x-oob
         run: |
-          west twister -T . -v --inline-logs --platform native_posix -C
+          west twister --test-only -v -i -C -T . -p native_posix
           gcovr twister-out -v --merge-mode-functions=separate --exclude=twister-out --sonarqube coverage.xml
 
       - name: Run sonar-scanner on main
