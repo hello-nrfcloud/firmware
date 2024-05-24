@@ -9,3 +9,9 @@
 &bme680 {
 	status = "okay";
 };
+
+/ {
+	aliases {
+		gas-sensor = &bme680;
+	};
+};

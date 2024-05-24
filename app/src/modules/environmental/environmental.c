@@ -17,7 +17,7 @@
 /* Register log module */
 LOG_MODULE_REGISTER(env, CONFIG_APP_ENV_LOG_LEVEL);
 
-static const struct device *const sensor_dev = DEVICE_DT_GET_ANY(bosch_bme680);
+static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(gas_sensor));
 
 static struct payload payload = { 0 };
 static void submit_payload_work_fn(struct k_work *work);
