@@ -72,11 +72,11 @@ void env_callback(const struct zbus_channel *chan)
 			return;
 		}
 
+		env_obj.temperature_m.bt = system_time;
 		env_obj.temperature_m.vf = sensor_value_to_double(&temp);
 		env_obj.humidity_m.vf = sensor_value_to_double(&humidity);
 		env_obj.pressure_m.vf = sensor_value_to_double(&press);
 		env_obj.iaq_m.vi = iaq.val1;
-		env_obj.timestamp_m.vi = system_time;
 
 		ret = cbor_encode_env_object(payload.string, sizeof(payload.string),
 				       &env_obj, &payload.string_len);

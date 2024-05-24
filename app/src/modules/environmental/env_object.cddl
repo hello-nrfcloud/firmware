@@ -2,31 +2,27 @@
 ; depends on lwm2m_senml definitions
 
 temperature = {
-	bn => "14205/0/",  ; Custom Environment information object
-	n => "0",          ; Temperature Resource ID
-	vf => float,       ; temperature in degrees Celsius
+	bn => "14205/0/",        ; Custom Environment information object
+	n => "0",                ; Temperature Resource ID
+	vf => float,             ; temperature in degrees Celsius
+	bt => int .size 8        ; UNIX timestamp in milliseconds
 }
 humidity = {
-	n => "1",          ; Humidity Resource ID
-	vf => float,       ; Relative humidity in percent
+	n => "1",                ; Humidity Resource ID
+	vf => float,             ; Relative humidity in percent
 }
 pressure = {
-	n => "2",          ; Atmospheric pressure Resource ID
- 	vf => float,       ; Atmospheric pressure in pascals
+	n => "2",                ; Atmospheric pressure Resource ID
+ 	vf => float,             ; Atmospheric pressure in pascals
 }
 iaq = {
-	n => "10",         ; Air Quality Index Resource ID
-	vi => int .size 4  ; AQI value
-}
-timestamp = {
-	n => "99",         ; Timestamp Resource ID
-	vi => int .size 8  ; UNIX timestamp in milliseconds
+	n => "10",               ; Air Quality Index Resource ID
+	vi => int .size 4        ; AQI value
 }
 
 env-object = [
 	temperature,
 	humidity,
 	pressure,
-	iaq,
-	timestamp
+	iaq
 ]
