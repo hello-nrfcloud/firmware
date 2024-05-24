@@ -1,0 +1,5 @@
+tests:
+  hello_nrfcloud.fw.environmental:
+    platform_allow: native_sim
+    integration_platforms:
+      - native_sim
