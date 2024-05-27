@@ -1,5 +1,5 @@
 tests:
   net.lib.simple_config:
-    platform_allow: native_posix
+    platform_allow: native_sim
     integration_platforms:
-      - native_posix
+      - native_sim
