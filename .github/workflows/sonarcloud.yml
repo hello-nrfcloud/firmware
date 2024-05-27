@@ -45,7 +45,7 @@ jobs:
       - name: Build and test
         working-directory: thingy91x-oob
         run: |
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T . -C --coverage-platform=native_posix -v --inline-logs --integration
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} west twister -T . -C --coverage-platform=native_sim -v --inline-logs --integration
 
       - name: Extract coverage into sonarqube xml format
         working-directory: thingy91x-oob
