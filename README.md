@@ -20,8 +20,13 @@ following command:
 ```shell
 # initialize thingy91x-oob workspace
 west init -m https://github.com/hello-nrfcloud/firmware --mr main thingy91x-oob
-# update nRF Connect SDK modules
+
 cd thingy91x-oob
+
+# enable Bosch environmental sensor driver
+west config manifest.group-filter +bsec
+
+# update nRF Connect SDK modules
 west update
 ```
 
