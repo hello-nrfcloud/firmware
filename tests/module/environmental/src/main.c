@@ -103,6 +103,9 @@ void test_all_zeroes(void)
 	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
 
+	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
+	k_sleep(K_MSEC(100));
+
 	/* check payload */
 	TEST_ASSERT_EQUAL(0, memcmp(&all_zeroes, &received_payload, sizeof(struct payload)));
 }
@@ -118,6 +121,9 @@ void test_only_timestamp(void)
 	/* send trigger */
 	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
+
+	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
+	k_sleep(K_MSEC(100));
 
 	/* check payload */
 	TEST_ASSERT_EQUAL(0, memcmp(&only_timestamp, &received_payload, sizeof(struct payload)));
@@ -141,6 +147,9 @@ void test_common_case(void)
 	/* send trigger */
 	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
+
+	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
+	k_sleep(K_MSEC(100));
 
 	/* check payload */
 	TEST_ASSERT_EQUAL(0, memcmp(&common_case, &received_payload, sizeof(struct payload)));
