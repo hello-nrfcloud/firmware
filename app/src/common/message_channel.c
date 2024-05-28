@@ -10,12 +10,12 @@
 
 #include "message_channel.h"
 
-ZBUS_CHAN_DEFINE(TRIGGER_CHAN,					/* Name */
-		 int,						/* Message type */
-		 NULL,						/* Validator */
-		 NULL,						/* User data */
-		 ZBUS_OBSERVERS(fota, app, battery, location, env),	/* Observers */
-		 ZBUS_MSG_INIT(0)				/* Initial value {0} */
+ZBUS_CHAN_DEFINE(TRIGGER_CHAN,
+		 int,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(fota, app, battery, location, environmental),
+		 ZBUS_MSG_INIT(0)
 );
 
 ZBUS_CHAN_DEFINE(FOTA_ONGOING_CHAN,

@@ -4,15 +4,25 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-menuconfig APP_ENV
+menuconfig APP_ENVIRONMENTAL
 	bool "Environmental module"
 	depends on BME68X_IAQ
 	default y
 
-if APP_ENV
+if APP_ENVIRONMENTAL
 
-module = APP_ENV
-module-str = ENV
+config APP_ENVIRONMENTAL_THREAD_STACK_SIZE
+	int "Thread stack size"
+	default 1024
+
+config APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZE
+	int "Message queue size"
+	default 5
+	help
+	  ZBus subscriber message queue size.
+
+module = APP_ENVIRONMENTAL
+module-str = ENVIRONMENTAL
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # APP_ENV
+endif # APP_ENVIRONMENTAL
