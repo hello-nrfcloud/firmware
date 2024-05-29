@@ -21,8 +21,6 @@ ZBUS_SUBSCRIBER_DEFINE(app, CONFIG_APP_MODULE_MESSAGE_QUEUE_SIZE);
 BUILD_ASSERT(CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS > CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX,
 	     "Watchdog timeout must be greater than maximum execution time");
 
-// TODO: configure simple_config, forward received led status to led module
-
 int config_cb(const char *key, const struct simple_config_val *val)
 {
 	int err;
@@ -37,13 +35,14 @@ int config_cb(const char *key, const struct simple_config_val *val)
 		return -EINVAL;
 	}
 
-	if (strcmp(key, "led_red") == 0) {
+	if (strcmp(key, "led_blue") == 0) {
 		int status = val->val._bool;
 
 		err = zbus_chan_pub(&LED_CHAN, &status, K_NO_WAIT);
 		if (err) {
 			LOG_ERR("zbus_chan_pub, error:%d", err);
 			SEND_FATAL_ERROR();
+			return err;
 		}
 
 		return 0;
@@ -55,10 +54,11 @@ int config_cb(const char *key, const struct simple_config_val *val)
 static void init_app_settings(void)
 {
 	struct simple_config_val val = {.type = SIMPLE_CONFIG_VAL_BOOL, .val._bool = true};
-	int err = simple_config_set("led_red", &val);
+	int err = simple_config_set("blue_led", &val);
 	if (err) {
 		LOG_ERR("simple_config_set, error: %d", err);
 		SEND_FATAL_ERROR();
+		return;
 	}
 }
 
