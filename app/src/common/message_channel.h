@@ -34,12 +34,12 @@ struct payload {
 };
 
 enum network_status {
-	NETWORK_DISCONNECTED,
+	NETWORK_DISCONNECTED = 0x1,
 	NETWORK_CONNECTED,
 };
 
 enum cloud_status {
-	CLOUD_CONNECTED,
+	CLOUD_CONNECTED = 0x1,
 	CLOUD_DISCONNECTED,
 };
 
