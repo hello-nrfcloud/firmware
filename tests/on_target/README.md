@@ -1,4 +1,4 @@
-# OOB nightly test on target
+# OOB on target test
 
 Test docker image: ghcr.io/dematteisgiacomo/ubuntu-jlink-nrfutil:latest
 
