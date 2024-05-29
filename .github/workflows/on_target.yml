@@ -1,4 +1,4 @@
-name: Nightly
+name: On_target
 
 on:
   workflow_dispatch:
@@ -66,14 +66,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: oob-t91x-hex
-          path: thingy91x-oob/tests/night/artifacts
+          path: thingy91x-oob/tests/on_target/artifacts
 
       - name: Verify artifact path
         working-directory: thingy91x-oob
         run: |
-          ls -l tests/night/artifacts
+          ls -l tests/on_target/artifacts
 
       - name: Run tests
         working-directory: thingy91x-oob
         run: |
-          ./tests/night/run-tests.sh
+          ./tests/on_target/run-tests.sh
