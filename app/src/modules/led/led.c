@@ -7,43 +7,38 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/drivers/led.h>
+#include <dk_buttons_and_leds.h>
 
 #include "message_channel.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(led, CONFIG_APP_LED_LOG_LEVEL);
 
-const static struct device *led_device = DEVICE_DT_GET_ANY(gpio_leds);
-
-/* LED 1, green on Thingy:91 boards. */
-#define LED_1_GREEN 0
-
 void led_callback(const struct zbus_channel *chan)
 {
-	int err = 0;
+	int err;
 	const int *status;
 
 	if (&LED_CHAN == chan) {
-
-		if (!device_is_ready(led_device)) {
-			LOG_ERR("LED device is not ready");
-			return;
-		}
-
-		/* Get network status from channel. */
+		/* Get LED status from channel. */
 		status = zbus_chan_const_msg(chan);
 
-		if (*status) {
-			err = led_on(led_device, LED_1_GREEN);
-			if (err) {
-				LOG_ERR("led_on, error: %d", err);
-			}
-		} else {
-			err = led_off(led_device, LED_1_GREEN);
-			if (err) {
-				LOG_ERR("led_off, error: %d", err);
-			}
+		/* Blue LED */
+		err = dk_set_led(DK_LED2, *status);
+		if (err) {
+			LOG_ERR("dk_set_led, error:%d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+	}
+
+	if (&FATAL_ERROR_CHAN == chan) {
+		/* Red LED */
+		err = dk_set_led_on(DK_LED1);
+		if (err) {
+			LOG_ERR("dk_set_led_on, error:%d", err);
+			SEND_FATAL_ERROR();
+			return;
 		}
 	}
 }
@@ -52,3 +47,12 @@ void led_callback(const struct zbus_channel *chan)
  * receives a new message.
  */
 ZBUS_LISTENER_DEFINE(led, led_callback);
+
+static int leds_init(void)
+{
+	__ASSERT((dk_leds_init() == 0), "DK LEDs init failure");
+
+	return 0;
+}
+
+SYS_INIT(leds_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

@@ -46,7 +46,7 @@ ZBUS_CHAN_DEFINE(FATAL_ERROR_CHAN,
 		 int,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(error),
+		 ZBUS_OBSERVERS(led),
 		 ZBUS_MSG_INIT(0)
 );
 
