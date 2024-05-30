@@ -1,5 +1,7 @@
 #!/bin/bash
 
-pip install -r tests/on_target/requirements.txt --break-system-packages
+TOP_DIR="tests/on_target"
 
-pytest -v -s tests/on_target/tests/test.py
+pip install -r $TOP_DIR/requirements.txt --break-system-packages
+
+pytest -v -s $TOP_DIR/tests/test.py
