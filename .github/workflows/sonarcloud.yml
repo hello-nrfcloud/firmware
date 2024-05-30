@@ -50,7 +50,7 @@ jobs:
       - name: Extract coverage into sonarqube xml format
         working-directory: thingy91x-oob
         run: |
-          gcovr twister-out -v --merge-mode-functions=separate --exclude=twister-out --sonarqube coverage.xml
+          gcovr twister-out -v --merge-mode-functions=separate --exclude='twister-out|tests|drivers' --sonarqube coverage.xml
 
       - name: Run sonar-scanner on main
         working-directory: thingy91x-oob
