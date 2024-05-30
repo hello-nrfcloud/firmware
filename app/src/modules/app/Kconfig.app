@@ -22,6 +22,6 @@ config APP_MODULE_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
 	default 60
 	help
-	  Maximum time allowed for a single execution of the main loop.
+	  Maximum time allowed for a single execution of the module thread loop.
 
 endmenu
