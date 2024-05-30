@@ -21,6 +21,16 @@ config APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZE
 	help
 	  ZBus subscriber message queue size.
 
+config APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS
+	int "Watchdog timeout seconds"
+	default 120
+
+config APP_ENVIRONMENTAL_EXEC_TIME_SECONDS_MAX
+	int "Maximum execution time seconds"
+	default 3
+	help
+	  Maximum time allowed for a single execution of the module's thread loop.
+
 module = APP_ENVIRONMENTAL
 module-str = ENVIRONMENTAL
 source "subsys/logging/Kconfig.template.log_config"
