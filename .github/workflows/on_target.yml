@@ -3,10 +3,15 @@ name: On_target
 on:
   workflow_dispatch:
     inputs:
-      skip_test:
-        description: 'Skip the test stage'
+      run_test:
+        description: 'Run test stage'
         required: false
-        default: 'false'
+        default: 'yes'
+        type: select
+        options:
+          - yes
+          - no
+  pull_request:
   schedule:
     - cron: "0 0 * * *"
 
@@ -46,7 +51,7 @@ jobs:
           path: thingy91x-oob/build/zephyr/merged.hex
 
   test:
-    if: ${{ !github.event.inputs.skip_test || github.event.inputs.skip_test != 'true' }}
+    if: github.event.inputs.run_test == 'yes' || github.event.inputs.run_test == '' || github.event.inputs.run_test == null
     name: Test
     needs: build
     runs-on: self-hosted
