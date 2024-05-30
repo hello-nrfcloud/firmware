@@ -33,3 +33,18 @@ RUN <<EOT
     chmod +x /usr/local/bin/nrfutil
     nrfutil install device
 EOT
+
+# Install Go
+RUN <<EOT
+    wget https://golang.org/dl/go1.20.5.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.20.5.linux-amd64.tar.gz
+    rm go1.20.5.linux-amd64.tar.gz
+EOT
+
+ENV PATH=$PATH:/usr/local/go/bin:/go/bin
+ENV GOPATH=/go
+
+# Install mcumgr
+RUN <<EOT
+    go install github.com/apache/mynewt-mcumgr-cli/mcumgr@latest
+EOT
