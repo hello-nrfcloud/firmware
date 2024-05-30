@@ -10,6 +10,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <drivers/bme68x_iaq.h>
 #include <date_time.h>
+#include <zephyr/task_wdt/task_wdt.h>
 
 #include "message_channel.h"
 #include "env_object_encode.h"
@@ -22,6 +23,14 @@ ZBUS_SUBSCRIBER_DEFINE(environmental, CONFIG_APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZ
 
 static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(gas_sensor));
 
+
+static void task_wdt_callback(int channel_id, void *user_data)
+{
+	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
+		channel_id, k_thread_name_get((k_tid_t)user_data));
+
+	SEND_FATAL_ERROR();
+}
 
 static void sample(void)
 {
@@ -88,8 +97,33 @@ static void sample(void)
 static void environmental_task(void)
 {
 	const struct zbus_channel *chan;
+	int err;
+	int task_wdt_id;
+	const uint32_t wdt_timeout_ms = (CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
+	const uint32_t execution_time_ms = (CONFIG_APP_ENVIRONMENTAL_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
+	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
 
-	while (!zbus_sub_wait(&environmental, &chan, K_FOREVER)) {
+	LOG_DBG("Environmental module task started");
+
+	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
+
+	while (true) {
+		err = task_wdt_feed(task_wdt_id);
+		if (err) {
+			LOG_ERR("task_wdt_feed, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
+		err = zbus_sub_wait(&environmental, &chan, zbus_wait_ms);
+		if (err == -EAGAIN) {
+			continue;
+		} else if (err) {
+			LOG_ERR("zbus_sub_wait, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
 		if (&TRIGGER_CHAN == chan) {
 			LOG_DBG("Trigger received");
 			sample();
