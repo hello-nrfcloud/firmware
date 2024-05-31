@@ -21,6 +21,10 @@ LOG_MODULE_REGISTER(environmental_module, CONFIG_APP_ENVIRONMENTAL_LOG_LEVEL);
 /* Register subscriber */
 ZBUS_SUBSCRIBER_DEFINE(environmental, CONFIG_APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZE);
 
+BUILD_ASSERT(CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS >
+			CONFIG_APP_ENVIRONMENTAL_EXEC_TIME_SECONDS_MAX,
+			"Watchdog timeout must be greater than maximum execution time");
+
 static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(gas_sensor));
 
 
