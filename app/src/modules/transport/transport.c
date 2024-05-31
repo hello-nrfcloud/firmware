@@ -8,6 +8,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/smf.h>
+#include <zephyr/task_wdt/task_wdt.h>
 #include <net/nrf_cloud.h>
 #include <net/nrf_cloud_coap.h>
 #include <date_time.h>
@@ -19,6 +20,10 @@ LOG_MODULE_REGISTER(transport, CONFIG_APP_TRANSPORT_LOG_LEVEL);
 
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
+
+BUILD_ASSERT(CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS >
+			 CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX,
+			 "Watchdog timeout must be greater than maximum execution time");
 
 /* Forward declarations */
 static const struct smf_state state[];
@@ -54,6 +59,14 @@ static struct s_object {
 	/* Payload */
 	struct payload payload;
 } s_obj;
+
+static void task_wdt_callback(int channel_id, void *user_data)
+{
+	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
+		channel_id, k_thread_name_get((k_tid_t)user_data));
+
+	SEND_FATAL_ERROR();
+}
 
 /* Connect work - Used to establish a connection to the MQTT broker and schedule reconnection
  * attempts.
@@ -226,7 +239,15 @@ static void transport_task(void)
 {
 	int err;
 	const struct zbus_channel *chan;
+	int task_wdt_id;
+	const uint32_t wdt_timeout_ms = (CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
+	const uint32_t execution_time_ms = (CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
+	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
 	uint8_t msg_buf[MAX(sizeof(struct payload), sizeof(enum network_status))];
+
+	LOG_DBG("Transport module task started");
+
+	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
 
 	/* Setup handler for date_time library */
 	date_time_register_handler(date_time_handler);
@@ -254,7 +275,22 @@ static void transport_task(void)
 		SEND_FATAL_ERROR();
 	}
 
-	while (!zbus_sub_wait_msg(&transport, &chan, &msg_buf, K_FOREVER)) {
+	while (true) {
+		err = task_wdt_feed(task_wdt_id);
+		if (err) {
+			LOG_ERR("task_wdt_feed, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
+		err = zbus_sub_wait_msg(&transport, &chan, &msg_buf, zbus_wait_ms);
+		if (err == -ENOMSG) {
+			continue;
+		} else if (err) {
+			LOG_ERR("zbus_sub_wait, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
 		s_obj.chan = chan;
 
 		if (&NETWORK_CHAN == chan) {
