@@ -6,6 +6,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/init.h>
 
@@ -20,6 +21,11 @@
 
 LOG_MODULE_REGISTER(location_module, CONFIG_APP_LOCATION_LOG_LEVEL);
 
+BUILD_ASSERT(CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS >
+			 CONFIG_APP_LOCATION_TRIGGER_TIMEOUT_SECONDS,
+			 "Watchdog timeout must be greater than trigger timeout");
+
+
 static K_SEM_DEFINE(location_lib_sem, 1, 1);
 static K_SEM_DEFINE(modem_init_sem, 0, 1);
 static K_SEM_DEFINE(trigger_sem, 0, 1);
@@ -28,12 +34,29 @@ static void location_event_handler(const struct location_event_data *event_data)
 
 int nrf_cloud_coap_location_send(const struct nrf_cloud_gnss_data *gnss, bool confirmable);
 
-void location_module_entry(void)
+static void task_wdt_callback(int channel_id, void *user_data)
+{
+	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
+		channel_id, k_thread_name_get((k_tid_t)user_data));
+
+	SEND_FATAL_ERROR();
+}
+
+void location_task(void)
 {
 	int err = 0;
 	struct location_config config = {0};
+	int task_wdt_id;
+	const uint32_t wdt_timeout_ms = (CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 
 	k_sem_take(&modem_init_sem, K_FOREVER);
+
+	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
+	if (task_wdt_id < 0) {
+		LOG_ERR("Failed to add task to watchdog: %d", task_wdt_id);
+		SEND_FATAL_ERROR();
+		return;
+	}
 
 	err = location_init(location_event_handler);
 	if (err)
@@ -54,7 +77,19 @@ void location_module_entry(void)
 
 	while (true)
 	{
-		k_sem_take(&trigger_sem, K_FOREVER);
+		err = task_wdt_feed(task_wdt_id);
+		if (err) {
+			LOG_ERR("Failed to feed the watchdog: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
+		err = k_sem_take(&trigger_sem, K_SECONDS(CONFIG_APP_LOCATION_TRIGGER_TIMEOUT_SECONDS));
+		if (err == -EAGAIN) {
+			// Continue so we can feed the watchdog and wait for semaphore again.
+			continue;
+		}
+
 		location_config_defaults_set(&config, 0, NULL);
 		config.mode = LOCATION_REQ_MODE_ALL;
 		err = location_request(&config);
@@ -67,7 +102,7 @@ void location_module_entry(void)
 }
 
 K_THREAD_DEFINE(location_module_tid, CONFIG_APP_LOCATION_THREAD_STACK_SIZE,
-		location_module_entry, NULL, NULL, NULL,
+		location_task, NULL, NULL, NULL,
 		K_HIGHEST_APPLICATION_THREAD_PRIO, 0, 0);
 
 static void trigger_callback(const struct zbus_channel *chan)
