@@ -8,15 +8,18 @@
 #include <zephyr/fff.h>
 #include "message_channel.h"
 #include "gas_sensor.h"
+#include <zephyr/task_wdt/task_wdt.h>
 
 DEFINE_FFF_GLOBALS;
 
 FAKE_VALUE_FUNC(int, date_time_uptime_to_unix_time_ms, int64_t *);
+FAKE_VALUE_FUNC(int, task_wdt_feed, int);
+FAKE_VALUE_FUNC(int, task_wdt_add, uint32_t, task_wdt_callback_t, void *);
 
 static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(gas_sensor));
 static struct payload received_payload;
 
-int date_time_uptime_to_unix_time_ms_custom_fake(int64_t *time)
+static int date_time_uptime_to_unix_time_ms_custom_fake(int64_t *time)
 {
 	*time = 1716552398505;
 	return 0;
@@ -80,7 +83,9 @@ void setUp(void)
 	struct gas_sensor_dummy_data *data = sensor_dev->data;
 
 	/* reset fakes */
-	date_time_uptime_to_unix_time_ms_fake.custom_fake = NULL;
+	RESET_FAKE(task_wdt_feed);
+	RESET_FAKE(task_wdt_add);
+	RESET_FAKE(date_time_uptime_to_unix_time_ms);
 
 	/* reset static stuff */
 	received_payload = (struct payload){0};
@@ -153,6 +158,15 @@ void test_common_case(void)
 
 	/* check payload */
 	TEST_ASSERT_EQUAL(0, memcmp(&common_case, &received_payload, sizeof(struct payload)));
+}
+
+void test_no_events_on_zbus_until_watchdog_timeout(void)
+{
+	/* Wait without feeding any events to zbus until watch dog timeout. */
+	k_sleep(K_SECONDS(CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS));
+
+	/* Check if the watchdog was fed atleast once.*/
+	TEST_ASSERT_GREATER_OR_EQUAL(1, task_wdt_feed_fake.call_count);
 }
 
 /* This is required to be added to each test. That is because unity's
