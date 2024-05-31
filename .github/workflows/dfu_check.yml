@@ -1,0 +1,89 @@
+name: DFU image compatibility check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: ubuntu-latest
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.12
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
+      CMAKE_PREFIX_PATH: /opt/toolchains
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: thingy91x-oob
+
+      - name: Initialize
+        working-directory: thingy91x-oob
+        run: |
+          west init -l .
+          west config manifest.group-filter +bsec
+          west update -o=--depth=1 -n
+
+      - name: Install dependencies
+        run: |
+          pip install -r nrf/scripts/requirements-build.txt
+
+      - name: Save paths
+        run: |
+          echo "CI_PROJECT_DIR=$(pwd)/thingy91x-oob" >> $GITHUB_ENV
+          echo "CI_NRF_DIR=$(pwd)/nrf" >> $GITHUB_ENV
+          echo "CI_ZEPHYR_DIR=$(pwd)/zephyr" >> $GITHUB_ENV
+          echo "CI_MCUBOOT_DIR=$(pwd)/bootloader/mcuboot" >> $GITHUB_ENV
+
+      - name: 'generate nsib verifying keys'
+        working-directory: thingy91x-oob
+        run: |
+          python3 ${CI_NRF_DIR}/scripts/bootloader/keygen.py --public --in ${CI_NRF_DIR}/boards/nordic/thingy91x/nsib_signing_key.pem --out verifying_key_nrf91.pem
+          python3 ${CI_NRF_DIR}/scripts/bootloader/keygen.py --public --in ${CI_NRF_DIR}/boards/nordic/thingy91x/nsib_signing_key_nrf5340.pem --out verifying_key_nrf53.pem
+
+      - name: Build OOB FW
+        working-directory: thingy91x-oob
+        run: |
+          west twister -T . -v -p thingy91x/nrf9151/ns --inline-logs
+
+      - name: 'nrf91: check partition layout'
+        working-directory: thingy91x-oob/twister-out/thingy91x_nrf9151_ns/app/app.build/
+        run: |
+          ninja partition_manager_report > partition_manager_report.txt
+          sed -i '1d' partition_manager_report.txt
+          diff partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
+
+      - name: 'nrf91: check app image signature'
+        working-directory: thingy91x-oob
+        run: |
+          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem twister-out/thingy91x_nrf9151_ns/app/app.build/zephyr/app_update.bin
+
+      - name: 'nrf91: check bootloader image signature'
+        working-directory: thingy91x-oob
+        run: |
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/zephyr/signed_by_b0_s0_image.hex -p verifying_key_nrf91.pem -a 0x00008200
+
+      - name: Build Connectivity Bridge
+        working-directory: thingy91x-oob
+        run: |
+          west twister -T ${CI_NRF_DIR}/applications/connectivity_bridge -v -p thingy91x/nrf5340/cpuapp --inline-logs
+
+      - name: 'nrf53: check partition layout'
+        working-directory: thingy91x-oob/twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/
+        run: |
+          ninja partition_manager_report > partition_manager_report.txt
+          sed -i '1d' partition_manager_report.txt
+          diff partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf53.txt
+
+      - name: 'nrf53: check app image signature'
+        working-directory: thingy91x-oob
+        run: |
+          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-rsa-2048.pem twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/zephyr/app_update.bin
+
+      - name: 'nrf91: check bootloader image signature'
+        working-directory: thingy91x-oob
+        run: |
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/zephyr/signed_by_b0_s0_image.hex -p verifying_key_nrf53.pem -a 0x00008200
