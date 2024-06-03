@@ -44,7 +44,7 @@ int simple_config_handle_incoming_settings(char *buf, size_t buf_len)
 	}
 
 	LOG_INF("Checking for shadow delta...");
-	err = nrf_cloud_coap_shadow_get(buf, buf_len, request_delta);
+	err = nrf_cloud_coap_shadow_get(buf, &buf_len, request_delta, COAP_CONTENT_FORMAT_APP_JSON);
 	if (err == -EACCES) {
 		LOG_DBG("Not connected yet.");
 		return err;

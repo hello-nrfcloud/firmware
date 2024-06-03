@@ -8,9 +8,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/task_wdt/task_wdt.h>
-#if CONFIG_DK_LIBRARY
 #include <dk_buttons_and_leds.h>
-#endif /* CONFIG_DK_LIBRARY */
 
 #include "message_channel.h"
 
@@ -18,23 +16,20 @@
 LOG_MODULE_REGISTER(trigger, CONFIG_APP_TRIGGER_LOG_LEVEL);
 
 #define MSG_SEND_TIMEOUT_SECONDS 1
-BUILD_ASSERT(CONFIG_APP_TRIGGER_WATCHDOG_TIMEOUT_SECONDS >
-			 (CONFIG_APP_TRIGGER_TIMEOUT_SECONDS + MSG_SEND_TIMEOUT_SECONDS),
-			 "Watchdog timeout must be greater than maximum execution time");
 
+/* Forward declarations */
+static void trigger_work_fn(struct k_work *work);
 
-static void task_wdt_callback(int channel_id, void *user_data)
+/* Delayable work used to schedule triggers. */
+static K_WORK_DELAYABLE_DEFINE(trigger_work, trigger_work_fn);
+
+/* Set default update interval */
+k_timeout_t update_interval = K_SECONDS(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS);
+
+static void trigger_work_fn(struct k_work *work)
 {
-	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
-		channel_id, k_thread_name_get((k_tid_t)user_data));
-
-	SEND_FATAL_ERROR();
-}
-
-static void message_send(void)
-{
-	int not_used = -1;
 	int err;
+	int not_used = -1;
 	bool fota_ongoing = true;
 
 	err = zbus_chan_read(&FOTA_ONGOING_CHAN, &fota_ongoing, K_NO_WAIT);
@@ -50,52 +45,60 @@ static void message_send(void)
 	}
 
 	LOG_DBG("Sending trigger message");
+
 	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(MSG_SEND_TIMEOUT_SECONDS));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
+		return;
 	}
+
+	k_work_reschedule(&trigger_work, update_interval);
 }
 
-#if CONFIG_DK_LIBRARY
 static void button_handler(uint32_t button_states, uint32_t has_changed)
 {
 	if (has_changed & button_states) {
-		message_send();
+		trigger_work_fn(NULL);
 	}
 }
-#endif /* CONFIG_DK_LIBRARY */
 
-static void trigger_task(void)
+void trigger_callback(const struct zbus_channel *chan)
 {
-	int task_wdt_id;
-	const uint32_t wdt_timeout_ms = (CONFIG_APP_TRIGGER_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
+	if (&CONFIG_CHAN == chan) {
+		/* Get update interval configuration from channel. */
+		const struct configuration *config = zbus_chan_const_msg(chan);
 
-	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, k_current_get());
+		LOG_DBG("New update interval: %lld", config->update_interval);
 
-#if CONFIG_DK_LIBRARY
-	int err = dk_buttons_init(button_handler);
+		update_interval = K_SECONDS(config->update_interval);
 
-	if (err) {
-		LOG_ERR("dk_buttons_init, error: %d", err);
-		SEND_FATAL_ERROR();
-		return;
+		/* Reschedule work */
+		k_work_reschedule(&trigger_work, update_interval);
 	}
-#endif /* CONFIG_DK_LIBRARY */
 
-	while (true) {
-		err = task_wdt_feed(task_wdt_id);
-		if (err) {
-			LOG_ERR("task_wdt_feed, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
+	if (&CLOUD_CHAN == chan) {
+		LOG_DBG("Cloud connection status received");
+
+		const enum cloud_status *status = zbus_chan_const_msg(chan);
+
+		if (*status == CLOUD_CONNECTED) {
+			LOG_DBG("Cloud connected, starting trigger");
+			k_work_reschedule(&trigger_work, update_interval);
+		} else {
+			LOG_DBG("Cloud disconnected, stopping trigger");
+			k_work_cancel_delayable(&trigger_work);
 		}
-
-		message_send();
-		k_sleep(K_SECONDS(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS));
 	}
 }
 
-K_THREAD_DEFINE(trigger_task_id,
-		CONFIG_APP_TRIGGER_THREAD_STACK_SIZE,
-		trigger_task, NULL, NULL, NULL, 3, 0, 0);
+ZBUS_LISTENER_DEFINE(trigger, trigger_callback);
+
+static int trigger_init(void)
+{
+	__ASSERT((dk_buttons_init(button_handler) == 0), "Task watchdog init failure");
+
+	return 0;
+}
+
+SYS_INIT(trigger_init, POST_KERNEL, CONFIG_APPLICATION_INIT_PRIORITY);

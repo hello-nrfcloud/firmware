@@ -146,10 +146,7 @@ static void disconnected_entry(void *o)
 	if (user_object->status == NETWORK_CONNECTED) {
 		k_work_reschedule_for_queue(&transport_queue, &connect_work, K_NO_WAIT);
 	} else {
-		err = nrf_cloud_coap_disconnect();
-		if (err && (err != -ENOTCONN)) {
-			LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
-		}
+		(void)nrf_cloud_coap_disconnect();
 	}
 }
 

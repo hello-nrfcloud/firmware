@@ -6,7 +6,7 @@ menu "App"
 
 config APP_MODULE_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 4096
+	default 8192
 
 config APP_MODULE_MESSAGE_QUEUE_SIZE
 	int "Message queue size"

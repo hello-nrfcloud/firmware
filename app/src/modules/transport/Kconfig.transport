@@ -6,7 +6,6 @@
 
 menu "Transport"
 	depends on NRF_CLOUD_COAP
-	depends on SIMPLE_CONFIG
 
 config APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS
 	int "Reconnection timeout in seconds"

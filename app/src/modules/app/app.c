@@ -7,10 +7,12 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
-#include <simple_config/simple_config.h>
 #include <zephyr/task_wdt/task_wdt.h>
+#include <net/nrf_cloud_coap.h>
+#include <nrf_cloud_coap_transport.h>
 
 #include "message_channel.h"
+#include "app_object_decode.h" /* change this to config object and add led object here */
 
 /* Register log module */
 LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
@@ -21,44 +23,85 @@ ZBUS_SUBSCRIBER_DEFINE(app, CONFIG_APP_MODULE_MESSAGE_QUEUE_SIZE);
 BUILD_ASSERT(CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS > CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX,
 	     "Watchdog timeout must be greater than maximum execution time");
 
-int config_cb(const char *key, const struct simple_config_val *val)
+static void shadow_get(bool get_desired)
 {
 	int err;
+	struct app_object app_object = { 0 };
+	uint8_t buf_cbor[512] = { 0 };
+	uint8_t buf_json[512] = { 0 };
+	size_t buf_cbor_len = sizeof(buf_cbor);
+	size_t buf_json_len = sizeof(buf_json);
+	size_t not_used;
 
-	if (val->type == SIMPLE_CONFIG_VAL_STRING) {
-		LOG_DBG("\"%s\" = %s", key, val->val._str);
-	} else if (val->type == SIMPLE_CONFIG_VAL_BOOL) {
-		LOG_DBG("\"%s\" = %s", key, val->val._bool ? "true" : "false");
-	} else if (val->type == SIMPLE_CONFIG_VAL_DOUBLE) {
-		LOG_DBG("\"%s\" = %f", key, val->val._double);
-	} else {
-		return -EINVAL;
-	}
-
-	if (strcmp(key, "led_blue") == 0) {
-		int status = val->val._bool;
-
-		err = zbus_chan_pub(&LED_CHAN, &status, K_NO_WAIT);
-		if (err) {
-			LOG_ERR("zbus_chan_pub, error:%d", err);
-			SEND_FATAL_ERROR();
-			return err;
-		}
-
-		return 0;
-	}
-
-	return -EINVAL;
-}
-
-static void init_app_settings(void)
-{
-	struct simple_config_val val = {.type = SIMPLE_CONFIG_VAL_BOOL, .val._bool = true};
-	int err = simple_config_set("blue_led", &val);
-	if (err) {
-		LOG_ERR("simple_config_set, error: %d", err);
+	/* Request shadow delta, request only changes by setting delta parameter to true. */
+	err = nrf_cloud_coap_shadow_get(buf_json, &buf_json_len, !get_desired,
+					COAP_CONTENT_FORMAT_APP_JSON);
+	if (err == -EACCES) {
+		LOG_WRN("Not connected");
+		return;
+	} else if (err) {
+		LOG_ERR("Failed to request shadow delta: %d", err);
 		SEND_FATAL_ERROR();
 		return;
+	}
+
+	if (buf_json_len == 0 || strlen(buf_json) == 0) {
+		LOG_WRN("No shadow delta changes available");
+		return;
+	}
+
+	/* Shadow available, fetch CBOR encoded desired section. */
+	err = nrf_cloud_coap_shadow_get(buf_cbor, &buf_cbor_len, false,
+					COAP_CONTENT_FORMAT_APP_CBOR);
+	if (err == -EACCES) {
+		LOG_WRN("Not connected");
+		return;
+	} else if (err) {
+		LOG_ERR("Failed to request shadow delta: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	err = cbor_decode_app_object(buf_cbor, buf_cbor_len, &app_object, &not_used);
+	if (err) {
+		LOG_ERR("Failed to decode app object, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	struct configuration configuration = {
+		.led_red = app_object.lwm2m._1424010._0._0,
+		.led_green = app_object.lwm2m._1424010._0._1,
+		.led_blue = app_object.lwm2m._1424010._0._2,
+		.gnss = app_object.lwm2m._1430110._0._1,
+		.update_interval = app_object.lwm2m._1430110._0._0,
+	};
+
+	LOG_DBG("LED object (1424010) values received from cloud:");
+	LOG_DBG("R: %d", app_object.lwm2m._1424010._0._0);
+	LOG_DBG("G: %d", app_object.lwm2m._1424010._0._1);
+	LOG_DBG("B: %d", app_object.lwm2m._1424010._0._2);
+	LOG_DBG("Timestamp: %lld", app_object.lwm2m._1424010._0._99);
+
+	LOG_DBG("Application configuration object (1430110) values received from cloud:");
+	LOG_DBG("Update interval: %lld", app_object.lwm2m._1430110._0._0);
+	LOG_DBG("GNSS: %d", app_object.lwm2m._1430110._0._1);
+	LOG_DBG("Timestamp: %lld", app_object.lwm2m._1430110._0._99);
+
+	/* Distribute configuration */
+	err = zbus_chan_pub(&CONFIG_CHAN, &configuration, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	/* Send the received configuration back to the reported shadow section. */
+	err = nrf_cloud_coap_shadow_state_update(buf_json);
+	if (err < 0) {
+		LOG_ERR("Failed to send PATCH request: %d", err);
+	} else if (err > 0) {
+		LOG_ERR("Error from server: %d", err);
 	}
 }
 
@@ -83,12 +126,6 @@ static void app_task(void)
 	LOG_DBG("Application module task started");
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
-
-	/* Set up callback for runtime config changes from cloud */
-	simple_config_set_callback(config_cb);
-
-	/* Set initial settting values (can be skipped if cloud initializes shadow) */
-	init_app_settings();
 
 	while (true) {
 		err = task_wdt_feed(task_wdt_id);
@@ -118,19 +155,15 @@ static void app_task(void)
 			}
 
 			if (cloud_status == CLOUD_CONNECTED) {
-				LOG_INF("Cloud connected");
-				LOG_INF("Getting latest device configuration from cloud");
+				LOG_DBG("Cloud connected");
+				LOG_DBG("Getting latest device configuration from device shadow");
 
-				simple_config_update();
-			} else {
-				LOG_INF("Cloud disconnected");
+				shadow_get(true);
 			}
 		}
 
 		if ((&TRIGGER_CHAN == chan) && (cloud_status == CLOUD_CONNECTED)) {
-			LOG_INF("Getting latest device configuration from cloud");
-
-			simple_config_update();
+			shadow_get(false);
 		}
 	}
 }
