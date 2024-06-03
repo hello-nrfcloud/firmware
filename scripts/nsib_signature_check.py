@@ -48,6 +48,11 @@ def check_signature(hex_file, public_key, start_address):
         public_key_bytes = image.tobinstr(start=offset + 48, size=64)
         signature_bytes = image.tobinstr(start=offset + 112, size=64)
 
+        print(f"Validation info version: {validation_info_version}")
+        print(f"Info hardware ID: {info_hardware_id}")
+        print(f"Validation info crypto ID: {validation_info_crypto_id}")
+        print(f"Info magic compatibility ID: {info_magic_compatibility_id}")
+
         if start_address is not None and start_address != starting_address:
             raise Exception(f"Signature found at address 0x{starting_address:08x} but expected 0x{start_address:08x}")
 
