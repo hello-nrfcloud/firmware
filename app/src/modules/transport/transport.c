@@ -225,8 +225,10 @@ static void connected_exit(void *o)
 
 /* Construct state table */
 static const struct smf_state state[] = {
-	[CLOUD_DISCONNECTED] = SMF_CREATE_STATE(disconnected_entry, disconnected_run, NULL),
-	[CLOUD_CONNECTED] = SMF_CREATE_STATE(connected_entry, connected_run, connected_exit),
+	[CLOUD_DISCONNECTED] = SMF_CREATE_STATE(disconnected_entry, disconnected_run, NULL,
+						NULL, NULL),
+	[CLOUD_CONNECTED] = SMF_CREATE_STATE(connected_entry, connected_run, connected_exit,
+					     NULL, NULL),
 };
 
 static void date_time_handler(const struct date_time_evt *evt) {
