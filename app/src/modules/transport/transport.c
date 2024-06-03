@@ -149,7 +149,6 @@ static void disconnected_entry(void *o)
 		err = nrf_cloud_coap_disconnect();
 		if (err && (err != -ENOTCONN)) {
 			LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
-			SEND_FATAL_ERROR();
 		}
 	}
 }
