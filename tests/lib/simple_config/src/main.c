@@ -32,7 +32,7 @@ FAKE_VALUE_FUNC(cJSON_bool, cJSON_IsObject, const cJSON * const)
 FAKE_VALUE_FUNC(cJSON *, cJSON_GetObjectItem, const cJSON * const, const char * const)
 
 /* nRF Cloud functions */
-FAKE_VALUE_FUNC(int, nrf_cloud_coap_shadow_get, char *, size_t, bool)
+FAKE_VALUE_FUNC(int, nrf_cloud_coap_shadow_get, char *, size_t *, bool)
 
 /* fake callback */
 FAKE_VALUE_FUNC(int, simple_config_callback, const char *, const struct simple_config_val *);

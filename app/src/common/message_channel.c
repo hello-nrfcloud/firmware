@@ -50,11 +50,11 @@ ZBUS_CHAN_DEFINE(FATAL_ERROR_CHAN,
 		 ZBUS_MSG_INIT(0)
 );
 
-ZBUS_CHAN_DEFINE(LED_CHAN,
-		 int,
+ZBUS_CHAN_DEFINE(CONFIG_CHAN,
+		 struct configuration,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(led),
+		 ZBUS_OBSERVERS(led, trigger),
 		 ZBUS_MSG_INIT(0)
 );
 
@@ -62,6 +62,6 @@ ZBUS_CHAN_DEFINE(CLOUD_CHAN,
 		 enum cloud_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(fota, app, location),
+		 ZBUS_OBSERVERS(fota, app, location, trigger),
 		 CLOUD_DISCONNECTED
 );

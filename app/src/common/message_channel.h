@@ -42,6 +42,14 @@ enum cloud_status {
 	CLOUD_DISCONNECTED,
 };
 
+struct configuration {
+	int led_red;
+	int led_green;
+	int led_blue;
+	bool gnss;
+	uint64_t update_interval;
+};
+
 ZBUS_CHAN_DECLARE(
 	TRIGGER_CHAN,
 	PAYLOAD_CHAN,
@@ -49,7 +57,8 @@ ZBUS_CHAN_DECLARE(
 	FATAL_ERROR_CHAN,
 	LED_CHAN,
 	CLOUD_CHAN,
-	FOTA_ONGOING_CHAN
+	FOTA_ONGOING_CHAN,
+	CONFIG_CHAN
 );
 
 #ifdef __cplusplus
