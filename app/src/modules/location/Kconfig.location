@@ -11,12 +11,18 @@ config APP_LOCATION_THREAD_STACK_SIZE
 	int "Thread stack size"
 	default 4096
 
+config APP_LOCATION_ZBUS_QUEUE_SIZE
+	int "Message queue size"
+	default 5
+	help
+	  ZBus subscriber message queue size.
+
 config APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
 	default 120
 
-config APP_LOCATION_TRIGGER_TIMEOUT_SECONDS
-	int "Wait for trigger timeout seconds"
+config APP_LOCATION_ZBUS_TIMEOUT_SECONDS
+	int "Wait for zbus timeout seconds"
 	default 60
 
 module = APP_LOCATION
