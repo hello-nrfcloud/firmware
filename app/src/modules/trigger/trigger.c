@@ -96,7 +96,7 @@ ZBUS_LISTENER_DEFINE(trigger, trigger_callback);
 
 static int trigger_init(void)
 {
-	__ASSERT((dk_buttons_init(button_handler) == 0), "Task watchdog init failure");
+	__ASSERT((dk_buttons_init(button_handler) == 0), "dk_buttons_init failure");
 
 	return 0;
 }
