@@ -48,6 +48,11 @@ void led_callback(const struct zbus_channel *chan)
 
 		const struct configuration *config = zbus_chan_const_msg(chan);
 
+		if (config->led_present == false) {
+			LOG_DBG("LED configuration not present");
+			return;
+		}
+
 		LOG_DBG("LED configuration: red:%d, green:%d, blue:%d",
 			config->led_red, config->led_green, config->led_blue);
 

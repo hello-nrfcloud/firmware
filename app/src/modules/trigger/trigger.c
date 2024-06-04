@@ -69,6 +69,11 @@ void trigger_callback(const struct zbus_channel *chan)
 		/* Get update interval configuration from channel. */
 		const struct configuration *config = zbus_chan_const_msg(chan);
 
+		if (config->config_present == false) {
+			LOG_DBG("Configuration not present");
+			return;
+		}
+
 		LOG_DBG("New update interval: %lld", config->update_interval);
 
 		update_interval = K_SECONDS(config->update_interval);

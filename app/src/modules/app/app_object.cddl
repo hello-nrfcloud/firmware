@@ -1,7 +1,7 @@
 ; Define the basic structure of the JSON object
 app-object = {
-    "nrfcloud_mqtt_topic_prefix": tstr,
-    "pairing": pairing-type,
+    ? "nrfcloud_mqtt_topic_prefix": tstr,
+    ? "pairing": pairing-type,
     "lwm2m": lwm2m-map
 }
 
@@ -15,15 +15,15 @@ pairing-type = {
 }
 
 lwm2m-map = {
-  "14240:1.0": led,
-  "14301:1.0": config
+  ? "14240:1.0": led,
+  ? "14301:1.0": config
 }
 
 led = {
-  "0": lwm2m_inner_object_1
+  "0": led_inner_object
 }
 
-lwm2m_inner_object_1 = {
+led_inner_object = {
   "0": int .size 4,
   "1": int .size 4,
   "2": int .size 4,
@@ -31,10 +31,10 @@ lwm2m_inner_object_1 = {
 }
 
 config = {
-  "0": lwm2m_inner_object
+  "0": config_inner_object
 }
 
-lwm2m_inner_object = {
+config_inner_object = {
   "0": int .size 8,
   "1": bool,
   "99": int .size 8
