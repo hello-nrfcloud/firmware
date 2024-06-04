@@ -43,9 +43,11 @@ enum cloud_status {
 };
 
 struct configuration {
+	bool led_present;
 	int led_red;
 	int led_green;
 	int led_blue;
+	bool config_present;
 	bool gnss;
 	uint64_t update_interval;
 };
