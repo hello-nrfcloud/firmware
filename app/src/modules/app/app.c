@@ -161,7 +161,7 @@ static void app_task(void)
 				return;
 			}
 
-			if (cloud_status == CLOUD_CONNECTED) {
+			if (cloud_status == CLOUD_CONNECTED_READY_TO_SEND) {
 				LOG_DBG("Cloud connected");
 				LOG_DBG("Getting latest device configuration from device shadow");
 

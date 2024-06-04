@@ -221,7 +221,7 @@ static void init_run(void *o)
 
 	LOG_DBG("init_run");
 
-	if ((user_object->chan == &CLOUD_CHAN) && (user_object->status == CLOUD_CONNECTED)) {
+	if ((user_object->chan == &CLOUD_CHAN) && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
 		return;
 	}
@@ -235,7 +235,9 @@ static void connected_run(void *o)
 
 	LOG_DBG("connected_run");
 
-	if ((user_object->chan == &CLOUD_CHAN) && (user_object->status == CLOUD_DISCONNECTED)) {
+	if ((user_object->chan == &CLOUD_CHAN) &&
+	    ((user_object->status == CLOUD_CONNECTED_PAUSED) ||
+	     (user_object->status == CLOUD_DISCONNECTED))) {
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_DISCONNECTED]);
 		return;
 	}
@@ -343,7 +345,7 @@ static void disconnected_run(void *o)
 
 	struct s_object *user_object = o;
 
-	if (user_object->chan == &CLOUD_CHAN && (user_object->status == CLOUD_CONNECTED)) {
+	if (user_object->chan == &CLOUD_CHAN && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
 		return;
 	}
