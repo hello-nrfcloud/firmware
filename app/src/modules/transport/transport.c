@@ -13,35 +13,116 @@
 #include <net/nrf_cloud_coap.h>
 #include <date_time.h>
 
+#include "modules_common.h"
 #include "message_channel.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(transport, CONFIG_APP_TRANSPORT_LOG_LEVEL);
 
-/* Register subscriber */
-ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
 
 BUILD_ASSERT(CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS >
 			 CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX,
 			 "Watchdog timeout must be greater than maximum execution time");
 
+/* Get the network status from a NETWORK_CHAN message */
+#define NETWORK_STATUS_MSG(_object)	(*(const enum network_status *)(_object)->msg)
+
+/* Register subscriber */
+ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
+
+/* Enumerator to be used in privat transport channel */
+enum priv_transport_evt {
+	IRRECOVERABLE_ERROR,
+	CLOUD_CONN_SUCCES,
+	CLOUD_CONN_FAILED,
+	CLOUD_CONN_RETRY,	/* Unused for now */
+};
+
+/* Create private transport channel for internal messaging */
+ZBUS_CHAN_DEFINE(PRIV_TRANSPORT_CHAN,
+		 enum priv_transport_evt,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(transport),
+		 IRRECOVERABLE_ERROR
+);
+
 /* Forward declarations */
-static const struct smf_state state[];
+static const struct smf_state states[];
+
 static void connect_work_fn(struct k_work *work);
+static void date_time_handler(const struct date_time_evt *evt);
 
-/* Define connection work - Used to handle reconnection attempts to the MQTT broker */
-static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_fn);
+static void state_running_entry(void *o);
+static void state_running_run(void *o);
 
-/* Define stack_area of application workqueue */
-K_THREAD_STACK_DEFINE(stack_area, CONFIG_APP_TRANSPORT_WORKQUEUE_STACK_SIZE);
+static void state_disconnected_entry(void *o);
+static void state_disconnected_run(void *o);
 
-/* Declare application workqueue. This workqueue is used to call mqtt_helper_connect(), and
- * schedule reconnectionn attempts upon network loss or disconnection from MQTT.
+static void state_connecting_entry(void *o);
+static void state_connecting_run(void *o);
+
+static void state_connected_entry(void *o);
+static void state_connected_exit(void *o);
+
+static void state_connected_ready_entry(void *o);
+static void state_connected_ready_run(void *o);
+
+static void state_connected_paused_entry(void *o);
+static void state_connected_paused_run(void *o);
+
+/* Defining the hierarchical transport module states:
+ *
+ *   STATE_RUNNING: The transport module has started and is running
+ *       - STATE_DISCONNECTED: Cloud connection is not established
+ *	 - STATE_CONNECTING: The module is connecting to cloud
+ *	 - STATE_CONNECTED: Cloud connection has been established. Note that because of
+ *			    connection ID being used, the connection is valid even though
+ *			    network connection is intermittently lost (and socket is closed)
+ *		- STATE_CONNECTED_READY: Connected to cloud and network connection, ready to send
+ *		- STATE_CONNECTED_PAUSED: Connected to cloud, but not network connection
  */
-static struct k_work_q transport_queue;
+enum cloud_module_state {
+	STATE_RUNNING,
+	STATE_DISCONNECTED,
+	STATE_CONNECTING,
+	STATE_CONNECTED,
+	STATE_CONNECTED_READY,
+	STATE_CONNECTED_PAUSED,
+};
 
-/* Semaphore to mark when we have a valid time */
-K_SEM_DEFINE(date_time_ready_sem, 0, 1);
+/* Construct state table */
+static const struct smf_state states[] = {
+	[STATE_RUNNING] =
+		SMF_CREATE_STATE(state_running_entry, state_running_run, NULL,
+				 NULL,
+				 &states[STATE_DISCONNECTED]),
+
+	[STATE_DISCONNECTED] =
+		SMF_CREATE_STATE(state_disconnected_entry, state_disconnected_run, NULL,
+				 &states[STATE_RUNNING],
+				 NULL),
+
+	[STATE_CONNECTING] = SMF_CREATE_STATE(
+				state_connecting_entry, state_connecting_run, NULL,
+				&states[STATE_RUNNING],
+				NULL),
+
+	[STATE_CONNECTED] =
+		SMF_CREATE_STATE(state_connected_entry, NULL, state_connected_exit,
+				 &states[STATE_RUNNING],
+				 &states[STATE_CONNECTED_READY]),
+
+	[STATE_CONNECTED_READY] =
+		SMF_CREATE_STATE(state_connected_ready_entry, state_connected_ready_run, NULL,
+				 &states[STATE_CONNECTED],
+				 NULL),
+
+	[STATE_CONNECTED_PAUSED] =
+		SMF_CREATE_STATE(state_connected_paused_entry, state_connected_paused_run,  NULL,
+				 &states[STATE_CONNECTED],
+				 NULL),
+};
 
 /* User defined state object.
  * Used to transfer data between state changes.
@@ -53,12 +134,28 @@ static struct s_object {
 	/* Last channel type that a message was received on */
 	const struct zbus_channel *chan;
 
-	/* Network status */
-	enum network_status status;
+	/* Last received message */
+	uint8_t *msg;
 
-	/* Payload */
-	struct payload payload;
+	/* Network status */
+	enum network_status nw_status;
 } s_obj;
+
+/* Define connection work - Used to handle reconnection attempts to the cloud */
+static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_fn);
+
+/* Define stack_area of application workqueue */
+static K_THREAD_STACK_DEFINE(stack_area, CONFIG_APP_TRANSPORT_WORKQUEUE_STACK_SIZE);
+
+/* Declare application workqueue. This workqueue is used to connect to the cloud, and
+ * schedule reconnectionn attempts upon connection loss.
+ */
+static struct k_work_q transport_queue;
+
+/* Semaphore to mark when we have a valid time.
+ * It is not static as it has to be given in the module test.
+ */
+K_SEM_DEFINE(date_time_ready_sem, 0, 1);
 
 static void task_wdt_callback(int channel_id, void *user_data)
 {
@@ -68,33 +165,14 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	SEND_FATAL_ERROR();
 }
 
-/* Connect work - Used to establish a connection to the MQTT broker and schedule reconnection
- * attempts.
- */
+/* Connect work - Used to establish a connection to the clpoud and schedule reconnection attempts */
 static void connect_work_fn(struct k_work *work)
 {
 	ARG_UNUSED(work);
 
 	int err;
 	char buf[NRF_CLOUD_CLIENT_ID_MAX_LEN];
-
-	err = nrf_cloud_client_id_get(buf, sizeof(buf));
-	if (!err) {
-		LOG_INF("Connecting to nRF Cloud CoAP with client ID: %s", buf);
-	} else {
-		LOG_ERR("nrf_cloud_client_id_get, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
-
-	err = nrf_cloud_coap_connect(NULL);
-	if (err)
-	{
-		LOG_ERR("nrf_cloud_coap_connect, error: %d", err);
-		goto retry;
-	} else {
-		LOG_INF("Connected to Cloud");
-	}
-
+	enum priv_transport_evt conn_result = CLOUD_CONN_FAILED;
 	struct nrf_cloud_svc_info_ui ui_info = {
 	    .gnss = true,
 	};
@@ -106,16 +184,48 @@ static void connect_work_fn(struct k_work *work)
 	};
 	struct nrf_cloud_device_status device_status = {
 	    .modem = &modem_info,
-	    .svc = &service_info};
+	    .svc = &service_info
+	};
+
+	err = nrf_cloud_client_id_get(buf, sizeof(buf));
+	if (!err) {
+		LOG_INF("Connecting to nRF Cloud CoAP with client ID: %s", buf);
+	} else {
+		LOG_ERR("nrf_cloud_client_id_get, error: %d, cannot continue", err);
+
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	err = nrf_cloud_coap_connect(NULL);
+	if (err) {
+		LOG_ERR("nrf_cloud_coap_connect, error: %d, retrying", err);
+		goto retry;
+	}
 
 	/* sending device info to shadow */
 	err = nrf_cloud_coap_shadow_device_status_update(&device_status);
-	if (err)
-	{
+	if (err) {
+		conn_result = CLOUD_CONN_FAILED;
+
+		err = zbus_chan_pub(&PRIV_TRANSPORT_CHAN, &conn_result, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
+
 		LOG_ERR("nrf_cloud_coap_shadow_device_status_update, error: %d", err);
-		SEND_FATAL_ERROR();
 	} else {
-		smf_set_state(SMF_CTX(&s_obj), &state[CLOUD_CONNECTED]);
+		conn_result = CLOUD_CONN_SUCCES;
+
+		err = zbus_chan_pub(&PRIV_TRANSPORT_CHAN, &conn_result, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
+
+		LOG_INF("Connected to Cloud");
+
 		return;
 	}
 
@@ -124,108 +234,257 @@ retry:
 			  K_SECONDS(CONFIG_APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS));
 }
 
-/* Zephyr State Machine framework handlers */
-
-/* Function executed when the module enters the disconnected state. */
-static void disconnected_entry(void *o)
+static void connect_work_cancel(void)
 {
-	struct s_object *user_object = o;
-	int err;
-
-	enum cloud_status status = CLOUD_DISCONNECTED;
-	err = zbus_chan_pub(&CLOUD_CHAN, &status, K_NO_WAIT);
-
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
-
-	/* Reschedule a connection attempt if we are connected to network and we enter the
-	 * disconnected state.
-	 */
-	if (user_object->status == NETWORK_CONNECTED) {
-		k_work_reschedule_for_queue(&transport_queue, &connect_work, K_NO_WAIT);
-	} else {
-		(void)nrf_cloud_coap_disconnect();
-	}
-}
-
-/* Function executed when the module is in the disconnected state. */
-static void disconnected_run(void *o)
-{
-	struct s_object *user_object = o;
-
-	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
-		/* If NETWORK_DISCONNECTED is received after the MQTT connection is closed,
-		 * we cancel the connect work if it is onging.
-		 */
-		k_work_cancel_delayable(&connect_work);
-	}
-
-	if ((user_object->status == NETWORK_CONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
-
-		/* Wait for 5 seconds to ensure that the network stack is ready before
-		 * attempting to connect to MQTT. This delay is only needed when building for
-		 * Wi-Fi.
-		 */
-		k_work_reschedule_for_queue(&transport_queue, &connect_work, K_SECONDS(5));
-	}
-
-	if (user_object->chan == &PAYLOAD_CHAN) {
-		LOG_ERR("Discarding payload since we are not connected to cloud.");
-	}
-}
-
-/* Function executed when the module enters the connected state. */
-static void connected_entry(void *o)
-{
-	ARG_UNUSED(o);
-
-	enum cloud_status status = CLOUD_CONNECTED;
-	int err = zbus_chan_pub(&CLOUD_CHAN, &status, K_NO_WAIT);
-
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
-
-	/* Cancel any ongoing connect work when we enter connected state */
 	k_work_cancel_delayable(&connect_work);
 }
 
-/* Function executed when the module is in the connected state. */
-static void connected_run(void *o)
+/* Zephyr State Machine Framework handlers */
+
+/* Handler for STATE_RUNNING */
+
+static void state_running_entry(void *o)
+{
+	int err;
+
+	ARG_UNUSED(o);
+
+	LOG_DBG("%s", __func__);
+
+	/* Initialize and start application workqueue.
+	 * This workqueue can be used to offload tasks and/or as a timer when wanting to
+	 * schedule functionality using the 'k_work' API.
+	 */
+	k_work_queue_init(&transport_queue);
+	k_work_queue_start(&transport_queue, stack_area,
+			   K_THREAD_STACK_SIZEOF(stack_area),
+			   K_HIGHEST_APPLICATION_THREAD_PRIO,
+			   NULL);
+
+	/* Setup handler for date_time library */
+	date_time_register_handler(date_time_handler);
+
+	/* Wait for initial time */
+	k_sem_take(&date_time_ready_sem, K_FOREVER);
+
+	err = nrf_cloud_coap_init();
+	if (err) {
+		LOG_ERR("nrf_cloud_coap_init, error: %d", err);
+		SEND_FATAL_ERROR();
+
+		return;
+	}
+}
+
+static void state_running_run(void *o)
+{
+	struct s_object *state_object = o;
+
+	LOG_DBG("%s", __func__);
+
+	if (state_object->chan == &NETWORK_CHAN) {
+		enum network_status nw_status = NETWORK_STATUS_MSG(state_object);
+
+		if (nw_status == NETWORK_DISCONNECTED) {
+			STATE_SET(STATE_DISCONNECTED);
+
+			return;
+		}
+	}
+}
+
+/* Handlers for STATE_CLOUD_DISCONNECTED. */
+static void state_disconnected_entry(void *o)
+{
+	int err;
+	enum cloud_status cloud_status = CLOUD_DISCONNECTED;
+
+	ARG_UNUSED(o);
+
+	LOG_DBG("%s", __func__);
+
+	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_NO_WAIT);
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+
+		return;
+	}
+}
+
+static void state_disconnected_run(void *o)
 {
 	struct s_object *user_object = o;
 
-	if ((user_object->status == NETWORK_DISCONNECTED) && (user_object->chan == &NETWORK_CHAN)) {
-		smf_set_state(SMF_CTX(&s_obj), &state[CLOUD_DISCONNECTED]);
+	LOG_DBG("%s", __func__);
+
+	if ((user_object->chan == &NETWORK_CHAN) &&
+	    (NETWORK_STATUS_MSG(user_object) == NETWORK_CONNECTED)) {
+		STATE_SET(STATE_CONNECTING);
+
 		return;
 	}
 
 	if (user_object->chan == &PAYLOAD_CHAN) {
-		LOG_INF("Sending payload to cloud");
-		nrf_cloud_coap_bytes_send(user_object->payload.string,
-					  user_object->payload.string_len,
-					  false);
+		LOG_WRN("Discarding payload since we are not connected to cloud");
 	}
 }
 
-/* Function executed when the module exits the connected state. */
-static void connected_exit(void *o)
+/* Handlers for STATE_CONNECTING */
+
+static void state_connecting_entry(void *o)
 {
 	ARG_UNUSED(o);
 
-	LOG_INF("Disconnected from Cloud");
+	LOG_DBG("%s", __func__);
+
+	k_work_reschedule_for_queue(&transport_queue, &connect_work, K_NO_WAIT);
 }
 
-/* Construct state table */
-static const struct smf_state state[] = {
-	[CLOUD_DISCONNECTED] = SMF_CREATE_STATE(disconnected_entry, disconnected_run, NULL,
-						NULL, NULL),
-	[CLOUD_CONNECTED] = SMF_CREATE_STATE(connected_entry, connected_run, connected_exit,
-					     NULL, NULL),
-};
+static void state_connecting_run(void *o)
+{
+	struct s_object *state_object = o;
+
+	LOG_DBG("%s", __func__);
+
+	if (state_object->chan == &PRIV_TRANSPORT_CHAN) {
+		enum priv_transport_evt conn_result = *(enum priv_transport_evt *)state_object->msg;
+
+		switch (conn_result) {
+		case CLOUD_CONN_SUCCES:
+			STATE_SET(STATE_CONNECTED);
+
+			return;
+		case CLOUD_CONN_FAILED:
+			STATE_SET(STATE_CONNECTING);
+
+			return;
+		default:
+			break;
+		}
+	}
+}
+
+/* Handler for STATE_CLOUD_CONNECTED. */
+static void state_connected_entry(void *o)
+{
+	ARG_UNUSED(o);
+
+	LOG_DBG("%s", __func__);
+
+	/* Cancel any ongoing connect work when we enter STATE_CLOUD_CONNECTED */
+	connect_work_cancel();
+}
+
+static void state_connected_exit(void *o)
+{
+	int err;
+
+	ARG_UNUSED(o);
+
+	LOG_DBG("%s", __func__);
+
+	err = nrf_cloud_coap_disconnect();
+	if (err && (err != -ENOTCONN)) {
+		LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
+		SEND_FATAL_ERROR();
+	}
+}
+
+
+/* Handlers for STATE_CONNECTED_READY */
+
+static void state_connected_ready_entry(void *o)
+{
+	int err;
+	enum cloud_status cloud_status = CLOUD_CONNECTED_READY_TO_SEND;
+
+	ARG_UNUSED(o);
+
+	LOG_DBG("%s", __func__);
+
+	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_NO_WAIT);
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+
+		return;
+	}
+}
+
+static void state_connected_ready_run(void *o)
+{
+	struct s_object *state_object = o;
+
+	LOG_DBG("%s", __func__);
+
+	if (state_object->chan == &NETWORK_CHAN) {
+		if (NETWORK_STATUS_MSG(state_object) == NETWORK_DISCONNECTED) {
+			STATE_SET(STATE_CONNECTED_PAUSED);
+
+			return;
+		}
+
+		if (NETWORK_STATUS_MSG(state_object) == NETWORK_CONNECTED) {
+			STATE_EVENT_HANDLED();
+
+			return;
+		}
+	}
+
+	if (state_object->chan == &PAYLOAD_CHAN) {
+		int err;
+		struct payload *payload = (struct payload *)state_object->msg;
+
+		LOG_DBG("Sending payload to cloud: %p, len: %d",
+			payload->string, payload->string_len);
+
+		err = nrf_cloud_coap_bytes_send(payload->string, payload->string_len, false);
+		if (err) {
+			LOG_ERR("nrf_cloud_coap_bytes_send, error: %d", err);
+		}
+	}
+}
+
+/* Handlers for STATE_CONNECTED_PAUSED */
+
+static void state_connected_paused_entry(void *o)
+{
+	int err;
+	enum cloud_status cloud_status = CLOUD_CONNECTED_PAUSED;
+
+	ARG_UNUSED(o);
+
+	LOG_DBG("%s", __func__);
+
+	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_NO_WAIT);
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+
+		return;
+	}
+
+}
+
+static void state_connected_paused_run(void *o)
+{
+	struct s_object *state_object = o;
+
+	LOG_DBG("%s", __func__);
+
+	if ((state_object->chan == &NETWORK_CHAN) &&
+	    (NETWORK_STATUS_MSG(state_object) == NETWORK_CONNECTED)) {
+		STATE_SET(STATE_CONNECTED_READY);
+
+		return;
+	}
+}
+
+
+
+/* End of state handlers */
+
 
 static void date_time_handler(const struct date_time_evt *evt) {
 	if (evt->type != DATE_TIME_NOT_OBTAINED) {
@@ -243,41 +502,22 @@ static void transport_task(void)
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
 	uint8_t msg_buf[MAX(sizeof(struct payload), sizeof(enum network_status))];
 
+	/* The most recent message will always have the same address */
+	s_obj.msg = msg_buf;
+
 	LOG_DBG("Transport module task started");
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
 
-	/* Setup handler for date_time library */
-	date_time_register_handler(date_time_handler);
-
-	/* Initialize and start application workqueue.
-	 * This workqueue can be used to offload tasks and/or as a timer when wanting to
-	 * schedule functionality using the 'k_work' API.
-	 */
-	k_work_queue_init(&transport_queue);
-	k_work_queue_start(&transport_queue, stack_area,
-			   K_THREAD_STACK_SIZEOF(stack_area),
-			   K_HIGHEST_APPLICATION_THREAD_PRIO,
-			   NULL);
-
-	/* Set initial state */
-	smf_set_initial(SMF_CTX(&s_obj), &state[CLOUD_DISCONNECTED]);
-
-	/* Wait for initial time */
-	k_sem_take(&date_time_ready_sem, K_FOREVER);
-
-	err = nrf_cloud_coap_init();
-	if (err)
-	{
-		LOG_ERR("nrf_cloud_coap_init, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
+	/* Initialize the state machine to STATE_RUNNING, which will also run its entry function */
+	STATE_SET_INITIAL(STATE_RUNNING);
 
 	while (true) {
 		err = task_wdt_feed(task_wdt_id);
 		if (err) {
 			LOG_ERR("task_wdt_feed, error: %d", err);
 			SEND_FATAL_ERROR();
+
 			return;
 		}
 
@@ -287,39 +527,18 @@ static void transport_task(void)
 		} else if (err) {
 			LOG_ERR("zbus_sub_wait, error: %d", err);
 			SEND_FATAL_ERROR();
+
 			return;
 		}
+
 		s_obj.chan = chan;
 
-		if (&NETWORK_CHAN == chan) {
-			const enum network_status *status = (const enum network_status *)msg_buf;
+		err = STATE_RUN();
+		if (err) {
+			LOG_ERR("STATE_RUN(), error: %d", err);
+			SEND_FATAL_ERROR();
 
-			s_obj.status = *status;
-
-			/* connect/disconnect depending on network state */
-			/* TODO: run provisioning service */
-			err = smf_run_state(SMF_CTX(&s_obj));
-			if (err) {
-				LOG_ERR("smf_run_state, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-		}
-
-		if (&PAYLOAD_CHAN == chan) {
-			const struct payload *payload = (const struct payload *)msg_buf;
-
-			s_obj.payload = *payload;
-
-			LOG_DBG("Payload received");
-			LOG_HEXDUMP_DBG(s_obj.payload.string, s_obj.payload.string_len, "payload");
-
-			err = smf_run_state(SMF_CTX(&s_obj));
-			if (err) {
-				LOG_ERR("smf_run_state, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
+			return;
 		}
 	}
 }

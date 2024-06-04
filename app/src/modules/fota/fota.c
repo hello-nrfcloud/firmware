@@ -47,7 +47,7 @@ void fota_callback(const struct zbus_channel *chan)
 	{
 		const enum cloud_status *status = zbus_chan_const_msg(chan);
 
-		if (*status == CLOUD_CONNECTED)
+		if (*status == CLOUD_CONNECTED_READY_TO_SEND)
 		{
 			LOG_DBG("Cloud connected, initializing FOTA");
 			err = nrf_cloud_fota_poll_init(&ctx);

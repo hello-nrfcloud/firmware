@@ -38,8 +38,9 @@ enum network_status {
 };
 
 enum cloud_status {
-	CLOUD_CONNECTED = 0x1,
-	CLOUD_DISCONNECTED,
+	CLOUD_DISCONNECTED = 0x1,
+	CLOUD_CONNECTED_READY_TO_SEND,
+	CLOUD_CONNECTED_PAUSED,
 };
 
 enum trigger_type {
