@@ -64,8 +64,7 @@ static void shadow_get(bool get_desired)
 
 	err = cbor_decode_app_object(buf_cbor, buf_cbor_len, &app_object, &not_used);
 	if (err) {
-		LOG_ERR("Failed to decode app object, error: %d", err);
-		SEND_FATAL_ERROR();
+		LOG_ERR("Ignoring incoming configuration change due to decoding error: %d", err);
 		return;
 	}
 
