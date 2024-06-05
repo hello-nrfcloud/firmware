@@ -22,13 +22,40 @@ def parse_args():
     parser.add_argument('-p', '--public-key', required=True, type=argparse.FileType('r', encoding='UTF-8'),
                         help='Public key file (PEM).')
     parser.add_argument('-a', '--start-address', required=False, type=str, default=None, help='Start address of the image (hex).')
+    parser.add_argument('-v', '--version', required=False, type=int, default=None, help='Expected firmware version.')
 
     args = parser.parse_args()
     return args
 
-def check_signature(hex_file, public_key, start_address):
+def get_fw_info_version(image):
+    valid_expected = 0x9102FFFF
+    offset = 0
+    while True:
+        offset = image.find(b'\xde\xe6\x1e\x28\x4c\xbb\xce\x8f', start=offset+1)
+        if offset == -1:
+            break
+        struct_size = struct.unpack('<I', image.tobinstr(start=offset + 12, size=4))[0]
+        firmware_size = struct.unpack('<I', image.tobinstr(start=offset + 16, size=4))[0]
+        firmware_version = struct.unpack('<I', image.tobinstr(start=offset + 20, size=4))[0]
+        image_start = struct.unpack('<I', image.tobinstr(start=offset + 24, size=4))[0]
+        boot_address = struct.unpack('<I', image.tobinstr(start=offset + 28, size=4))[0]
+        valid = struct.unpack('<I', image.tobinstr(start=offset + 32, size=4))[0]
+        print(f"Firmware size: 0x{firmware_size:08x}")
+        print(f"Firmware version: {firmware_version}")
+        print(f"Image start: 0x{image_start:08x}")
+        print(f"Boot address: 0x{boot_address:08x}")
+        if valid == valid_expected:
+            return firmware_version
+        else:
+            print(f"Invalid firmware info structure at offset 0x{offset:08x}, valid: 0x{valid:08x}")
+
+def check_signature(hex_file, public_key, start_address, version_expected):
     public_key_bytes_expected = public_key.to_string()
     image = IntelHex(hex_file)
+
+    version = get_fw_info_version(image)
+    if version_expected is not None and version != version_expected:
+        raise Exception(f"Version mismatch. Expected: {version_expected}, found: {version}")
 
     signature_locations = []
     offset = 0
@@ -70,7 +97,12 @@ def main():
     args = parse_args()
     public_key = ecdsa.VerifyingKey.from_pem(args.public_key.read())
 
-    check_signature(args.input, public_key, int(args.start_address, 16))
+    if args.start_address is not None:
+        start_address = int(args.start_address, 16)
+    else:
+        start_address = None
+
+    check_signature(args.input, public_key, start_address, args.version)
 
 if __name__ == '__main__':
     main()
