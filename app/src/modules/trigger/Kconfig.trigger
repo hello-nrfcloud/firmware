@@ -8,7 +8,7 @@ menu "Trigger"
 
 config APP_TRIGGER_TIMEOUT_SECONDS
 	int "Trigger timer timeout"
-	default 10
+	default 3600
 
 module = APP_TRIGGER
 module-str = Trigger
