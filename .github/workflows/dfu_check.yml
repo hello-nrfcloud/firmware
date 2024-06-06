@@ -1,6 +1,7 @@
 name: DFU image compatibility check
 
 on:
+  workflow_call:
   push:
     branches:
       - main

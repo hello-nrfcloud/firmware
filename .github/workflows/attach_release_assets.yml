@@ -1,0 +1,32 @@
+# Workflow that attaches additional assets to github release.
+name: Attach Release Assets
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  trigger-build:
+    uses: ./.github/workflows/build.yml
+
+  trigger-dfu-check:
+    uses: ./.github/workflows/dfu_check.yml
+
+  trigger-target-test:
+    uses: ./.github/workflows/on_target.yml
+
+  attach-assets:
+    runs-on: ubuntu-22.04
+    # Only make a release if the above jobs are passing
+    needs: [trigger-build, trigger-dfu-check, trigger-target-test]
+    steps:
+        - name: Download artifact
+          uses: actions/download-artifact@v4
+          with:
+           name: firmware
+
+        - name: Deploy release to github
+          uses: softprops/action-gh-release@v1
+          with:
+            fail_on_unmatched_files: true
+            files: hello.nrfcloud.com-*.*
