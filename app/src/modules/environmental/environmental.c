@@ -106,6 +106,7 @@ static void environmental_task(void)
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_ENVIRONMENTAL_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
+	enum trigger_type trigger_type;
 
 	LOG_DBG("Environmental module task started");
 
@@ -129,8 +130,17 @@ static void environmental_task(void)
 		}
 
 		if (&TRIGGER_CHAN == chan) {
-			LOG_DBG("Trigger received");
-			sample();
+			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
+			if (err) {
+				LOG_ERR("zbus_chan_read, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+			if (trigger_type == TRIGGER_DATA_SAMPLE) {
+				LOG_DBG("Data sample trigger received, getting environmental data");
+				sample();
+			}
 		}
 	}
 }

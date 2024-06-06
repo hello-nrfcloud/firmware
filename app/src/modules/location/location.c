@@ -61,6 +61,7 @@ void location_task(void)
 	int task_wdt_id;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const k_timeout_t zbus_timeout = K_SECONDS(CONFIG_APP_LOCATION_ZBUS_TIMEOUT_SECONDS);
+	enum trigger_type trigger_type = 0;
 
 	LOG_DBG("Location module task started");
 
@@ -107,8 +108,17 @@ void location_task(void)
 		}
 
 		if (&TRIGGER_CHAN == chan) {
-			LOG_DBG("Trigger received");
-			trigger_location_update();
+			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
+			if (err) {
+				LOG_ERR("zbus_chan_read, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+			if (trigger_type == TRIGGER_DATA_SAMPLE) {
+				LOG_DBG("Data sample trigger received, getting location");
+				trigger_location_update();
+			}
 		}
 	}
 }

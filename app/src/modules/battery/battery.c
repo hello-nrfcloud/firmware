@@ -146,6 +146,7 @@ static void battery_task(void)
 		.model = &battery_model
 	};
 	int32_t chg_status;
+	enum trigger_type trigger_type;
 
 	LOG_DBG("Battery module task started");
 
@@ -198,8 +199,17 @@ static void battery_task(void)
 		}
 
 		if (&TRIGGER_CHAN == chan) {
-			LOG_DBG("Trigger received");
-			sample();
+			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
+			if (err) {
+				LOG_ERR("zbus_chan_read, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+			if (trigger_type == TRIGGER_DATA_SAMPLE) {
+				LOG_DBG("Data sample trigger received, getting battery data");
+				sample();
+			}
 		}
 	}
 }

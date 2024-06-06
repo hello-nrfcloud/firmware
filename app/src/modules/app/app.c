@@ -128,6 +128,7 @@ static void app_task(void)
 	const uint32_t execution_time_ms = (CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
 	enum cloud_status cloud_status = 0;
+	enum trigger_type trigger_type = 0;
 
 	LOG_DBG("Application module task started");
 
@@ -168,8 +169,20 @@ static void app_task(void)
 			}
 		}
 
-		if ((&TRIGGER_CHAN == chan) && (cloud_status == CLOUD_CONNECTED)) {
-			shadow_get(false);
+		if (&TRIGGER_CHAN == chan) {
+			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
+			if (err) {
+				LOG_ERR("zbus_chan_read, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+			if (trigger_type == TRIGGER_POLL) {
+				LOG_DBG("Poll trigger received");
+				LOG_DBG("Getting latest device configuration from device shadow");
+
+				shadow_get(false);
+			}
 		}
 	}
 }
