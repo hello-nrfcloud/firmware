@@ -28,6 +28,9 @@ west config manifest.group-filter +bsec
 
 # update nRF Connect SDK modules
 west update
+
+# use sysbuild by default
+west config build.sysbuild True
 ```
 
 ### Building and running
