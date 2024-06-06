@@ -1,6 +1,7 @@
 name: On_target
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       run_test:
@@ -48,6 +49,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: oob-t91x-hex
+          if-no-files-found: error
           path: thingy91x-oob/build/merged.hex
 
   test:

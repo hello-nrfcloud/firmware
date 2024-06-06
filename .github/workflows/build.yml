@@ -1,6 +1,7 @@
 name: Build
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -33,6 +34,31 @@ jobs:
           pip install -r nrf/scripts/requirements-build.txt
 
       - name: Build firmware
-        working-directory: thingy91x-oob
+        working-directory: thingy91x-oob/app
         run: |
-          west twister -T app -v --inline-logs --integration
+          west build -b thingy91x/nrf9151/ns -p
+
+      - name: Set VERSION
+        shell: bash
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+
+      - name: Rename artifacts
+        working-directory: thingy91x-oob/app/build
+        run: |
+          cp merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
+          cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.config
+          cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.bin
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          if-no-files-found: error
+          path: |
+            thingy91x-oob/app/build/hello.nrfcloud.com-*.*
