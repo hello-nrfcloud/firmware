@@ -41,7 +41,7 @@ jobs:
       - name: Build firmware
         working-directory: thingy91x-oob
         run: |
-          west build -b thingy91x/nrf9151/ns app -p -- -DCONFIG_NRF_CLOUD_CLIENT_ID_PREFIX=\"oob-\" -DCONFIG_NRF_CLOUD_SEC_TAG=4242
+          west build -b thingy91x/nrf9151/ns app -p
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
