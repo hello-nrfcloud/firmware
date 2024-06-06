@@ -59,12 +59,12 @@ jobs:
       - name: 'nrf91: check app image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem twister-out/thingy91x_nrf9151_ns/app/app.build/zephyr/app_update.bin
+          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem twister-out/thingy91x_nrf9151_ns/app/app.build/app/zephyr/zephyr.signed.bin
 
       - name: 'nrf91: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/zephyr/signed_by_b0_s0_image.hex -p verifying_key_nrf91.pem -a 0x00008200
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200
 
       - name: Build Connectivity Bridge
         working-directory: thingy91x-oob

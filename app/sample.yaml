@@ -3,6 +3,7 @@ sample:
 tests:
   app.build:
     build_only: true
+    sysbuild: true
     integration_platforms:
       - thingy91x/nrf9151/ns
     platform_allow:
