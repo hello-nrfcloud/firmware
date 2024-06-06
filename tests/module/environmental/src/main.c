@@ -104,11 +104,11 @@ void setUp(void)
 
 void test_all_zeroes(void)
 {
-	int not_used = -1;
+	enum trigger_type trigger_type = TRIGGER_DATA_SAMPLE;
 	int err;
 
 	/* send trigger */
-	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
+	err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
 
 	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
@@ -120,14 +120,14 @@ void test_all_zeroes(void)
 
 void test_only_timestamp(void)
 {
-	int not_used = -1;
+	enum trigger_type trigger_type = TRIGGER_DATA_SAMPLE;
 	int err;
 
 	date_time_uptime_to_unix_time_ms_fake.custom_fake =
 		date_time_uptime_to_unix_time_ms_custom_fake;
 
 	/* send trigger */
-	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
+	err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
 
 	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
@@ -140,7 +140,7 @@ void test_only_timestamp(void)
 void test_common_case(void)
 {
 	struct gas_sensor_dummy_data *data = sensor_dev->data;
-	int not_used = -1;
+	enum trigger_type trigger_type = TRIGGER_DATA_SAMPLE;
 	int err;
 
 	data->temperature = 25.5;
@@ -153,7 +153,7 @@ void test_common_case(void)
 		date_time_uptime_to_unix_time_ms_custom_fake;
 
 	/* send trigger */
-	err = zbus_chan_pub(&TRIGGER_CHAN, &not_used, K_SECONDS(1));
+	err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
 
 	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */

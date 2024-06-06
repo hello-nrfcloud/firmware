@@ -42,6 +42,11 @@ enum cloud_status {
 	CLOUD_DISCONNECTED,
 };
 
+enum trigger_type {
+	TRIGGER_POLL = 0x1,
+	TRIGGER_DATA_SAMPLE,
+};
+
 struct configuration {
 	bool led_present;
 	int led_red;
@@ -60,7 +65,8 @@ ZBUS_CHAN_DECLARE(
 	LED_CHAN,
 	CLOUD_CHAN,
 	FOTA_ONGOING_CHAN,
-	CONFIG_CHAN
+	CONFIG_CHAN,
+	BUTTON_CHAN
 );
 
 #ifdef __cplusplus

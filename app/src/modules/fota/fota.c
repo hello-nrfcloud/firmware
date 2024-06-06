@@ -70,6 +70,13 @@ void fota_callback(const struct zbus_channel *chan)
 	}
 	if (&TRIGGER_CHAN == chan && fota_initialized)
 	{
+
+		const enum trigger_type *trigger_type = zbus_chan_const_msg(chan);
+
+		if (*trigger_type != TRIGGER_POLL) {
+			return;
+		}
+
 		/* tell the rest of the app not to disturb */
 		bool fota_ongoing = true;
 		err = zbus_chan_pub(&FOTA_ONGOING_CHAN, &fota_ongoing, K_NO_WAIT);

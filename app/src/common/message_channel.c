@@ -11,7 +11,7 @@
 #include "message_channel.h"
 
 ZBUS_CHAN_DEFINE(TRIGGER_CHAN,
-		 int,
+		 enum trigger_type,
 		 NULL,
 		 NULL,
 		 ZBUS_OBSERVERS(fota, app, battery, location, environmental),
@@ -64,4 +64,12 @@ ZBUS_CHAN_DEFINE(CLOUD_CHAN,
 		 NULL,
 		 ZBUS_OBSERVERS(fota, app, location, trigger),
 		 CLOUD_DISCONNECTED
+);
+
+ZBUS_CHAN_DEFINE(BUTTON_CHAN,
+		 uint8_t,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(trigger),
+		 ZBUS_MSG_INIT(0)
 );
