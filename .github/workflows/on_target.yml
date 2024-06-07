@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: oob-t91x-hex
-          path: thingy91x-oob/build/zephyr/merged.hex
+          path: thingy91x-oob/build/merged.hex
 
   test:
     if: github.event.inputs.run_test == 'yes' || github.event.inputs.run_test == '' || github.event.inputs.run_test == null
