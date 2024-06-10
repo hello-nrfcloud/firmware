@@ -3,6 +3,7 @@ name: Attach Release Assets
 
 permissions:
   contents: write
+  actions: write
 
 on:
   release:
@@ -33,3 +34,10 @@ jobs:
           with:
             fail_on_unmatched_files: true
             files: hello.nrfcloud.com-*.*
+
+        - name: Trigger publish firmware workflow
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            gh workflow run publish-firmware-bundles.yml \
+              -F version=${{ env.VERSION }}
