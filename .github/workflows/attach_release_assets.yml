@@ -1,6 +1,9 @@
 # Workflow that attaches additional assets to github release.
 name: Attach Release Assets
 
+permissions:
+  contents: write
+
 on:
   release:
     types: [created]
