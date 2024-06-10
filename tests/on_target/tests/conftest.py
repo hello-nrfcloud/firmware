@@ -41,6 +41,8 @@ def get_uarts():
 def t91x_board():
     all_uarts = get_uarts()
     logger.info(f"All uarts discovered: {all_uarts}")
+    if not all_uarts:
+        pytest.fail("No UARTs found")
     log_uart_string = all_uarts[0]
     logger.info(f"Log UART: {log_uart_string}")
 
@@ -51,3 +53,18 @@ def t91x_board():
 		)
 
     uart.stop()
+
+
+@pytest.fixture(scope="module")
+def hex_file(request):
+    return request.config.getoption("--firmware-hex")
+
+
+# Add support for input arguments
+def pytest_addoption(parser):
+    parser.addoption(
+        "--firmware-hex",
+        action="store",
+        default="artifacts/merged.hex",
+        help="Path to the firmware hex file",
+    )

@@ -15,11 +15,9 @@ logger = get_logger()
 
 TEST_TIMEOUT = 1 * 60
 
-TOP_DIR = os.getenv("TOP_DIR", "tests/on_target")
-HEX_FILE = os.path.abspath(os.path.join(TOP_DIR, "artifacts/merged.hex"))
 
-def test_program_board_and_check_uart(t91x_board):
-    flash_device(HEX_FILE)
+def test_program_board_and_check_uart(t91x_board, hex_file):
+    flash_device(os.path.abspath(hex_file))
 
     expected_lines = ["Network connectivity established", "Connected to Cloud"]
 
