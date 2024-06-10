@@ -1,4 +1,4 @@
-name: On_target
+name: Target tests
 
 on:
   workflow_call:
@@ -8,10 +8,10 @@ on:
         description: 'Run test stage'
         required: false
         default: 'yes'
-        type: select
+        type: choice
         options:
-          - yes
-          - no
+          - 'yes'
+          - 'no'
   schedule:
     - cron: "0 0 * * *"
 
