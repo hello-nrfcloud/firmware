@@ -3,57 +3,14 @@ name: Target tests
 on:
   workflow_call:
   workflow_dispatch:
-    inputs:
-      run_test:
-        description: 'Run test stage'
-        required: false
-        default: 'yes'
-        type: choice
-        options:
-          - 'yes'
-          - 'no'
   schedule:
     - cron: "0 0 * * *"
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-22.04
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.13
-    env:
-      CMAKE_PREFIX_PATH: /opt/toolchains
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: thingy91x-oob
-
-      - name: Initialize
-        working-directory: thingy91x-oob
-        run: |
-          west init -l .
-          west config manifest.group-filter +bsec
-          west config build.sysbuild True
-          west update -o=--depth=1 -n
-
-      - name: Install dependencies
-        run: |
-          pip install -r nrf/scripts/requirements-build.txt
-
-      - name: Build firmware
-        working-directory: thingy91x-oob
-        run: |
-          west build -b thingy91x/nrf9151/ns app -p
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: oob-t91x-hex
-          if-no-files-found: error
-          path: thingy91x-oob/build/merged.hex
+    uses: ./.github/workflows/build.yml
 
   test:
-    if: github.event.inputs.run_test == 'yes' || github.event.inputs.run_test == '' || github.event.inputs.run_test == null
     name: Test
     needs: build
     runs-on: self-hosted
@@ -72,15 +29,29 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: oob-t91x-hex
+          name: firmware
           path: thingy91x-oob/tests/on_target/artifacts
+
+      - name: Set version
+        shell: bash
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
+          fi
 
       - name: Verify artifact path
         working-directory: thingy91x-oob
         run: |
           ls -l tests/on_target/artifacts
 
-      - name: Run tests
-        working-directory: thingy91x-oob
+      - name: Install dependencies
+        working-directory: thingy91x-oob/tests/on_target
         run: |
-          ./tests/on_target/run-tests.sh
+          pip install -r requirements.txt --break-system-packages
+
+      - name: Run tests
+        working-directory: thingy91x-oob/tests/on_target
+        run: |
+          pytest -s -v tests --firmware-hex artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
