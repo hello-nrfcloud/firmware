@@ -10,9 +10,6 @@ on:
     types: [created]
 
 jobs:
-  trigger-build:
-    uses: ./.github/workflows/build.yml
-
   trigger-dfu-check:
     uses: ./.github/workflows/dfu_check.yml
 
@@ -21,8 +18,7 @@ jobs:
 
   attach-assets:
     runs-on: ubuntu-22.04
-    # Only make a release if the above jobs are passing
-    needs: [trigger-build, trigger-dfu-check, trigger-target-test]
+    needs: [trigger-dfu-check, trigger-target-test]
     steps:
         - name: Download artifact
           uses: actions/download-artifact@v4
