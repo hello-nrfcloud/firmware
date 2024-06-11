@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [trigger-dfu-check, trigger-target-test]
     steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
         - name: Download artifact
           uses: actions/download-artifact@v4
           with:
@@ -32,8 +35,9 @@ jobs:
             files: hello.nrfcloud.com-*.*
 
         - name: Trigger publish firmware workflow
+          working-directory: .github/workflows
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
             gh workflow run publish-firmware-bundles.yml \
-              -F version=${{ env.VERSION }}
+              -F version=${{ github.event.release.tag_name }}
