@@ -163,6 +163,16 @@ static void frequent_poll_duration_timer_start(void)
 		      K_SECONDS(FREQUENT_POLL_DURATION_INTERVAL_SEC), K_NO_WAIT);
 }
 
+static void refresh_timers(int64_t timeout_sec)
+{
+	LOG_DBG("Scheduling poll work: %d seconds", FREQUENT_POLL_TRIGGER_INTERVAL_SEC);
+	LOG_DBG("Scheduling data sample work: %lld seconds", timeout_sec);
+
+	frequent_poll_duration_timer_start();
+	k_work_reschedule(&trigger_poll_work, K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
+	k_work_reschedule(&trigger_data_sample_work, K_SECONDS(timeout_sec));
+}
+
 /* Zephyr State Machine framework handlers */
 
 /* HSM states:
@@ -230,10 +240,8 @@ static void frequent_poll_entry(void *o)
 	LOG_DBG("trigger poll work timeout: %d seconds", FREQUENT_POLL_TRIGGER_INTERVAL_SEC);
 	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
 
-	frequent_poll_duration_timer_start();
 	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
-	k_work_reschedule(&trigger_poll_work, K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
-	k_work_reschedule(&trigger_data_sample_work, K_SECONDS(user_object->update_interval_sec));
+	refresh_timers(user_object->update_interval_sec);
 }
 
 static void frequent_poll_run(void *o)
@@ -249,10 +257,10 @@ static void frequent_poll_run(void *o)
 		frequent_poll_duration_timer_start();
 		trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
 	} else if (user_object->chan == &CONFIG_CHAN) {
-		LOG_DBG("Configuration received, restarting duration timer");
+		LOG_DBG("Configuration received, refreshing timers");
 
-		frequent_poll_duration_timer_start();
 		trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
+		refresh_timers(user_object->update_interval_sec);
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		LOG_DBG("Frequent poll duration timer expired, going into normal state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
