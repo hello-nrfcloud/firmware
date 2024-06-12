@@ -11,10 +11,12 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
+SEGGER = os.getenv('SEGGER')
+
 def reset_device():
-    logger.info(f"Resetting device")
+    logger.info(f"Resetting device, segger: {SEGGER}")
     try:
-        result = subprocess.run(['nrfutil', 'device', 'reset'], check=True, text=True, capture_output=True)
+        result = subprocess.run(['nrfutil', 'device', 'reset', '--serial-number', SEGGER], check=True, text=True, capture_output=True)
         logger.info("Command output:")
         logger.info(result.stdout)
         logger.info("Command completed successfully.")
@@ -27,9 +29,9 @@ def reset_device():
 
 def flash_device(hexfile):
     # hexfile (str): Full path to file (hex or zip) to be programmed
-    logger.info(f"Flashing device with {hexfile}")
+    logger.info(f"Flashing device, segger: {SEGGER}, firmware: {hexfile}")
     try:
-        result = subprocess.run(['nrfutil', 'device', 'program', '--firmware', hexfile], check=True, text=True, capture_output=True)
+        result = subprocess.run(['nrfutil', 'device', 'program', '--firmware', hexfile, '--serial-number', SEGGER], check=True, text=True, capture_output=True)
         logger.info("Command output:")
         logger.info(result.stdout)
         logger.info("Command completed successfully.")
