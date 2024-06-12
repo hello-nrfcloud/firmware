@@ -26,6 +26,12 @@ BUILD_ASSERT(CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS >
 	     "Watchdog timeout must be greater than trigger timeout");
 
 ZBUS_SUBSCRIBER_DEFINE(location, CONFIG_APP_LOCATION_ZBUS_QUEUE_SIZE);
+ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, location, 0);
+ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, location, 0);
+ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, location, 0);
+
+static bool gnss_enabled;
+static bool gnss_initialized;
 
 static void location_event_handler(const struct location_event_data *event_data);
 
@@ -39,18 +45,102 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	SEND_FATAL_ERROR();
 }
 
+static const int gnss_method_index = 0;
+static enum location_method location_method_types[] = {
+	LOCATION_METHOD_GNSS,
+	LOCATION_METHOD_WIFI,
+	LOCATION_METHOD_CELLULAR
+};
+static const uint8_t location_methods_size = ARRAY_SIZE(location_method_types);
+
 void trigger_location_update(void)
 {
 	int err;
 	struct location_config config = {0};
 
-	location_config_defaults_set(&config, 0, NULL);
-	config.mode = LOCATION_REQ_MODE_ALL;
+	if (gnss_enabled) {
+		location_config_defaults_set(&config, location_methods_size, location_method_types);
+		config.methods[gnss_method_index].gnss.visibility_detection=true;
+		LOG_DBG("GNSS enabled");
+	} else {
+		/* Only pass in a subset of the location methods to skip GNSS */
+		location_config_defaults_set(&config, location_methods_size - 1, location_method_types + 1);
+		LOG_DBG("GNSS disabled");
+	}
+
+	LOG_DBG("location library initialized");
+
 	err = location_request(&config);
 	if (err == -EBUSY) {
 		LOG_WRN("Location request already in progress");
 	} else if (err) {
 		LOG_ERR("Unable to send location request: %d", err);
+	}
+}
+
+void handle_network_chan(void) {
+	int err = 0;
+	enum network_status status;
+
+	if (gnss_initialized) {
+		return;
+	}
+
+	err = zbus_chan_read(&NETWORK_CHAN, &status, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("Failed to read network status: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	if (status == NETWORK_CONNECTED) {
+		/* GNSS has to be enabled after the modem is initialized and enabled */
+		err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS);
+		if (err) {
+			LOG_ERR("Unable to init GNSS: %d", err);
+			SEND_FATAL_ERROR();
+		} else {
+			gnss_initialized = true;
+			LOG_DBG("GNSS initialized");
+		}
+	}
+}
+
+void handle_trigger_chan(void)
+{
+	int err = 0;
+	enum trigger_type trigger_type = 0;
+
+	err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("Failed to read trigger from zbus: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	if (trigger_type == TRIGGER_DATA_SAMPLE) {
+		LOG_DBG("Data sample trigger received, getting location");
+		trigger_location_update();
+	}
+}
+
+void handle_config_chan(void)
+{
+	int err = 0;
+	struct configuration config = { 0 };
+
+	err = zbus_chan_read(&CONFIG_CHAN, &config, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("Failed to read configuration from zbus: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	if (config.config_present) {
+		gnss_enabled = config.gnss;
+		LOG_DBG("GNSS enabled: %d", gnss_enabled);
+	} else {
+		LOG_DBG("Configuration not present");
 	}
 }
 
@@ -61,7 +151,6 @@ void location_task(void)
 	int task_wdt_id;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const k_timeout_t zbus_timeout = K_SECONDS(CONFIG_APP_LOCATION_ZBUS_TIMEOUT_SECONDS);
-	enum trigger_type trigger_type = 0;
 
 	LOG_DBG("Location module task started");
 
@@ -81,15 +170,6 @@ void location_task(void)
 
 	LOG_DBG("location library initialized");
 
-#if defined(CONFIG_LOCATION_METHOD_GNSS)
-	err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS);
-	if (err) {
-		LOG_ERR("Unable to init GNSS: %d", err);
-	} else {
-		LOG_DBG("GNSS initialized");
-	}
-#endif
-
 	while (true) {
 		err = task_wdt_feed(task_wdt_id);
 		if (err) {
@@ -107,18 +187,19 @@ void location_task(void)
 			return;
 		}
 
-		if (&TRIGGER_CHAN == chan) {
-			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
+		if (&NETWORK_CHAN == chan) {
+			LOG_DBG("Network status received");
+			handle_network_chan();
+		}
 
-			if (trigger_type == TRIGGER_DATA_SAMPLE) {
-				LOG_DBG("Data sample trigger received, getting location");
-				trigger_location_update();
-			}
+		if (&TRIGGER_CHAN == chan) {
+			LOG_DBG("Trigger received");
+			handle_trigger_chan();
+		}
+
+		if (&CONFIG_CHAN == chan) {
+			LOG_DBG("Configuration received");
+			handle_config_chan();
 		}
 	}
 }
@@ -127,7 +208,6 @@ K_THREAD_DEFINE(location_module_tid, CONFIG_APP_LOCATION_THREAD_STACK_SIZE,
 		location_task, NULL, NULL, NULL,
 		K_HIGHEST_APPLICATION_THREAD_PRIO, 0, 0);
 
-#if defined(CONFIG_LOCATION_METHOD_GNSS)
 /* Take time from PVT data and apply it to system time. */
 static void apply_gnss_time(const struct nrf_modem_gnss_pvt_data_frame *pvt_data)
 {
@@ -143,34 +223,6 @@ static void apply_gnss_time(const struct nrf_modem_gnss_pvt_data_frame *pvt_data
 	date_time_set(&gnss_time);
 }
 
-static void report_gnss_location(const struct nrf_modem_gnss_pvt_data_frame *pvt_data)
-{
-	int err;
-	/* speed (velocity) and heading are only available when there are multiple fixes */
-	/* we assume an altitude to be available (can only be missing on low-accuracy mode) */
-	struct nrf_cloud_gnss_data gnss_pvt = {
-		.type = NRF_CLOUD_GNSS_TYPE_PVT,
-		.ts_ms = NRF_CLOUD_NO_TIMESTAMP,
-		.pvt = {
-			.lon =		pvt_data->longitude,
-			.lat =		pvt_data->latitude,
-			.accuracy =	pvt_data->accuracy,
-			.alt =		pvt_data->altitude,
-			.has_alt =	1,
-			.speed =	pvt_data->speed,
-			.has_speed =	pvt_data->flags & NRF_MODEM_GNSS_PVT_FLAG_VELOCITY_VALID,
-			.heading =	pvt_data->heading,
-			.has_heading =	pvt_data->flags & NRF_MODEM_GNSS_PVT_FLAG_VELOCITY_VALID
-		}
-	};
-
-	err = nrf_cloud_coap_location_send(&gnss_pvt, true);
-	if (err) {
-		LOG_ERR("Failed to send location data: %d", err);
-	}
-}
-#endif /* CONFIG_LOCATION_METHOD_GNSS */
-
 static void location_event_handler(const struct location_event_data *event_data)
 {
 	switch (event_data->id) {
@@ -180,8 +232,6 @@ static void location_event_handler(const struct location_event_data *event_data)
 			(double) event_data->location.longitude,
 			(double) event_data->location.accuracy);
 
-#if defined(CONFIG_LOCATION_METHOD_GNSS)
-		/* GNSS location needs to be reported manually */
 		if (event_data->method == LOCATION_METHOD_GNSS) {
 			struct nrf_modem_gnss_pvt_data_frame pvt_data =
 				event_data->location.details.gnss.pvt_data;
@@ -192,9 +242,7 @@ static void location_event_handler(const struct location_event_data *event_data)
 				/* this should not happen */
 				LOG_WRN("Got GNSS location without valid time data");
 			}
-			report_gnss_location(&pvt_data);
 		}
-#endif /* CONFIG_LOCATION_METHOD_GNSS */
 		break;
 	case LOCATION_EVT_RESULT_UNKNOWN:
 		LOG_DBG("Getting location completed with undefined result");

@@ -62,7 +62,7 @@ ZBUS_CHAN_DEFINE(CLOUD_CHAN,
 		 enum cloud_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(fota, app, location, trigger),
+		 ZBUS_OBSERVERS(fota, app, trigger),
 		 CLOUD_DISCONNECTED
 );
 
