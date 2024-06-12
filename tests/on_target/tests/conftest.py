@@ -14,9 +14,10 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-
 UART_TIMEOUT = 60 * 10
 
+SEGGER = os.getenv('SEGGER')
+UART_ID = os.getenv('UART_ID', SEGGER)
 
 def get_uarts():
     base_path = "/dev/serial/by-id"
@@ -29,8 +30,9 @@ def get_uarts():
     uarts = []
 
     for path in sorted(serial_paths):
-        # Extract device ID or serial number
-        if 'SEGGER_J-Link' in path:
+        if 'SEGGER_J-Link' and UART_ID in path:
+            uarts.append(path)
+        if 'Nordic_Semiconductor_Thingy' and UART_ID in path:
             uarts.append(path)
         else:
             continue

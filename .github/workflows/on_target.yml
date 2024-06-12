@@ -14,6 +14,7 @@ jobs:
     name: Test
     needs: build
     runs-on: self-hosted
+    environment: production
     container:
       image: ghcr.io/dematteisgiacomo/ubuntu-jlink-nrfutil:latest
       options: --privileged
@@ -55,3 +56,5 @@ jobs:
         working-directory: thingy91x-oob/tests/on_target
         run: |
           pytest -s -v tests --firmware-hex artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
+        env:
+          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
