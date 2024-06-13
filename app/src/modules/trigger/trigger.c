@@ -70,6 +70,9 @@ struct s_object {
 	/* Set default update interval */
 	uint64_t update_interval_sec;
 
+	/* Set default poll interval */
+	uint64_t poll_interval_sec;
+
 	/* Button number */
 	uint8_t button_number;
 
@@ -118,10 +121,10 @@ static void trigger_poll_work_fn(struct k_work *work)
 	ARG_UNUSED(work);
 
 	LOG_DBG("Sending trigger poll message");
-	LOG_DBG("trigger poll work timeout: %d seconds", FREQUENT_POLL_TRIGGER_INTERVAL_SEC);
+	LOG_DBG("trigger poll work timeout: %lld seconds", state_object.poll_interval_sec);
 
 	trigger_send(TRIGGER_POLL, K_SECONDS(1));
-	k_work_reschedule(&trigger_poll_work, K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
+	k_work_reschedule(&trigger_poll_work, K_SECONDS(state_object.poll_interval_sec));
 }
 
 /* Delayed work used to signal data sample triggers to the rest of the system */
@@ -163,14 +166,23 @@ static void frequent_poll_duration_timer_start(void)
 		      K_SECONDS(FREQUENT_POLL_DURATION_INTERVAL_SEC), K_NO_WAIT);
 }
 
-static void refresh_timers(int64_t timeout_sec)
+static void refresh_timers(void)
 {
-	LOG_DBG("Scheduling poll work: %d seconds", FREQUENT_POLL_TRIGGER_INTERVAL_SEC);
-	LOG_DBG("Scheduling data sample work: %lld seconds", timeout_sec);
+	LOG_DBG("Scheduling poll work: %lld seconds", state_object.poll_interval_sec);
+	LOG_DBG("Scheduling data sample work: %lld seconds", state_object.update_interval_sec);
 
 	frequent_poll_duration_timer_start();
-	k_work_reschedule(&trigger_poll_work, K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
-	k_work_reschedule(&trigger_data_sample_work, K_SECONDS(timeout_sec));
+	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
+}
+
+static void cancel_timers(void)
+{
+	LOG_DBG("Cancelling timers");
+
+	k_timer_stop(&frequent_poll_duration_timer);
+	k_work_cancel_delayable(&trigger_poll_work);
+	k_work_cancel_delayable(&trigger_data_sample_work);
 }
 
 /* Zephyr State Machine framework handlers */
@@ -237,11 +249,10 @@ static void frequent_poll_entry(void *o)
 
 	LOG_DBG("frequent_poll_entry");
 
-	LOG_DBG("trigger poll work timeout: %d seconds", FREQUENT_POLL_TRIGGER_INTERVAL_SEC);
+	LOG_DBG("trigger poll work timeout: %lld seconds", user_object->update_interval_sec);
 	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
 
-	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
-	refresh_timers(user_object->update_interval_sec);
+	refresh_timers();
 }
 
 static void frequent_poll_run(void *o)
@@ -254,13 +265,11 @@ static void frequent_poll_run(void *o)
 		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
 			user_object->button_number);
 
-		frequent_poll_duration_timer_start();
-		trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
+		refresh_timers();
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing timers");
 
-		trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
-		refresh_timers(user_object->update_interval_sec);
+		refresh_timers();
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		LOG_DBG("Frequent poll duration timer expired, going into normal state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
@@ -275,9 +284,7 @@ static void frequent_poll_exit(void *o)
 	LOG_DBG("frequent_poll_exit");
 	LOG_DBG("Clearing delayed work and frequent poll duration timer");
 
-	k_timer_stop(&frequent_poll_duration_timer);
-	k_work_cancel_delayable(&trigger_poll_work);
-	k_work_cancel_delayable(&trigger_data_sample_work);
+	cancel_timers();
 }
 
 /* STATE_NORMAL */
@@ -291,8 +298,8 @@ static void normal_entry(void *o)
 	LOG_DBG("trigger poll work timeout: %lld seconds", user_object->update_interval_sec);
 	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
 
-	k_work_reschedule(&trigger_poll_work, K_SECONDS(user_object->update_interval_sec));
-	k_work_reschedule(&trigger_data_sample_work, K_SECONDS(user_object->update_interval_sec));
+	user_object->poll_interval_sec = user_object->update_interval_sec;
+	refresh_timers();
 }
 
 static void normal_run(void *o)
@@ -306,10 +313,12 @@ static void normal_run(void *o)
 			user_object->button_number);
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_FREQUENT_POLL]);
+		return;
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received in normal state, going into frequent poll state");
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_FREQUENT_POLL]);
+		return;
 	}
 }
 
@@ -320,8 +329,8 @@ static void normal_exit(void *o)
 	LOG_DBG("normal_exit");
 	LOG_DBG("Clearning delayed work");
 
-	k_work_cancel_delayable(&trigger_poll_work);
-	k_work_cancel_delayable(&trigger_data_sample_work);
+	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	cancel_timers();
 }
 
 /* STATE_DISCONNECTED */
@@ -430,8 +439,9 @@ void trigger_callback(const struct zbus_channel *chan)
 
 static int trigger_init(void)
 {
-	/* Set default update interval */
+	/* Set default update and poll interval */
 	state_object.update_interval_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
+	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
 
 	smf_set_initial(SMF_CTX(&state_object), &states[STATE_INIT]);
 
