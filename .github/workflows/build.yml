@@ -36,7 +36,7 @@ jobs:
       - name: Build firmware
         working-directory: thingy91x-oob/app
         run: |
-          west build -b thingy91x/nrf9151/ns -p
+          west build -b thingy91x/nrf9151/ns -p --sysbuild
 
       - name: Set VERSION
         shell: bash
@@ -47,6 +47,9 @@ jobs:
             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
+      - name: Create Bootloader HEX file
+        run: |
+          python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/b0_s0_s1_merged.hex $(pwd)/thingy91x-oob/app/build/b0_container.hex $(pwd)/thingy91x-oob/app/build/app_provision.hex $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
 
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
@@ -54,6 +57,8 @@ jobs:
           cp merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
           cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.config
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.bin
+          cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.hex
+          cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-bootloader.hex
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
