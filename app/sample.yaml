@@ -9,3 +9,14 @@ tests:
     platform_allow:
       - thingy91x/nrf9151/ns
     tags: ci_build
+  app.build.bootloader_update:
+    build_only: true
+    sysbuild: true
+    integration_platforms:
+      - thingy91x/nrf9151/ns
+    platform_allow:
+      - thingy91x/nrf9151/ns
+    tags: ci_build
+    extra_args:
+      - mcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=2
+      - CONFIG_BUILD_S1_VARIANT=y

@@ -1,0 +1,11 @@
+  applications.connectivity_bridge.bootloader_update:
+    build_only: true
+    sysbuild: true
+    integration_platforms:
+      - thingy91x/nrf5340/cpuapp
+    platform_allow:
+      - thingy91x/nrf5340/cpuapp
+    tags: ci_build sysbuild
+    extra_args:
+      - mcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=2
+      - CONFIG_BUILD_S1_VARIANT=y
