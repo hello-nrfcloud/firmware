@@ -33,7 +33,7 @@ jobs:
         run: |
           pip install -r nrf/scripts/requirements-build.txt
 
-      - name: Build firmware
+      - name: Build nrf91 firmware
         working-directory: thingy91x-oob/app
         run: |
           west build -b thingy91x/nrf9151/ns -p --sysbuild
@@ -47,9 +47,22 @@ jobs:
             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
-      - name: Create Bootloader HEX file
+      - name: Create nrf91 Bootloader HEX file
         run: |
           python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/b0_s0_s1_merged.hex $(pwd)/thingy91x-oob/app/build/b0_container.hex $(pwd)/thingy91x-oob/app/build/app_provision.hex $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
+
+      - name: Build nrf53 firmware
+        working-directory: nrf/applications/connectivity_bridge
+        run: |
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild
+
+      - name: Create nrf53 merged_domains HEX file
+        run: |
+          python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge.hex $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex
+
+      - name: Create nrf53 Bootloader HEX file
+        run: |
+          python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.hex $(pwd)/nrf/applications/connectivity_bridge/build/b0_container.hex $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_mcuboot.hex $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_s1_image.hex $(pwd)/nrf/applications/connectivity_bridge/build/app_provision.hex $(pwd)/nrf/applications/connectivity_bridge/build/b0n_container.hex $(pwd)/nrf/applications/connectivity_bridge/build/net_provision.hex
 
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
