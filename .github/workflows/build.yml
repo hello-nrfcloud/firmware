@@ -64,6 +64,10 @@ jobs:
         run: |
           python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.hex $(pwd)/nrf/applications/connectivity_bridge/build/b0_container.hex $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_mcuboot.hex $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_s1_image.hex $(pwd)/nrf/applications/connectivity_bridge/build/app_provision.hex $(pwd)/nrf/applications/connectivity_bridge/build/b0n_container.hex $(pwd)/nrf/applications/connectivity_bridge/build/net_provision.hex
 
+      - name: Copy nrf53 DFU file
+        run: |
+          cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
+
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
         run: |
@@ -72,6 +76,7 @@ jobs:
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.bin
           cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.hex
           cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-bootloader.hex
+          cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
