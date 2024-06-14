@@ -66,11 +66,14 @@ jobs:
       - name: 'nrf91: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 1
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 2
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf91.pem -a 0x0001c200 -v 2
 
       - name: Build Connectivity Bridge
         working-directory: thingy91x-oob
         run: |
+          cat scripts/connectivity_bridge_extra_sample.yaml >> ${CI_NRF_DIR}/applications/connectivity_bridge/sample.yaml
           west twister -T ${CI_NRF_DIR}/applications/connectivity_bridge -v -p thingy91x/nrf5340/cpuapp --inline-logs
 
       - name: 'nrf53: check partition layout'
@@ -88,4 +91,6 @@ jobs:
       - name: 'nrf53: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 1
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 2
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 2
