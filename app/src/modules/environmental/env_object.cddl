@@ -5,7 +5,7 @@ temperature = {
 	bn => "14205/0/",        ; Custom Environment information object
 	n => "0",                ; Temperature Resource ID
 	vf => float,             ; temperature in degrees Celsius
-	bt => int .size 8        ; UNIX timestamp in milliseconds
+	bt => int .size 8        ; UNIX timestamp in seconds
 }
 humidity = {
 	n => "1",                ; Humidity Resource ID

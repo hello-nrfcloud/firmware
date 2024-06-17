@@ -5,7 +5,7 @@ state_of_charge = {
 	bn => "14202/0/",        ; Custom Environment information object
 	n => "0",                ; State of Charge ID
 	vi => int .size 1,       ; State of Charge value
-	bt => int .size 8        ; UNIX timestamp in milliseconds
+	bt => int .size 8        ; UNIX timestamp in seconds
 }
 voltage = {
 	n => "1",                ; Voltage Resource ID

@@ -112,7 +112,7 @@ static void sample(void)
 	LOG_DBG("State of charge: %f", (double)roundf(state_of_charge));
 	LOG_DBG("The battery is %s", charging ? "charging" : "not charging");
 
-	bat_object.state_of_charge_m.bt = system_time;
+	bat_object.state_of_charge_m.bt = (int32_t)(system_time / 1000);
 	bat_object.state_of_charge_m.vi = (int32_t)(state_of_charge + 0.5f);
 	bat_object.voltage_m.vf = voltage;
 	bat_object.temperature_m.vf = temp;
