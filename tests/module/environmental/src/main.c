@@ -36,6 +36,26 @@ void transport_callback(const struct zbus_channel *chan)
 	}
 }
 
+void compare_payloads(const struct payload *expected, const struct payload *actual)
+{
+	if (actual->string_len != expected->string_len) {
+		LOG_ERR("Payload length mismatch: expected %d, got %d",
+			expected->string_len, actual->string_len);
+		TEST_FAIL();
+	}
+	if (memcmp(expected->string, actual->string, expected->string_len) != 0) {
+		LOG_ERR("Payload mismatch");
+		char buf[1024];
+		size_t i = snprintf(buf, sizeof(buf), ".string_len = %zu, .string = { ", expected->string_len);
+		for (size_t j = 0; j < expected->string_len; j++) {
+			i += snprintf(buf + i, sizeof(buf) - i, "0x%02x, ", expected->string[j] & 0xff);
+		}
+		snprintf(buf + i, sizeof(buf) - i, " }");
+		LOG_ERR("C definition of expected payload: %s", buf);
+		TEST_FAIL();
+	}
+}
+
 void trigger_callback(const struct zbus_channel *chan) {};
 
 ZBUS_LISTENER_DEFINE(transport, transport_callback);
@@ -49,7 +69,6 @@ ZBUS_SUBSCRIBER_DEFINE(led, 1);
 ZBUS_SUBSCRIBER_DEFINE(battery, 1);
 
 /* When changing the format, print the new payload to the console and update the test cases.
- * LOG_HEXDUMP_INF(received_payload.string, received_payload.string_len, "Payload:");
  * Don't forget to paste the bytes into a decoder and check if the values are correct.
  */
 
@@ -123,7 +142,7 @@ void test_all_zeroes(void)
 	k_sleep(K_MSEC(100));
 
 	/* check payload */
-	TEST_ASSERT_EQUAL(0, memcmp(&all_zeroes, &received_payload, sizeof(struct payload)));
+	compare_payloads(&all_zeroes, &received_payload);
 }
 
 void test_only_timestamp(void)
@@ -142,7 +161,7 @@ void test_only_timestamp(void)
 	k_sleep(K_MSEC(100));
 
 	/* check payload */
-	TEST_ASSERT_EQUAL(0, memcmp(&only_timestamp, &received_payload, sizeof(struct payload)));
+	compare_payloads(&only_timestamp, &received_payload);
 }
 
 void test_common_case(void)
@@ -168,7 +187,7 @@ void test_common_case(void)
 	k_sleep(K_MSEC(100));
 
 	/* check payload */
-	TEST_ASSERT_EQUAL(0, memcmp(&common_case, &received_payload, sizeof(struct payload)));
+	compare_payloads(&common_case, &received_payload);
 }
 
 void test_no_events_on_zbus_until_watchdog_timeout(void)
