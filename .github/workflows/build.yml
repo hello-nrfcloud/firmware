@@ -33,11 +33,6 @@ jobs:
         run: |
           pip install -r nrf/scripts/requirements-build.txt
 
-      - name: Build nrf91 firmware
-        working-directory: thingy91x-oob/app
-        run: |
-          west build -b thingy91x/nrf9151/ns -p --sysbuild
-
       - name: Set VERSION
         shell: bash
         run: |
@@ -46,6 +41,18 @@ jobs:
           else
             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
           fi
+
+      - name: Update VERSION file
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        working-directory: thingy91x-oob
+        run: |
+          python3 scripts/app_version.py ${GITHUB_REF_NAME} > app/VERSION
+          cat app/VERSION
+
+      - name: Build nrf91 firmware
+        working-directory: thingy91x-oob/app
+        run: |
+          west build -b thingy91x/nrf9151/ns -p --sysbuild
 
       - name: Create nrf91 Bootloader HEX file
         run: |
