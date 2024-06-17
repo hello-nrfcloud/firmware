@@ -8,12 +8,6 @@ config APP_MODULE_THREAD_STACK_SIZE
 	int "Thread stack size"
 	default 8192
 
-config APP_MODULE_MESSAGE_QUEUE_SIZE
-	int "Message queue size"
-	default 5
-	help
-	  ZBus subscriber message queue size.
-
 config APP_MODULE_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
 	default 120

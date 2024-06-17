@@ -18,7 +18,7 @@
 LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(app, CONFIG_APP_MODULE_MESSAGE_QUEUE_SIZE);
+ZBUS_MSG_SUBSCRIBER_DEFINE(app);
 
 BUILD_ASSERT(CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS > CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX,
 	     "Watchdog timeout must be greater than maximum execution time");
@@ -127,8 +127,7 @@ static void app_task(void)
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
-	enum cloud_status cloud_status = 0;
-	enum trigger_type trigger_type = 0;
+	uint8_t msg_buf[MAX(sizeof(enum trigger_type), sizeof(enum cloud_status))];
 
 	LOG_DBG("Application module task started");
 
@@ -142,8 +141,8 @@ static void app_task(void)
 			return;
 		}
 
-		err = zbus_sub_wait(&app, &chan, zbus_wait_ms);
-		if (err == -EAGAIN) {
+		err = zbus_sub_wait_msg(&app, &chan, &msg_buf, zbus_wait_ms);
+		if (err == -ENOMSG) {
 			continue;
 		} else if (err) {
 			LOG_ERR("zbus_sub_wait, error: %d", err);
@@ -154,15 +153,10 @@ static void app_task(void)
 		if (&CLOUD_CHAN == chan) {
 			LOG_DBG("Cloud connection status received");
 
-			err = zbus_chan_read(&CLOUD_CHAN, &cloud_status, K_FOREVER);
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
+			const enum cloud_status *status = (const enum cloud_status *)msg_buf;
 
-			if (cloud_status == CLOUD_CONNECTED_READY_TO_SEND) {
-				LOG_DBG("Cloud connected");
+			if (*status == CLOUD_CONNECTED_READY_TO_SEND) {
+				LOG_DBG("Cloud ready to send");
 				LOG_DBG("Getting latest device configuration from device shadow");
 
 				shadow_get(true);
@@ -170,14 +164,11 @@ static void app_task(void)
 		}
 
 		if (&TRIGGER_CHAN == chan) {
-			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
+			LOG_DBG("Trigger received");
 
-			if (trigger_type == TRIGGER_POLL) {
+			const enum trigger_type *type = (const enum trigger_type *)msg_buf;
+
+			if (*type == TRIGGER_POLL) {
 				LOG_DBG("Poll trigger received");
 				LOG_DBG("Getting latest device configuration from device shadow");
 
