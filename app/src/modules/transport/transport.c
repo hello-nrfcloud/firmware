@@ -245,8 +245,6 @@ static void transport_task(void)
 
 	LOG_DBG("Transport module task started");
 
-	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
-
 	/* Setup handler for date_time library */
 	date_time_register_handler(date_time_handler);
 
@@ -265,6 +263,8 @@ static void transport_task(void)
 
 	/* Wait for initial time */
 	k_sem_take(&date_time_ready_sem, K_FOREVER);
+
+	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
 
 	err = nrf_cloud_coap_init();
 	if (err)
