@@ -75,7 +75,7 @@ static void sample(void)
 		return;
 	}
 
-	env_obj.temperature_m.bt = system_time;
+	env_obj.temperature_m.bt = (int32_t)(system_time / 1000);
 	env_obj.temperature_m.vf = sensor_value_to_double(&temp);
 	env_obj.humidity_m.vf = sensor_value_to_double(&humidity);
 	env_obj.pressure_m.vf = sensor_value_to_double(&press) / 100;
