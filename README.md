@@ -1,6 +1,10 @@
 # Thingy:91 Out-of-Box Experience Application
 
+#### Oncommit:
 [![Build](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml/badge.svg)](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml)
+
+#### Nightly:
+[![Target_tests](https://github.com/hello-nrfcloud/firmware/actions/workflows/on_target.yml/badge.svg?event=schedule)](https://github.com/hello-nrfcloud/firmware/actions/workflows/on_target.yml?query=branch%3Amain+event%3Aschedule)
 
 This project is based on the
 [NCS Example Application](https://github.com/nrfconnect/ncs-example-application).
