@@ -15,6 +15,7 @@ jobs:
 
   trigger-target-test:
     uses: ./.github/workflows/on_target.yml
+    secrets: inherit
 
   attach-assets:
     runs-on: ubuntu-22.04
