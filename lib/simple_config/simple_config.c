@@ -112,7 +112,7 @@ int simple_config_handle_incoming_settings(char *buf, size_t buf_len)
 			/* on success, apply this to the queue */
 			simple_config_set(child->string, &val);
 		}
-	};
+	}
 
 	cJSON_Delete(root_obj);
 	return 0;
@@ -204,7 +204,7 @@ void simple_config_clear_queued_configs(void)
 
 int simple_config_set(const char *key, const struct simple_config_val *val)
 {
-	cJSON *child = NULL;
+	cJSON const *child = NULL;
 
 	if (key == NULL || key[0] == '\0' ||
 	    (val->type != SIMPLE_CONFIG_VAL_STRING && val->type != SIMPLE_CONFIG_VAL_BOOL &&
