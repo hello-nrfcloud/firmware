@@ -2,6 +2,7 @@
 
 #### Oncommit:
 [![Build](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml/badge.svg)](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=hello-nrfcloud_firmware&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=hello-nrfcloud_firmware)
 
 #### Nightly:
 [![Target_tests](https://github.com/hello-nrfcloud/firmware/actions/workflows/on_target.yml/badge.svg?event=schedule)](https://github.com/hello-nrfcloud/firmware/actions/workflows/on_target.yml?query=branch%3Amain+event%3Aschedule)
