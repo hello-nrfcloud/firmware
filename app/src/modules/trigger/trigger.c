@@ -16,6 +16,16 @@
 /* Register log module */
 LOG_MODULE_REGISTER(trigger, CONFIG_APP_TRIGGER_LOG_LEVEL);
 
+void trigger_callback(const struct zbus_channel *chan);
+
+/* Define a ZBUS listener for this module */
+ZBUS_LISTENER_DEFINE(trigger, trigger_callback);
+
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, trigger, 0);
+ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, trigger, 0);
+ZBUS_CHAN_ADD_OBS(BUTTON_CHAN, trigger, 0);
+
 /* Trigger interval in the frequent poll state */
 #define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 10
 
@@ -449,9 +459,6 @@ static int trigger_init(void)
 
 	return 0;
 }
-
-/* Define a ZBUS listener for this module */
-ZBUS_LISTENER_DEFINE(trigger, trigger_callback);
 
 /* Initialize module at SYS_INIT() */
 SYS_INIT(trigger_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

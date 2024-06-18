@@ -18,6 +18,16 @@
 /* Register log module */
 LOG_MODULE_REGISTER(fota, CONFIG_APP_FOTA_LOG_LEVEL);
 
+void fota_callback(const struct zbus_channel *chan);
+/* Register listener - led_callback will be called everytime a channel that the module listens on
+ * receives a new message.
+ */
+ZBUS_LISTENER_DEFINE(fota, fota_callback);
+
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, fota, 0);
+ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, fota, 0);
+
 /* FOTA support context */
 static void fota_reboot(enum nrf_cloud_fota_reboot_status status);
 static struct nrf_cloud_fota_poll_ctx ctx = {
@@ -100,9 +110,3 @@ void fota_callback(const struct zbus_channel *chan)
 		}
 	}
 }
-
-
-/* Register listener - led_callback will be called everytime a channel that the module listens on
- * receives a new message.
- */
-ZBUS_LISTENER_DEFINE(fota, fota_callback);

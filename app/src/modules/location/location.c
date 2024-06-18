@@ -25,7 +25,11 @@ BUILD_ASSERT(CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS >
 	     CONFIG_APP_LOCATION_ZBUS_TIMEOUT_SECONDS,
 	     "Watchdog timeout must be greater than trigger timeout");
 
+/* Define listener for this module */
 ZBUS_SUBSCRIBER_DEFINE(location, CONFIG_APP_LOCATION_ZBUS_QUEUE_SIZE);
+
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, location, 0);

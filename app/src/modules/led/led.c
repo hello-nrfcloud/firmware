@@ -16,6 +16,17 @@
 /* Register log module */
 LOG_MODULE_REGISTER(led, CONFIG_APP_LED_LOG_LEVEL);
 
+void led_callback(const struct zbus_channel *chan);
+
+/* Register listener - led_callback will be called everytime a channel that the module listens on
+ * receives a new message.
+ */
+ZBUS_LISTENER_DEFINE(led, led_callback);
+
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(FATAL_ERROR_CHAN, led, 0);
+ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, led, 0);
+
 #define PWM_LED0_NODE	DT_ALIAS(pwm_led0)
 #define PWM_LED1_NODE	DT_ALIAS(pwm_led1)
 #define PWM_LED2_NODE	DT_ALIAS(pwm_led2)
@@ -94,11 +105,6 @@ void led_callback(const struct zbus_channel *chan)
 		}
 	}
 }
-
-/* Register listener - led_callback will be called everytime a channel that the module listens on
- * receives a new message.
- */
-ZBUS_LISTENER_DEFINE(led, led_callback);
 
 static int leds_init(void)
 {

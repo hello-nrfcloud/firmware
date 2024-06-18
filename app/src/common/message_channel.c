@@ -14,7 +14,7 @@ ZBUS_CHAN_DEFINE(TRIGGER_CHAN,
 		 enum trigger_type,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(fota, app, battery, location, environmental),
+		 ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0)
 );
 
@@ -30,7 +30,7 @@ ZBUS_CHAN_DEFINE(PAYLOAD_CHAN,
 		 struct payload,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(transport),
+		 ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0)
 );
 
@@ -38,7 +38,7 @@ ZBUS_CHAN_DEFINE(NETWORK_CHAN,
 		 enum network_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(transport, battery),
+		 ZBUS_OBSERVERS_EMPTY,
 		 NETWORK_DISCONNECTED
 );
 
@@ -46,7 +46,7 @@ ZBUS_CHAN_DEFINE(FATAL_ERROR_CHAN,
 		 int,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(led),
+		 ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0)
 );
 
@@ -54,7 +54,7 @@ ZBUS_CHAN_DEFINE(CONFIG_CHAN,
 		 struct configuration,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(led, trigger),
+		 ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0)
 );
 
@@ -62,7 +62,7 @@ ZBUS_CHAN_DEFINE(CLOUD_CHAN,
 		 enum cloud_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(fota, app, trigger),
+		 ZBUS_OBSERVERS_EMPTY,
 		 CLOUD_DISCONNECTED
 );
 
@@ -70,7 +70,7 @@ ZBUS_CHAN_DEFINE(BUTTON_CHAN,
 		 uint8_t,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(trigger),
+		 ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0)
 );
 
@@ -78,6 +78,6 @@ ZBUS_CHAN_DEFINE(TIME_CHAN,
 		 enum time_status,
 		 NULL,
 		 NULL,
-		 ZBUS_OBSERVERS(battery, environmental),
+		 ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0)
 );

@@ -23,6 +23,10 @@ LOG_MODULE_REGISTER(environmental_module, CONFIG_APP_ENVIRONMENTAL_LOG_LEVEL);
 /* Register subscriber */
 ZBUS_SUBSCRIBER_DEFINE(environmental, CONFIG_APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZE);
 
+/* Observe trigger channel */
+ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, environmental, 0);
+ZBUS_CHAN_ADD_OBS(TIME_CHAN, environmental, 0);
+
 BUILD_ASSERT(CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS >
 			CONFIG_APP_ENVIRONMENTAL_EXEC_TIME_SECONDS_MAX,
 			"Watchdog timeout must be greater than maximum execution time");

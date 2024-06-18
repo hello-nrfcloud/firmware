@@ -40,6 +40,7 @@ set(zcbor_command
 	--cddl ${ZEPHYR_BASE}/subsys/net/lib/lwm2m/lwm2m_senml_cbor.cddl
 	--cddl ${APPLICATION_SOURCE_DIR}/../../../app/src/modules/environmental/env_object.cddl
 	--encode # Generate encoding functions
+	--decode # Generate decoding functions
 	--short-names # Attempt to make generated symbol names shorter (at the risk of collision)
 	-t env-object # Create a public API for decoding/encoding the "board_config" type from the cddl file
 	--output-cmake ${CMAKE_CURRENT_BINARY_DIR}/env_object.cmake # The generated cmake file will be placed here
