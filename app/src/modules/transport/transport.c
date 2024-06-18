@@ -315,7 +315,7 @@ static void state_disconnected_entry(void *o)
 
 static void state_disconnected_run(void *o)
 {
-	struct s_object *user_object = o;
+	struct s_object const *user_object = o;
 
 	LOG_DBG("%s", __func__);
 

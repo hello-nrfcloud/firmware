@@ -25,7 +25,7 @@ static struct nrf_cloud_fota_poll_ctx ctx = {
 };
 static bool fota_initialized;
 
-void fota_reboot(enum nrf_cloud_fota_reboot_status status)
+static void fota_reboot(enum nrf_cloud_fota_reboot_status status)
 {
 	LOG_INF("Rebooting with FOTA status %d", status);
 

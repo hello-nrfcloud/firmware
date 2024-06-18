@@ -24,7 +24,7 @@ static int gas_sensor_dummy_channel_get(const struct device *dev,
 				     enum sensor_channel chan,
 				     struct sensor_value *val)
 {
-	struct gas_sensor_dummy_data *data = dev->data;
+	struct gas_sensor_dummy_data const *data = dev->data;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch"
