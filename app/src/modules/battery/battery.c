@@ -39,6 +39,7 @@ BUILD_ASSERT(CONFIG_APP_BATTERY_WATCHDOG_TIMEOUT_SECONDS >
 
 static const struct device *charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_charger));
 static int64_t fg_ref_time;
+static bool time_available;
 
 static int charger_read_sensors(float *voltage, float *current, float *temp, int32_t *chg_status)
 {
@@ -198,7 +199,24 @@ static void battery_task(void)
 			return;
 		}
 
-		if (&TRIGGER_CHAN == chan) {
+		if (&TIME_CHAN == chan) {
+			enum time_status time_status;
+
+			err = zbus_chan_read(&TIME_CHAN, &time_status, K_FOREVER);
+			if (err) {
+				LOG_ERR("zbus_chan_read, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+			if (time_status == TIME_AVAILABLE) {
+				LOG_DBG("Time available, sampling can start");
+
+				time_available = true;
+			}
+		}
+
+		if (time_available && (&TRIGGER_CHAN == chan)) {
 			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
 			if (err) {
 				LOG_ERR("zbus_chan_read, error: %d", err);

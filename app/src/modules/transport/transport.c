@@ -11,7 +11,6 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <net/nrf_cloud.h>
 #include <net/nrf_cloud_coap.h>
-#include <date_time.h>
 #include <app_version.h>
 
 #include "modules_common.h"
@@ -52,7 +51,6 @@ ZBUS_CHAN_DEFINE(PRIV_TRANSPORT_CHAN,
 static const struct smf_state states[];
 
 static void connect_work_fn(struct k_work *work);
-static void date_time_handler(const struct date_time_evt *evt);
 
 static void state_running_entry(void *o);
 static void state_running_run(void *o);
@@ -152,11 +150,6 @@ static K_THREAD_STACK_DEFINE(stack_area, CONFIG_APP_TRANSPORT_WORKQUEUE_STACK_SI
  * schedule reconnectionn attempts upon connection loss.
  */
 static struct k_work_q transport_queue;
-
-/* Semaphore to mark when we have a valid time.
- * It is not static as it has to be given in the module test.
- */
-K_SEM_DEFINE(date_time_ready_sem, 0, 1);
 
 static void task_wdt_callback(int channel_id, void *user_data)
 {
@@ -261,12 +254,6 @@ static void state_running_entry(void *o)
 			   K_THREAD_STACK_SIZEOF(stack_area),
 			   K_HIGHEST_APPLICATION_THREAD_PRIO,
 			   NULL);
-
-	/* Setup handler for date_time library */
-	date_time_register_handler(date_time_handler);
-
-	/* Wait for initial time */
-	k_sem_take(&date_time_ready_sem, K_FOREVER);
 
 	err = nrf_cloud_coap_init();
 	if (err) {
@@ -482,16 +469,8 @@ static void state_connected_paused_run(void *o)
 	}
 }
 
-
-
 /* End of state handlers */
 
-
-static void date_time_handler(const struct date_time_evt *evt) {
-	if (evt->type != DATE_TIME_NOT_OBTAINED) {
-		k_sem_give(&date_time_ready_sem);
-	}
-}
 
 static void transport_task(void)
 {

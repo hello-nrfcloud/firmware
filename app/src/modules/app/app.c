@@ -8,6 +8,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/task_wdt/task_wdt.h>
+#include <date_time.h>
 #include <net/nrf_cloud_coap.h>
 #include <nrf_cloud_coap_transport.h>
 
@@ -119,6 +120,19 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	SEND_FATAL_ERROR();
 }
 
+static void date_time_handler(const struct date_time_evt *evt) {
+	if (evt->type != DATE_TIME_NOT_OBTAINED) {
+		int err;
+		enum time_status time_status = TIME_AVAILABLE;
+
+		err = zbus_chan_pub(&TIME_CHAN, &time_status, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
+	}
+}
+
 static void app_task(void)
 {
 	int err;
@@ -132,6 +146,9 @@ static void app_task(void)
 	LOG_DBG("Application module task started");
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
+
+	/* Setup handler for date_time library */
+	date_time_register_handler(date_time_handler);
 
 	while (true) {
 		err = task_wdt_feed(task_wdt_id);

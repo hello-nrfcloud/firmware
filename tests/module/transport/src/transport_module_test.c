@@ -11,7 +11,6 @@
 
 DEFINE_FFF_GLOBALS;
 
-FAKE_VALUE_FUNC(int, date_time_uptime_to_unix_time_ms, int64_t *);
 FAKE_VALUE_FUNC(int, task_wdt_feed, int);
 FAKE_VALUE_FUNC(int, task_wdt_add, uint32_t, task_wdt_callback_t, void *);
 FAKE_VALUE_FUNC(int, nrf_cloud_client_id_get, char *, size_t);
@@ -20,16 +19,12 @@ FAKE_VALUE_FUNC(int, nrf_cloud_coap_connect, const char * const);
 FAKE_VALUE_FUNC(int, nrf_cloud_coap_disconnect);
 FAKE_VALUE_FUNC(int, nrf_cloud_coap_shadow_device_status_update);
 FAKE_VALUE_FUNC(int, nrf_cloud_coap_bytes_send, uint8_t *, size_t, bool);
-FAKE_VALUE_FUNC(int, date_time_register_handler, void *);
 
 static K_SEM_DEFINE(cloud_disconnected, 0, 1);
 static K_SEM_DEFINE(cloud_connected_ready, 0, 1);
 static K_SEM_DEFINE(cloud_connected_paused, 0, 1);
 static K_SEM_DEFINE(data_sent, 0, 1);
 static K_SEM_DEFINE(fatal_error_received, 0, 1);
-
-/* Needed to let the module complete initialization */
-extern struct k_sem date_time_ready_sem;
 
 static void dummy_cb(const struct zbus_channel *chan)
 {
@@ -77,7 +72,6 @@ void setUp(void)
 	/* Reset fakes */
 	RESET_FAKE(task_wdt_feed);
 	RESET_FAKE(task_wdt_add);
-	RESET_FAKE(date_time_uptime_to_unix_time_ms);
 
 	/* Clear all channels */
 	zbus_sub_wait(&location, &chan, K_NO_WAIT);
@@ -93,8 +87,6 @@ void setUp(void)
 void test_initial_transition_to_disconnected(void)
 {
 	int err;
-
-	k_sem_give(&date_time_ready_sem);
 
 	err = k_sem_take(&cloud_disconnected, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
