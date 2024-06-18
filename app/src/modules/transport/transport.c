@@ -30,6 +30,10 @@ BUILD_ASSERT(CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS >
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
 
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(PAYLOAD_CHAN, transport, 0);
+ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, transport, 0);
+
 /* Enumerator to be used in privat transport channel */
 enum priv_transport_evt {
 	IRRECOVERABLE_ERROR,

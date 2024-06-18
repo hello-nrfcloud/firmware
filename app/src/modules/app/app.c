@@ -21,6 +21,10 @@ LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(app);
 
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, app, 0);
+ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, app, 0);
+
 BUILD_ASSERT(CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS > CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX,
 	     "Watchdog timeout must be greater than maximum execution time");
 
