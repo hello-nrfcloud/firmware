@@ -26,6 +26,7 @@ BUILD_ASSERT(CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS >
 			"Watchdog timeout must be greater than maximum execution time");
 
 static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(gas_sensor));
+static bool time_available;
 
 
 static void task_wdt_callback(int channel_id, void *user_data)
@@ -129,7 +130,24 @@ static void environmental_task(void)
 			return;
 		}
 
-		if (&TRIGGER_CHAN == chan) {
+		if (&TIME_CHAN == chan) {
+			enum time_status time_status;
+
+			err = zbus_chan_read(&TIME_CHAN, &time_status, K_FOREVER);
+			if (err) {
+				LOG_ERR("zbus_chan_read, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+			if (time_status == TIME_AVAILABLE) {
+				LOG_DBG("Time available, sampling can start");
+
+				time_available = true;
+			}
+		}
+
+		if (time_available && (&TRIGGER_CHAN == chan)) {
 			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
 			if (err) {
 				LOG_ERR("zbus_chan_read, error: %d", err);

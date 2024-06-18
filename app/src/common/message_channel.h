@@ -48,6 +48,10 @@ enum trigger_type {
 	TRIGGER_DATA_SAMPLE,
 };
 
+enum time_status {
+	TIME_AVAILABLE = 0x1,
+};
+
 struct configuration {
 	bool led_present;
 	int led_red;
@@ -59,15 +63,16 @@ struct configuration {
 };
 
 ZBUS_CHAN_DECLARE(
-	TRIGGER_CHAN,
-	PAYLOAD_CHAN,
-	NETWORK_CHAN,
-	FATAL_ERROR_CHAN,
-	LED_CHAN,
+	BUTTON_CHAN,
 	CLOUD_CHAN,
-	FOTA_ONGOING_CHAN,
 	CONFIG_CHAN,
-	BUTTON_CHAN
+	FATAL_ERROR_CHAN,
+	FOTA_ONGOING_CHAN,
+	LED_CHAN,
+	NETWORK_CHAN,
+	PAYLOAD_CHAN,
+	TIME_CHAN,
+	TRIGGER_CHAN
 );
 
 #ifdef __cplusplus

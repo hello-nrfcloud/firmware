@@ -73,3 +73,11 @@ ZBUS_CHAN_DEFINE(BUTTON_CHAN,
 		 ZBUS_OBSERVERS(trigger),
 		 ZBUS_MSG_INIT(0)
 );
+
+ZBUS_CHAN_DEFINE(TIME_CHAN,
+		 enum time_status,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS(battery, environmental),
+		 ZBUS_MSG_INIT(0)
+);

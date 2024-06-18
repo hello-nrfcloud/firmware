@@ -60,7 +60,7 @@ ZBUS_SUBSCRIBER_DEFINE(location, 1);
 ZBUS_SUBSCRIBER_DEFINE(app, 1);
 ZBUS_SUBSCRIBER_DEFINE(fota, 1);
 ZBUS_SUBSCRIBER_DEFINE(led, 1);
-ZBUS_SUBSCRIBER_DEFINE(battery, 1);
+ZBUS_SUBSCRIBER_DEFINE(battery, 2);
 
 /* When changing the format, print the new payload to the console and update the test cases.
  * Don't forget to paste the bytes into a decoder and check if the values are correct.
@@ -116,9 +116,14 @@ void test_only_timestamp(void)
 {
 	enum trigger_type trigger_type = TRIGGER_DATA_SAMPLE;
 	int err;
+	enum time_status time_status = TIME_AVAILABLE;
 
 	date_time_uptime_to_unix_time_ms_fake.custom_fake =
 		date_time_uptime_to_unix_time_ms_custom_fake;
+
+	err = zbus_chan_pub(&TIME_CHAN, &time_status, K_SECONDS(1));
+	TEST_ASSERT_EQUAL(0, err);
+	k_sleep(K_MSEC(100));
 
 	/* send trigger */
 	err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
