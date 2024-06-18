@@ -6,7 +6,7 @@ menu "App"
 
 config APP_MODULE_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 8192
+	default 3072
 
 config APP_MODULE_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
