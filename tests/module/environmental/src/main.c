@@ -51,10 +51,9 @@ void compare_payloads(const struct payload *expected, const struct payload *actu
 	}
 }
 
-void trigger_callback(const struct zbus_channel *chan) {};
 
 ZBUS_LISTENER_DEFINE(transport, transport_callback);
-ZBUS_LISTENER_DEFINE(trigger, trigger_callback);
+ZBUS_LISTENER_DEFINE(trigger, NULL);
 
 /* define unused subscribers */
 ZBUS_SUBSCRIBER_DEFINE(location, 1);
