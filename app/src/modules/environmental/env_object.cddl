@@ -2,10 +2,10 @@
 ; depends on lwm2m_senml definitions
 
 temperature = {
-	bn => "14205/0/",        ; Custom Environment information object
-	n => "0",                ; Temperature Resource ID
-	vf => float,             ; temperature in degrees Celsius
-	bt => int .size 8        ; UNIX timestamp in seconds
+	bn => "14205/0/",                    ; Custom Environment information object
+	n => "0",                            ; Temperature Resource ID
+	vf => float,                         ; temperature in degrees Celsius
+	bt => 1700000000...3000000000        ; UNIX timestamp in seconds
 }
 humidity = {
 	n => "1",                ; Humidity Resource ID

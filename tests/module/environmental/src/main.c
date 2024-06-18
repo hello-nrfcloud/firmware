@@ -38,12 +38,7 @@ void transport_callback(const struct zbus_channel *chan)
 
 void compare_payloads(const struct payload *expected, const struct payload *actual)
 {
-	if (actual->string_len != expected->string_len) {
-		LOG_ERR("Payload length mismatch: expected %d, got %d",
-			expected->string_len, actual->string_len);
-		TEST_FAIL();
-	}
-	if (memcmp(expected->string, actual->string, expected->string_len) != 0) {
+	if (actual->string_len != expected->string_len || memcmp(expected->string, actual->string, expected->string_len) != 0) {
 		LOG_ERR("Payload mismatch");
 		char buf[1024];
 		size_t i = snprintf(buf, sizeof(buf), ".string_len = %zu, .string = { ", expected->string_len);
@@ -71,17 +66,6 @@ ZBUS_SUBSCRIBER_DEFINE(battery, 1);
 /* When changing the format, print the new payload to the console and update the test cases.
  * Don't forget to paste the bytes into a decoder and check if the values are correct.
  */
-
-const struct payload all_zeroes = {
-	.string_len = 67,
-	.string = {
-		0x9f, 0xbf, 0x21, 0x68, 0x31, 0x34, 0x32, 0x30, 0x35, 0x2f, 0x30, 0x2f, 0x00, 0x61,
-		0x30, 0x02, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x00, 0xff,
-		0xbf, 0x00, 0x61, 0x31, 0x02, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0xff, 0xbf, 0x00, 0x61, 0x32, 0x02, 0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0xff, 0xbf, 0x00, 0x62, 0x31, 0x30, 0x02, 0x00, 0xff, 0xff,
-	}
-};
 
 const struct payload only_timestamp = {
 	.string_len = 71,
@@ -127,22 +111,6 @@ void setUp(void)
 	zbus_sub_wait(&fota, &chan, K_NO_WAIT);
 	zbus_sub_wait(&led, &chan, K_NO_WAIT);
 	zbus_sub_wait(&battery, &chan, K_NO_WAIT);
-}
-
-void test_all_zeroes(void)
-{
-	enum trigger_type trigger_type = TRIGGER_DATA_SAMPLE;
-	int err;
-
-	/* send trigger */
-	err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
-	TEST_ASSERT_EQUAL(0, err);
-
-	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
-	k_sleep(K_MSEC(100));
-
-	/* check payload */
-	compare_payloads(&all_zeroes, &received_payload);
 }
 
 void test_only_timestamp(void)
