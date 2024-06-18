@@ -38,7 +38,21 @@ FAKE_VALUE_FUNC(int, nrf_cloud_coap_shadow_get, char *, size_t *, bool)
 FAKE_VALUE_FUNC(int, simple_config_callback, const char *, const struct simple_config_val *);
 
 void setUp(void)
-{}
+{
+	RESET_FAKE(cJSON_Init);
+	RESET_FAKE(cJSON_Delete);
+	RESET_FAKE(cJSON_DeleteItemFromObject);
+	RESET_FAKE(cJSON_CreateObject);
+	RESET_FAKE(cJSON_AddStringToObject);
+	RESET_FAKE(cJSON_AddTrueToObject);
+	RESET_FAKE(cJSON_AddFalseToObject);
+	RESET_FAKE(cJSON_AddNumberToObject);
+	RESET_FAKE(cJSON_Parse);
+	RESET_FAKE(cJSON_IsObject);
+	RESET_FAKE(cJSON_GetObjectItem);
+	RESET_FAKE(nrf_cloud_coap_shadow_get);
+	RESET_FAKE(simple_config_callback);
+}
 
 void tearDown(void)
 {
