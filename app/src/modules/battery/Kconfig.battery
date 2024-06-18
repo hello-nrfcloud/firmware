@@ -8,7 +8,7 @@ menu "Sampler"
 
 config APP_BATTERY_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 8192
+	default 2048
 
 config APP_BATTERY_MESSAGE_QUEUE_SIZE
 	int "Message queue size"
