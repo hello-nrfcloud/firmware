@@ -2,10 +2,10 @@
 ; depends on lwm2m_senml definitions
 
 state_of_charge = {
-	bn => "14202/0/",        ; Custom Environment information object
-	n => "0",                ; State of Charge ID
-	vi => int .size 1,       ; State of Charge value
-	bt => int .size 8        ; UNIX timestamp in seconds
+	bn => "14202/0/",                    ; Custom Environment information object
+	n => "0",                            ; State of Charge ID
+	vi => int .size 1,                   ; State of Charge value
+	bt => 1700000000...3000000000        ; UNIX timestamp in seconds
 }
 voltage = {
 	n => "1",                ; Voltage Resource ID
