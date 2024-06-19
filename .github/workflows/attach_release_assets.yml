@@ -35,10 +35,18 @@ jobs:
             fail_on_unmatched_files: true
             files: hello.nrfcloud.com-*.*
 
-        - name: Trigger publish firmware workflow
+        - name: Trigger workflow that publishes firmware bundles to nRF Cloud
           working-directory: .github/workflows
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
             gh workflow run publish-firmware-bundles.yml \
+              -F version=${{ github.event.release.tag_name }}
+
+        - name: Trigger workflow that publishes symbol files to Memfault
+          working-directory: .github/workflows
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            gh workflow run publish-symbol-files-to-memfault.yml \
               -F version=${{ github.event.release.tag_name }}

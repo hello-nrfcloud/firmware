@@ -1,0 +1,39 @@
+name: Publish symbol files to Memfault
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: Release version to publish, e.g. "v1.1.0"
+
+jobs:
+  publish:
+    environment: production
+
+    name: Publish firmware bundles to nRF Cloud
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - run: npm i @octokit/rest
+
+      - run: pip3 install memfault-cli
+
+      - run: node .github/workflows/fetch-release-assets.mjs ${{ inputs.version }}
+
+      - name: Publish symbol files
+        run: |
+          memfault \
+              --org-token ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }} \
+              --org ${{ vars.MEMFAULT_ORGANIZATION_SLUG }} \
+              --project ${{ vars.MEMFAULT_PROJECT_SLUG }} \
+              upload-mcu-symbols \
+              --software-type hello.nrfcloud.com \
+              --software-version ${{ inputs.version }} \
+              hello.nrfcloud.com-${{ inputs.version }}-thingy91x-debug-app.elf

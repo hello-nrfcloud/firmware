@@ -82,6 +82,7 @@ jobs:
           cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.config
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.bin
           cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app_update_signed.hex
+          cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.elf
           cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-bootloader.hex
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
