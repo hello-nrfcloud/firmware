@@ -41,6 +41,51 @@ static const struct device *charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_charger
 static int64_t fg_ref_time;
 static bool time_available;
 
+/* Forward declarations */
+static int charger_read_sensors(float *voltage, float *current, float *temp, int32_t *chg_status);
+
+/* Initialize the battery module */
+static int init(void)
+{
+	int err;
+	struct sensor_value value;
+	struct nrf_fuel_gauge_init_parameters parameters = {
+		.model = &battery_model
+	};
+	int32_t chg_status;
+
+	if (!device_is_ready(charger)) {
+		LOG_ERR("Charger device not ready.");
+		SEND_FATAL_ERROR();
+		return -ENODEV;
+	}
+
+	err = charger_read_sensors(&parameters.v0, &parameters.i0, &parameters.t0, &chg_status);
+	if (err < 0) {
+		LOG_ERR("charger_read_sensors, error: %d", err);
+		SEND_FATAL_ERROR();
+		return err;
+	}
+
+	err = nrf_fuel_gauge_init(&parameters, NULL);
+	if (err) {
+		LOG_ERR("nrf_fuel_gauge_init, error: %d", err);
+		SEND_FATAL_ERROR();
+		return err;
+	}
+
+	fg_ref_time = k_uptime_get();
+
+	err = sensor_channel_get(charger, SENSOR_CHAN_GAUGE_DESIRED_CHARGING_CURRENT, &value);
+	if (err) {
+		LOG_ERR("sensor_channel_get(DESIRED_CHARGING_CURRENT), error: %d", err);
+		SEND_FATAL_ERROR();
+		return err;
+	}
+
+	return 0;
+}
+
 static int charger_read_sensors(float *voltage, float *current, float *temp, int32_t *chg_status)
 {
 	struct sensor_value value;
@@ -134,50 +179,63 @@ static void sample(void)
 	}
 }
 
+/* Handle messages from the message queue.
+ * Returns 0 if the message was handled successfully, otherwise an error code.
+ */
+static int handle_message(const struct zbus_channel *chan)
+{
+	int err;
+
+	if (&TIME_CHAN == chan) {
+		enum time_status time_status;
+
+		err = zbus_chan_read(&TIME_CHAN, &time_status, K_FOREVER);
+		if (err) {
+			LOG_ERR("zbus_chan_read, error: %d", err);
+			return err;
+		}
+
+		if (time_status == TIME_AVAILABLE) {
+			LOG_DBG("Time available, sampling can start");
+
+			time_available = true;
+		}
+	}
+
+	if (time_available && (&TRIGGER_CHAN == chan)) {
+		enum trigger_type trigger_type;
+
+		err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
+		if (err) {
+			LOG_ERR("zbus_chan_read, error: %d", err);
+			return err;
+		}
+
+		if (trigger_type == TRIGGER_DATA_SAMPLE) {
+			LOG_DBG("Data sample trigger received, getting battery data");
+			sample();
+		}
+	}
+
+	return 0;
+}
+
 static void battery_task(void)
 {
 	int err;
 	const struct zbus_channel *chan;
-	struct sensor_value value;
 	int task_wdt_id;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_BATTERY_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_BATTERY_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
-	struct nrf_fuel_gauge_init_parameters parameters = {
-		.model = &battery_model
-	};
-	int32_t chg_status;
-	enum trigger_type trigger_type;
 
 	LOG_DBG("Battery module task started");
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
 
-	if (!device_is_ready(charger)) {
-		LOG_ERR("Charger device not ready.");
-		SEND_FATAL_ERROR();
-		return;
-	}
-
-	err = charger_read_sensors(&parameters.v0, &parameters.i0, &parameters.t0, &chg_status);
-	if (err < 0) {
-		LOG_ERR("charger_read_sensors, error: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
-
-	err = nrf_fuel_gauge_init(&parameters, NULL);
+	err = init();
 	if (err) {
-		LOG_ERR("nrf_fuel_gauge_init, error: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
-
-	fg_ref_time = k_uptime_get();
-
-	err = sensor_channel_get(charger, SENSOR_CHAN_GAUGE_DESIRED_CHARGING_CURRENT, &value);
-	if (err) {
-		LOG_ERR("sensor_channel_get(DESIRED_CHARGING_CURRENT), error: %d", err);
+		LOG_ERR("Failed to initialize battery module, error: %d", err);
 		SEND_FATAL_ERROR();
 		return;
 	}
@@ -199,35 +257,11 @@ static void battery_task(void)
 			return;
 		}
 
-		if (&TIME_CHAN == chan) {
-			enum time_status time_status;
-
-			err = zbus_chan_read(&TIME_CHAN, &time_status, K_FOREVER);
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-
-			if (time_status == TIME_AVAILABLE) {
-				LOG_DBG("Time available, sampling can start");
-
-				time_available = true;
-			}
-		}
-
-		if (time_available && (&TRIGGER_CHAN == chan)) {
-			err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
-			if (err) {
-				LOG_ERR("zbus_chan_read, error: %d", err);
-				SEND_FATAL_ERROR();
-				return;
-			}
-
-			if (trigger_type == TRIGGER_DATA_SAMPLE) {
-				LOG_DBG("Data sample trigger received, getting battery data");
-				sample();
-			}
+		err = handle_message(chan);
+		if (err) {
+			LOG_ERR("handle_message, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
 		}
 	}
 }
