@@ -1,81 +1,53 @@
-import { Octokit } from "@octokit/rest";
 import fs, { createWriteStream } from "node:fs";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "stream";
-import { finished } from "stream/promises";
 import yazl from "yazl";
 
-const owner = process.env.OWNER ?? "hello-nrfcloud";
-const repo = process.env.REPO ?? "firmware";
-const version = process.argv[process.argv.length - 1];
+const version = (process.argv[process.argv.length - 1] ?? "").trim();
 
 console.log(`Publishing release version`, version);
-
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-});
-
-console.log(`Repository: ${owner}/${repo}`);
-
-const { data: release } = await octokit.rest.repos.getReleaseByTag({
-  repo,
-  owner,
-  tag: version,
-});
-
-if (release === undefined) {
-  console.error(`Release for ${version} not found!`);
-  console.debug(`Got: ${releases.map(({ name }) => name).join(", ")}!`);
-  process.exit(1);
-}
 
 const nameRegEx = new RegExp(
   `^hello\.nrfcloud\.com-${version}-thingy91x-((?<configuration>.+)-)?app_update_signed\.bin$`
 );
 
-const assets = release.assets.filter(
-  ({ name }) => nameRegEx.exec(name) !== null
-);
+const assets = fs
+  .readdirSync(process.cwd())
+  .filter((name) => nameRegEx.test(name));
 
 if (assets.length === 0) {
   console.error(`No assets found for release ${version}!`);
-  console.debug(`Got: ${release.assets.map(({ name }) => name).join(", ")}!`);
   process.exit(1);
 }
 
 for (const asset of assets) {
-  const { url, name, label, size } = asset;
   const {
     groups: { configuration },
-  } = nameRegEx.exec(name);
+  } = nameRegEx.exec(asset);
 
-  const fwversion = `${release.tag_name}${
+  const fwversion = `${version}${
     configuration !== undefined ? `-${configuration}` : ""
   }`;
   const fwName = `hello.nrfcloud.com ${fwversion}`;
   console.log(fwName);
   const manifest = {
     name: fwName,
-    description: label,
+    description: `Firmware update for the Thingy:91 X (${
+      configuration ?? "default"
+    })`,
     fwversion,
     "format-version": 1,
     files: [
       {
-        file: name,
+        file: asset,
         type: "application",
-        size,
+        size: fs.statSync(asset).size,
       },
     ],
   };
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/octet-stream",
-      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-    },
-  });
+  console.log(JSON.stringify(manifest, null, 2));
 
   const zipfile = new yazl.ZipFile();
   zipfile.addBuffer(
@@ -83,16 +55,11 @@ for (const asset of assets) {
     "manifest.json"
   );
 
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), name));
-  const fwFile = path.join(tempDir, "firmware.bin");
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), asset));
 
-  const body = Readable.fromWeb(res.body);
-  const download_write_stream = fs.createWriteStream(fwFile);
-  await finished(body.pipe(download_write_stream));
+  zipfile.addFile(path.join(process.cwd(), asset), asset);
 
-  zipfile.addFile(fwFile, name);
-
-  const zipFileName = path.join(tempDir, `${name}.zip`);
+  const zipFileName = path.join(tempDir, `${asset}.zip`);
 
   await new Promise((resolve) => {
     zipfile.outputStream
