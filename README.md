@@ -1,4 +1,4 @@
-# Thingy:91 Out-of-Box Experience Application
+# Thingy:91 X Out-of-Box Experience Application
 
 #### Oncommit:
 [![Build](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml/badge.svg)](https://github.com/hello-nrfcloud/firmware/actions/workflows/build.yml)
