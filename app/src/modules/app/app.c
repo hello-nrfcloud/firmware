@@ -117,7 +117,7 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
 		channel_id, k_thread_name_get((k_tid_t)user_data));
 
-	SEND_FATAL_ERROR();
+	SEND_FATAL_ERROR_WATCHDOG_TIMEOUT();
 }
 
 static void date_time_handler(const struct date_time_evt *evt) {
