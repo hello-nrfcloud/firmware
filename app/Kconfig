@@ -21,6 +21,7 @@ rsource "src/modules/led/Kconfig.led"
 rsource "src/modules/app/Kconfig.app"
 rsource "src/modules/fota/Kconfig.fota"
 rsource "src/modules/environmental/Kconfig.environmental"
+rsource "src/modules/memfault/Kconfig.memfault"
 
 endmenu
 

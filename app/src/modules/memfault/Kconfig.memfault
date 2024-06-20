@@ -1,0 +1,16 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig APP_MEMFAULT
+	bool "Memfault"
+	select MEMFAULT
+	select MEMFAULT_HTTP_PERIODIC_UPLOAD
+	select MODEM_KEY_MGMT
+	select MEMFAULT_LOGGING_ENABLE
+	select MEMFAULT_HTTP_ENABLE
+	select MEMFAULT_NCS_LTE_METRICS
+	select MEMFAULT_NCS_STACK_METRICS
+	select MEMFAULT_NCS_INTERNAL_FLASH_BACKED_COREDUMP

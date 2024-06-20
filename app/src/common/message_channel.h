@@ -11,21 +11,32 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/zbus/zbus.h>
+#if defined(CONFIG_MEMFAULT)
+#include <memfault/panics/assert.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** @brief Macro used to send a message on the FATAL_ERROR_CHANNEL.
- *	   The message will be handled in the led module.
+/** @brief Handle fatal error.
+ *  @param is_watchdog_timeout Boolean indicating if the macro was called upon a watchdog timeout.
  */
-#define SEND_FATAL_ERROR() do {							\
+#define FATAL_ERROR_HANDLE(is_watchdog_timeout) do {				\
 	int not_used = -1;							\
 	(void)zbus_chan_pub(&FATAL_ERROR_CHAN, &not_used, K_SECONDS(10));	\
 	LOG_PANIC();								\
+	if (is_watchdog_timeout) {						\
+		IF_ENABLED(CONFIG_MEMFAULT, (MEMFAULT_SOFTWARE_WATCHDOG()));	\
+	}									\
 	k_sleep(K_SECONDS(5));							\
 	__ASSERT(false, "SEND_FATAL_ERROR() macro called");			\
 } while (0)
+
+/** @brief Macro used to handle fatal errors. */
+#define SEND_FATAL_ERROR() FATAL_ERROR_HANDLE(0)
+/** @brief Macro used to handle watchdog timeouts. */
+#define SEND_FATAL_ERROR_WATCHDOG_TIMEOUT() FATAL_ERROR_HANDLE(1)
 
 struct payload {
 	char string[CONFIG_APP_PAYLOAD_CHANNEL_STRING_MAX_SIZE];
