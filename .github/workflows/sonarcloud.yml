@@ -7,6 +7,10 @@ on:
     paths:
       - '**/*.c'
       - '**/*.h'
+      - west.yml
+      - '**/CMakelists.txt'
+      - '**/Kconfig*'
+      - '**/prj.conf'
 jobs:
   build:
     name: Build and analyze
