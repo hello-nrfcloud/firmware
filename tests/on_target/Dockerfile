@@ -13,7 +13,7 @@ EOT
 WORKDIR /work
 
 # Install Segger J-Link software
-COPY JLink_Linux_${JLINK_VERSION}_x86_64.tgz /work/
+RUN wget -q --post-data 'accept_license_agreement=accepted&non_emb_ctr=confirmed&submit=Download+software' https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.tgz
 ENV LD_LIBRARY_PATH=/opt/SEGGER/JLink/JLink_Linux_${JLINK_VERSION}_x86_64
 RUN <<EOT
     mkdir -p /opt/SEGGER/JLink
