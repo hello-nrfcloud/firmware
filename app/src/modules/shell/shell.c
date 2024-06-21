@@ -4,16 +4,30 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include <zephyr/shell/shell.h>
+ #include <stdlib.h>
+
 #include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/pm/device.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/shell/shell_uart.h>
+#include <zephyr/drivers/uart.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <date_time.h>
 #include <zephyr/task_wdt/task_wdt.h>
+#include <modem/nrf_modem_lib_trace.h>
 
 #include "message_channel.h"
 
 LOG_MODULE_REGISTER(shell, CONFIG_APP_SHELL_LOG_LEVEL);
+
+static const struct device *const shell_uart_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
+static void uart_disable_handler(struct k_work *work);
+static void uart_enable_handler(struct k_work *work);
+static K_WORK_DEFINE(uart_disable_work, &uart_disable_handler);
+static K_WORK_DELAYABLE_DEFINE(uart_enable_work, &uart_enable_handler);
 
 /* Register subscriber */
 ZBUS_SUBSCRIBER_DEFINE(shell, CONFIG_APP_SHELL_MESSAGE_QUEUE_SIZE);
@@ -22,7 +36,6 @@ enum zbus_test_type {
 	PING,
 };
 
-ZBUS_CHAN_DECLARE(ZBUS_TEST_CHAN);
 ZBUS_CHAN_DEFINE(ZBUS_TEST_CHAN,
 		 enum zbus_test_type,
 		 NULL,
@@ -31,13 +44,72 @@ ZBUS_CHAN_DEFINE(ZBUS_TEST_CHAN,
 		 ZBUS_MSG_INIT(0)
 );
 
+static void uart_disable_handler(struct k_work *work)
+{
+#ifdef CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_UART
+	int err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_OFF);
+	if (err) {
+		LOG_ERR("nrf_modem_lib_trace_level_set() failed with err = %d.", err);
+	}
+#endif
+
+	if (device_is_ready(shell_uart_dev)) {
+		pm_device_action_run(shell_uart_dev, PM_DEVICE_ACTION_SUSPEND);
+	}
+}
+
+static void uart_enable_handler(struct k_work *work)
+{
+	if (device_is_ready(shell_uart_dev)) {
+		pm_device_action_run(shell_uart_dev, PM_DEVICE_ACTION_RESUME);
+	}
+
+#ifdef CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_UART
+	int err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_FULL);
+	if (err) {
+		LOG_ERR("nrf_modem_lib_trace_level_set() failed with err = %d.", err);
+	}
+#endif
+
+	LOG_DBG("UARTs enabled\n");
+}
+
+static int cmd_uart_disable(const struct shell *sh, size_t argc,
+                         char **argv)
+{
+	int sleep_time;
+
+	if (argc != 2) {
+		LOG_ERR("disable: invalid number of arguments");
+		return -EINVAL;
+	}
+
+	sleep_time = atoi(argv[1]);
+	if (sleep_time < 0) {
+		LOG_ERR("disable: invalid sleep time");
+		return -EINVAL;
+	}
+
+	if (sleep_time > 0) {
+		shell_print(sh, "disable: disabling UARTs for %d seconds", sleep_time);
+	} else {
+		shell_print(sh, "disable: disabling UARTs indefinitely");
+	}
+	k_work_submit(&uart_disable_work);
+
+	if (sleep_time > 0) {
+		k_work_schedule(&uart_enable_work, K_SECONDS(sleep_time));
+	}
+
+	return 0;
+}
+
 static int cmd_zbus_ping(const struct shell *sh, size_t argc,
                          char **argv)
 {
 	int err;
 	enum zbus_test_type test_type;
 	
-	ARG_UNUSED(sh);
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
@@ -45,7 +117,7 @@ static int cmd_zbus_ping(const struct shell *sh, size_t argc,
 
 	err = zbus_chan_pub(&ZBUS_TEST_CHAN, &test_type, K_SECONDS(1));
 	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
+		shell_print(sh, "zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
 	}
 
@@ -58,7 +130,6 @@ static int cmd_button_press(const struct shell *sh, size_t argc,
 	int err;
 	uint8_t button_number = 1;
 
-	ARG_UNUSED(sh);
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
@@ -66,7 +137,7 @@ static int cmd_button_press(const struct shell *sh, size_t argc,
 
 	err = zbus_chan_pub(&BUTTON_CHAN, &button_number, K_SECONDS(1));
 	if (err) {
-			LOG_ERR("zbus_chan_pub, error: %d", err);
+			shell_print(sh, "zbus_chan_pub, error: %d", err);
 			return 1;
 	}
 
@@ -76,11 +147,10 @@ static int cmd_button_press(const struct shell *sh, size_t argc,
 static int cmd_publish_on_payload_chan(const struct shell *sh, size_t argc,
                            char **argv)
 {
-	ARG_UNUSED(sh);
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
-	LOG_INF("Not implemented yet!");
+	shell_print(sh, "Not implemented yet!");
 
 	return 0;
 }
@@ -172,6 +242,14 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_zbus,
 		);
 
 SHELL_CMD_REGISTER(zbus, &sub_zbus, "Zbus shell", NULL);
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_uart,
+				SHELL_CMD(disable, NULL, "<time in seconds>\nDisable UARTs for a given number of seconds. 0 means that "
+										"UARTs remain disabled indefinitely.", cmd_uart_disable),
+				SHELL_SUBCMD_SET_END
+		);
+
+SHELL_CMD_REGISTER(uart, &sub_uart, "UART shell", NULL);
 
 K_THREAD_DEFINE(shell_task_id,
 		CONFIG_APP_SHELL_THREAD_STACK_SIZE,
