@@ -13,7 +13,7 @@
 
 DEFINE_FFF_GLOBALS;
 
-FAKE_VALUE_FUNC(int, date_time_uptime_to_unix_time_ms, int64_t *);
+FAKE_VALUE_FUNC(int, date_time_now, int64_t *);
 FAKE_VALUE_FUNC(int, task_wdt_feed, int);
 FAKE_VALUE_FUNC(int, task_wdt_add, uint32_t, task_wdt_callback_t, void *);
 
@@ -22,7 +22,7 @@ LOG_MODULE_REGISTER(environmental_module_test, 4);
 static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(gas_sensor));
 static struct payload received_payload;
 
-static int date_time_uptime_to_unix_time_ms_custom_fake(int64_t *time)
+static int date_time_now_custom_fake(int64_t *time)
 {
 	*time = 1716552398505;
 	return 0;
@@ -98,7 +98,7 @@ void setUp(void)
 	/* reset fakes */
 	RESET_FAKE(task_wdt_feed);
 	RESET_FAKE(task_wdt_add);
-	RESET_FAKE(date_time_uptime_to_unix_time_ms);
+	RESET_FAKE(date_time_now);
 
 	/* reset static stuff */
 	received_payload = (struct payload){0};
@@ -118,8 +118,7 @@ void test_only_timestamp(void)
 	int err;
 	enum time_status time_status = TIME_AVAILABLE;
 
-	date_time_uptime_to_unix_time_ms_fake.custom_fake =
-		date_time_uptime_to_unix_time_ms_custom_fake;
+	date_time_now_fake.custom_fake = date_time_now_custom_fake;
 
 	err = zbus_chan_pub(&TIME_CHAN, &time_status, K_SECONDS(1));
 	TEST_ASSERT_EQUAL(0, err);
@@ -148,8 +147,8 @@ void test_common_case(void)
 	data->iaq = 100;
 	data->co2 = 400;
 	data->voc = 100;
-	date_time_uptime_to_unix_time_ms_fake.custom_fake =
-		date_time_uptime_to_unix_time_ms_custom_fake;
+	date_time_now_fake.custom_fake =
+		date_time_now_custom_fake;
 
 	/* send trigger */
 	err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
