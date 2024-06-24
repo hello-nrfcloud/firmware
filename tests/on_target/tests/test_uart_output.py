@@ -15,7 +15,7 @@ logger = get_logger()
 
 TEST_TIMEOUT = 1 * 60
 
-
+@pytest.mark.dut1
 def test_program_board_and_check_uart(t91x_board, hex_file):
     flash_device(os.path.abspath(hex_file))
 
