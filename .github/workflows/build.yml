@@ -2,6 +2,11 @@ name: Build
 
 on:
   workflow_call:
+    inputs:
+      build_bl_update:
+        type: boolean
+        required: false
+        default: false
   push:
     branches:
       - main
@@ -75,6 +80,20 @@ jobs:
       - name: Copy nrf53 DFU file
         run: |
           cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
+
+      - name: Apply Connectivity Bridge Patch
+        run: git apply thingy91x-oob/scripts/connectivity_bridge.patch --directory=nrf
+
+      - name: Build BL Update
+        if: ${{ inputs.build_bl_update }}
+        working-directory: thingy91x-oob
+        run: |
+          west twister -T . --test app/app.build.bootloader_update -v -p thingy91x/nrf9151/ns --inline-logs
+          cp twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/dfu_mcuboot.zip app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
+          rm -rf twister-out
+          west twister -T ../nrf/applications/connectivity_bridge --test applications.connectivity_bridge.bootloader_update -v -p thingy91x/nrf5340/cpuapp --inline-logs
+          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_mcuboot.zip app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
+          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_application.zip app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge-verbose.zip
 
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
