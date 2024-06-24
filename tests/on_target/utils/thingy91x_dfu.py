@@ -12,8 +12,6 @@ import serial
 import serial.tools.list_ports
 import os
 import time
-from west.commands import WestCommand
-import west.log
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 import re
@@ -33,6 +31,7 @@ RECOVER_NRF53 = b"\x8e"  # connectivity_bridge bootloader mode
 RECOVER_NRF91 = b"\x8f"  # nrf91 bootloader mode
 RESET_NRF53 = b"\x90"  # reset nrf53
 RESET_NRF91 = b"\x91"  # reset nrf91
+READ_NRF53_VERSION = b"\x92"  # read nrf53 version
 
 
 def add_args_to_parser(parser, default_chip=""):
@@ -72,6 +71,11 @@ def find_usb_device_posix(vid, pid, logging, serial_number=None):
         device = usb.core.find(idVendor=vid, idProduct=pid, serial_number=serial_number)
         if device is None:
             logging.error(f"Device with serial number {serial_number} not found")
+            devices = list(usb.core.find(find_all=True, idVendor=vid, idProduct=pid))
+            logging.error(f"{len(devices)} available devices:")
+            for device in devices:
+                serial_number = usb.util.get_string(device, device.iSerialNumber)
+                logging.error(f"Serial Number: {serial_number}")
             return None, None
         return device, serial_number
     devices = list(usb.core.find(find_all=True, idVendor=vid, idProduct=pid))
@@ -117,8 +121,7 @@ def find_usb_device(vid, pid, logging, serial_number=None):
     else:
         return find_usb_device_posix(vid, pid, logging, serial_number)
 
-def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
-
+def prepare_bulk_endpoints(vid, pid, chip, logging, serial_number=None):
     device, serial_number = find_usb_device(vid, pid, logging, serial_number)
 
     if device is None:
@@ -133,7 +136,7 @@ def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
                 "Please program the connectivity_bridge firmware first."
             )
             return
-        return serial_number
+        return None, None, None, serial_number
 
     # Find the bulk interface
     bulk_interface = find_bulk_interface(device, "CMSIS-DAP v2", logging)
@@ -161,7 +164,32 @@ def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
         logging.error("IN endpoint not found")
         return
 
+    return device, out_endpoint, in_endpoint, serial_number
+
+def read_nrf53_version(vid, pid, chip, logging, serial_number=None):
+    device, out_endpoint, in_endpoint, serial_number = \
+        prepare_bulk_endpoints(vid, pid, chip, logging, serial_number)
+
+    try:
+        out_endpoint.write(READ_NRF53_VERSION)
+        data = bytes(in_endpoint.read(in_endpoint.wMaxPacketSize))
+        if len(data) < 2 or data[0] != READ_NRF53_VERSION[0] or data[1] == 0xFF:
+            logging.error("Failed to read nRF53 version")
+            return
+        version_string = data[2:data[2]+2].decode("ascii")
+        logging.info(f"nRF53 version: {version_string}")
+
+    except usb.core.USBError as e:
+        logging.error(f"Failed to send data: {e}")
+        return
+
+def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
+    device, out_endpoint, in_endpoint, serial_number = \
+        prepare_bulk_endpoints(vid, pid, chip, logging, serial_number)
+
     if reset_only:
+        if device is None:
+            return
         if chip == "nrf53":
             logging.info("Trying to reset nRF53...")
             try:
@@ -185,6 +213,9 @@ def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
             except usb.core.USBError as e:
                 logging.error(f"Failed to read data: {e}")
         usb.util.dispose_resources(device)
+        return serial_number
+
+    if device is None:
         return serial_number
 
     # for nrf91, check if the first serial port of the device is available
@@ -337,10 +368,10 @@ def perform_bootloader_dfu(pid, vid, serial_number, image, chip, logging, slot=1
             sys.exit(1)
 
         # wait until device is done rebooting (old bootloader loads new bootloader)
-        if chip == "nrf91":
-            time.sleep(5) # don't have a good way to detect when the device is ready
         if chip == "nrf53":
             serial_number, port = wait_for_nrf53_recovery_mode(serial_number[:11], logging, enter_mcuboot=False)
+        if chip == "nrf91":
+            time.sleep(5) # don't have a good way to detect when the device is ready
         # reboot device (new bootloader)
         trigger_bootloader(vid, pid, chip, logging, reset_only=True, serial_number=serial_number)
 
@@ -372,6 +403,10 @@ def main(args, reset_only, logging=default_logging):
         logging.info = logging.inf
         logging.warning = logging.wrn
         logging.error = logging.err
+
+    if hasattr(args, 'check_nrf53_version') and args.check_nrf53_version:
+        read_nrf53_version(args.vid, args.pid, args.chip, logging, args.serial)
+        sys.exit(0)
 
     # determine chip family
     chip = args.chip
@@ -408,6 +443,7 @@ def main(args, reset_only, logging=default_logging):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Thingy91X DFU", allow_abbrev=False)
     parser.add_argument("--image", type=str, help="application update file")
+    parser.add_argument("--check-nrf53-version", action="store_true", help="check nrf53 version")
     add_args_to_parser(parser)
     args = parser.parse_args()
 
@@ -416,43 +452,3 @@ if __name__ == "__main__":
     )
 
     main(args, reset_only=False, logging=default_logging)
-
-
-class Thingy91XDFU(WestCommand):
-    def __init__(self):
-        super(Thingy91XDFU, self).__init__(
-            "thingy91x-dfu",
-            "Thingy:91 X DFU",
-            "Put Thingy:91 X in DFU mode and update using MCUBoot serial recovery.",
-        )
-
-    def do_add_parser(self, parser_adder):
-        parser = parser_adder.add_parser(
-            self.name, help=self.help, description=self.description
-        )
-        add_args_to_parser(parser)
-        parser.add_argument("--image", type=str, help="application update file",
-                            default="build/dfu_application.zip")
-
-        return parser
-
-    def do_run(self, args, unknown_args):
-        main(args, reset_only=False, logging=west.log)
-
-class Thingy91XReset(WestCommand):
-    def __init__(self):
-        super(Thingy91XReset, self).__init__(
-            "thingy91x-reset",
-            "Thingy:91 X Reset",
-            "Reset Thingy:91 X.",
-        )
-    def do_add_parser(self, parser_adder):
-        parser = parser_adder.add_parser(
-            self.name, help=self.help, description=self.description
-        )
-        add_args_to_parser(parser, default_chip="nrf91")
-
-        return parser
-
-    def do_run(self, args, unknown_args):
-        main(args, reset_only=True, logging=west.log)
