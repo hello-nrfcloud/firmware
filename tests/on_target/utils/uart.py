@@ -137,6 +137,15 @@ class Uart:
         self._evt.set()
         self._t.join()
 
+    def start(self, timeout: int = DEFAULT_UART_TIMEOUT) -> None:
+        # Start the UART thread after it has been stopped
+        self._evt = threading.Event()
+        self._writeq = queue.Queue()
+        self._t = threading.Thread(target=self._uart)
+        self._t.start()
+        self._selfdestruct = threading.Timer(timeout , self.selfdestruct)
+        self._selfdestruct.start()
+
     def wait_for_str(
         self, msgs: list, error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT
     ) -> None:
