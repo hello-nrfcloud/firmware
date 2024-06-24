@@ -63,6 +63,16 @@ static void shadow_get(bool delta_only)
  		 * Hardfaulting would prevent FOTA, hence it should be avoided.
  		 */
 		LOG_ERR("Ignoring incoming configuration change due to decoding error: %d", err);
+		LOG_HEXDUMP_ERR(buf_cbor, buf_cbor_len, "CBOR data");
+
+		enum error_type type = ERROR_DECODE;
+
+		err = zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
+
 		return;
 	}
 
@@ -70,8 +80,6 @@ static void shadow_get(bool delta_only)
 		LOG_DBG("No LwM2M object present in shadow, ignoring");
 		return;
 	}
-
-	struct configuration configuration = { 0 };
 
 	if (app_object.lwm2m.lwm2m._1424010_present) {
 		configuration.led_present = true;

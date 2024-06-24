@@ -23,8 +23,8 @@ extern "C" {
  *  @param is_watchdog_timeout Boolean indicating if the macro was called upon a watchdog timeout.
  */
 #define FATAL_ERROR_HANDLE(is_watchdog_timeout) do {				\
-	int not_used = -1;							\
-	(void)zbus_chan_pub(&FATAL_ERROR_CHAN, &not_used, K_SECONDS(10));	\
+	enum error_type type = ERROR_FATAL;					\
+	(void)zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(10));			\
 	LOG_PANIC();								\
 	if (is_watchdog_timeout) {						\
 		IF_ENABLED(CONFIG_MEMFAULT, (MEMFAULT_SOFTWARE_WATCHDOG()));	\
@@ -63,6 +63,11 @@ enum time_status {
 	TIME_AVAILABLE = 0x1,
 };
 
+enum error_type {
+	ERROR_FATAL = 0x1,
+	ERROR_DECODE,
+};
+
 struct configuration {
 	bool led_present;
 	int led_red;
@@ -77,7 +82,7 @@ ZBUS_CHAN_DECLARE(
 	BUTTON_CHAN,
 	CLOUD_CHAN,
 	CONFIG_CHAN,
-	FATAL_ERROR_CHAN,
+	ERROR_CHAN,
 	FOTA_ONGOING_CHAN,
 	LED_CHAN,
 	NETWORK_CHAN,
