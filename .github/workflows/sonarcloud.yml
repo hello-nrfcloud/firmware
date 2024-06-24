@@ -48,7 +48,7 @@ jobs:
             apt install -y curl ruby-full
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v2
+        uses: SonarSource/sonarcloud-github-c-cpp@v3
 
       - name: Build and test
         working-directory: thingy91x-oob
