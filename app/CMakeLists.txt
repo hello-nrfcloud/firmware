@@ -25,3 +25,6 @@ add_subdirectory(src/modules/environmental)
 # Optional modules
 add_subdirectory_ifdef(CONFIG_APP_LED src/modules/led)
 add_subdirectory_ifdef(CONFIG_APP_MEMFAULT src/modules/memfault)
+
+# Include Memfault configuration folder
+zephyr_include_directories(config)
