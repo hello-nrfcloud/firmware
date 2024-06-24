@@ -35,7 +35,16 @@ void callback(const struct zbus_channel *chan)
 			on_connected();
 		}
 	}
+
+	if (&ERROR_CHAN == chan) {
+		const enum error_type *type = zbus_chan_const_msg(chan);
+
+		if (*type == ERROR_DECODE) {
+			MEMFAULT_TRACE_EVENT(decode_error);
+		}
+	}
 }
 
 ZBUS_LISTENER_DEFINE(memfault, callback);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, memfault, 0);
+ZBUS_CHAN_ADD_OBS(ERROR_CHAN, memfault, 0);

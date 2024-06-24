@@ -24,7 +24,7 @@ void led_callback(const struct zbus_channel *chan);
 ZBUS_LISTENER_DEFINE(led, led_callback);
 
 /* Observe channels */
-ZBUS_CHAN_ADD_OBS(FATAL_ERROR_CHAN, led, 0);
+ZBUS_CHAN_ADD_OBS(ERROR_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, led, 0);
 
 #define PWM_LED0_NODE	DT_ALIAS(pwm_led0)
@@ -95,13 +95,18 @@ void led_callback(const struct zbus_channel *chan)
 		}
 	}
 
-	if (&FATAL_ERROR_CHAN == chan) {
+	if (&ERROR_CHAN == chan) {
 		/* Red LED */
-		err = dk_set_led_on(DK_LED1);
-		if (err) {
-			LOG_ERR("dk_set_led_on, error:%d", err);
-			SEND_FATAL_ERROR();
-			return;
+
+		const enum error_type *type = zbus_chan_const_msg(chan);
+
+		if (*type == ERROR_FATAL) {
+			err = dk_set_led_on(DK_LED1);
+			if (err) {
+				LOG_ERR("dk_set_led_on, error:%d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
 		}
 	}
 }

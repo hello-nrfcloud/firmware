@@ -46,10 +46,14 @@ static void cloud_chan_cb(const struct zbus_channel *chan)
 	}
 }
 
-static void fatal_error_cb(const struct zbus_channel *chan)
+static void error_cb(const struct zbus_channel *chan)
 {
-	if (chan == &FATAL_ERROR_CHAN) {
-		k_sem_give(&fatal_error_received);
+	if (chan == &ERROR_CHAN) {
+		enum error_type type = *(enum error_type *)chan->message;
+
+		if (type == ERROR_FATAL) {
+			k_sem_give(&fatal_error_received);
+		}
 	}
 }
 
@@ -62,8 +66,7 @@ ZBUS_SUBSCRIBER_DEFINE(led, 1);
 ZBUS_SUBSCRIBER_DEFINE(location, 1);
 ZBUS_LISTENER_DEFINE(trigger, dummy_cb);
 ZBUS_LISTENER_DEFINE(cloud, cloud_chan_cb);
-ZBUS_LISTENER_DEFINE(fatal_error, fatal_error_cb);
-
+ZBUS_LISTENER_DEFINE(error, error_cb);
 
 void setUp(void)
 {
@@ -81,7 +84,7 @@ void setUp(void)
 	zbus_sub_wait(&battery, &chan, K_NO_WAIT);
 
 	zbus_chan_add_obs(&CLOUD_CHAN, &cloud, K_NO_WAIT);
-	zbus_chan_add_obs(&FATAL_ERROR_CHAN, &fatal_error, K_NO_WAIT);
+	zbus_chan_add_obs(&ERROR_CHAN, &error, K_NO_WAIT);
 }
 
 void test_initial_transition_to_disconnected(void)
