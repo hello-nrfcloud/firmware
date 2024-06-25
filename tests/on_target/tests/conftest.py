@@ -42,11 +42,9 @@ def get_uarts():
 @pytest.fixture(scope="module")
 def t91x_board():
     all_uarts = get_uarts()
-    logger.info(f"All uarts discovered: {all_uarts}")
     if not all_uarts:
         pytest.fail("No UARTs found")
     log_uart_string = all_uarts[0]
-    logger.info(f"Log UART: {log_uart_string}")
 
     uart = Uart(log_uart_string, timeout=UART_TIMEOUT)
 
