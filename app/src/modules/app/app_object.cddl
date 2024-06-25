@@ -6,7 +6,7 @@
 app-object = {
     ? "nrfcloud_mqtt_topic_prefix": tstr,
     ? "pairing": pairing-type,
-    "lwm2m": lwm2m-map,
+    ? "lwm2m": lwm2m-map,
     * tstr => any
 }
 
