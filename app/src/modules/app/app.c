@@ -69,30 +69,35 @@ static void shadow_get(bool get_desired)
 		return;
 	}
 
-	struct configuration configuration = { 0 };
-
-	if (app_object.lwm2m._1424010_present) {
-		configuration.led_present = true;
-		configuration.led_red = app_object.lwm2m._1424010._1424010._0._0;
-		configuration.led_green = app_object.lwm2m._1424010._1424010._0._1;
-		configuration.led_blue = app_object.lwm2m._1424010._1424010._0._2;
-
-		LOG_DBG("LED object (1424010) values received from cloud:");
-		LOG_DBG("R: %d", app_object.lwm2m._1424010._1424010._0._0);
-		LOG_DBG("G: %d", app_object.lwm2m._1424010._1424010._0._1);
-		LOG_DBG("B: %d", app_object.lwm2m._1424010._1424010._0._2);
-		LOG_DBG("Timestamp: %lld", app_object.lwm2m._1424010._1424010._0._99);
+	if (!app_object.lwm2m_present) {
+		LOG_DBG("No LwM2M object present in shadow delta, ignoring");
+		return;
 	}
 
-	if (app_object.lwm2m._1430110_present) {
+	struct configuration configuration = { 0 };
+
+	if (app_object.lwm2m.lwm2m._1424010_present) {
+		configuration.led_present = true;
+		configuration.led_red = app_object.lwm2m.lwm2m._1424010._1424010._0._0;
+		configuration.led_green = app_object.lwm2m.lwm2m._1424010._1424010._0._1;
+		configuration.led_blue = app_object.lwm2m.lwm2m._1424010._1424010._0._2;
+
+		LOG_DBG("LED object (1424010) values received from cloud:");
+		LOG_DBG("R: %d", app_object.lwm2m.lwm2m._1424010._1424010._0._0);
+		LOG_DBG("G: %d", app_object.lwm2m.lwm2m._1424010._1424010._0._1);
+		LOG_DBG("B: %d", app_object.lwm2m.lwm2m._1424010._1424010._0._2);
+		LOG_DBG("Timestamp: %lld", app_object.lwm2m.lwm2m._1424010._1424010._0._99);
+	}
+
+	if (app_object.lwm2m.lwm2m._1430110_present) {
 		configuration.config_present = true;
-		configuration.update_interval = app_object.lwm2m._1430110._1430110._0._0;
-		configuration.gnss = app_object.lwm2m._1430110._1430110._0._1;
+		configuration.update_interval = app_object.lwm2m.lwm2m._1430110._1430110._0._0;
+		configuration.gnss = app_object.lwm2m.lwm2m._1430110._1430110._0._1;
 
 		LOG_DBG("Application configuration object (1430110) values received from cloud:");
-		LOG_DBG("Update interval: %lld", app_object.lwm2m._1430110._1430110._0._0);
-		LOG_DBG("GNSS: %d", app_object.lwm2m._1430110._1430110._0._1);
-		LOG_DBG("Timestamp: %lld", app_object.lwm2m._1430110._1430110._0._99);
+		LOG_DBG("Update interval: %lld", app_object.lwm2m.lwm2m._1430110._1430110._0._0);
+		LOG_DBG("GNSS: %d", app_object.lwm2m.lwm2m._1430110._1430110._0._1);
+		LOG_DBG("Timestamp: %lld", app_object.lwm2m.lwm2m._1430110._1430110._0._99);
 	}
 
 	/* Distribute configuration */
