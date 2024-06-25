@@ -1,4 +1,5 @@
 import fs, { createWriteStream } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
