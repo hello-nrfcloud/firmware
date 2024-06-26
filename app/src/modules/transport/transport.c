@@ -34,7 +34,6 @@ ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
 enum priv_transport_evt {
 	IRRECOVERABLE_ERROR,
 	CLOUD_CONN_SUCCES,
-	CLOUD_CONN_FAILED,
 	CLOUD_CONN_RETRY,	/* Unused for now */
 };
 
@@ -166,20 +165,7 @@ static void connect_work_fn(struct k_work *work)
 
 	int err;
 	char buf[NRF_CLOUD_CLIENT_ID_MAX_LEN];
-	enum priv_transport_evt conn_result = CLOUD_CONN_FAILED;
-	struct nrf_cloud_svc_info_ui ui_info = {
-	    .gnss = true,
-	};
-	struct nrf_cloud_svc_info service_info = {
-	    .ui = &ui_info};
-	struct nrf_cloud_modem_info modem_info = {
-	    .device = NRF_CLOUD_INFO_SET,
-	    .network = NRF_CLOUD_INFO_SET,
-	};
-	struct nrf_cloud_device_status device_status = {
-	    .modem = &modem_info,
-	    .svc = &service_info
-	};
+	enum priv_transport_evt conn_result = CLOUD_CONN_SUCCES;
 
 	err = nrf_cloud_client_id_get(buf, sizeof(buf));
 	if (!err) {
@@ -197,29 +183,10 @@ static void connect_work_fn(struct k_work *work)
 		goto retry;
 	}
 
-	/* sending device info to shadow */
-	err = nrf_cloud_coap_shadow_device_status_update(&device_status);
+	err = zbus_chan_pub(&PRIV_TRANSPORT_CHAN, &conn_result, K_SECONDS(1));
 	if (err) {
-		conn_result = CLOUD_CONN_FAILED;
-
-		err = zbus_chan_pub(&PRIV_TRANSPORT_CHAN, &conn_result, K_SECONDS(1));
-		if (err) {
-			LOG_ERR("zbus_chan_pub, error: %d", err);
-			SEND_FATAL_ERROR();
-		}
-
-		LOG_ERR("nrf_cloud_coap_shadow_device_status_update, error: %d", err);
-	} else {
-		conn_result = CLOUD_CONN_SUCCES;
-
-		err = zbus_chan_pub(&PRIV_TRANSPORT_CHAN, &conn_result, K_SECONDS(1));
-		if (err) {
-			LOG_ERR("zbus_chan_pub, error: %d", err);
-			SEND_FATAL_ERROR();
-		}
-
-		LOG_INF("Connected to Cloud");
-
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
 		return;
 	}
 
@@ -338,17 +305,10 @@ static void state_connecting_run(void *o)
 	if (state_object->chan == &PRIV_TRANSPORT_CHAN) {
 		enum priv_transport_evt conn_result = *(enum priv_transport_evt *)state_object->msg;
 
-		switch (conn_result) {
-		case CLOUD_CONN_SUCCES:
+		if (conn_result == CLOUD_CONN_SUCCES) {
 			STATE_SET(STATE_CONNECTED);
 
 			return;
-		case CLOUD_CONN_FAILED:
-			STATE_SET(STATE_CONNECTING);
-
-			return;
-		default:
-			break;
 		}
 	}
 }
