@@ -319,6 +319,7 @@ static void state_connected_entry(void *o)
 	ARG_UNUSED(o);
 
 	LOG_DBG("%s", __func__);
+	LOG_INF("Connected to Cloud");
 
 	/* Cancel any ongoing connect work when we enter STATE_CLOUD_CONNECTED */
 	connect_work_cancel();
