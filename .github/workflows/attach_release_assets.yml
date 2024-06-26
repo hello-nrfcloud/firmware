@@ -10,15 +10,16 @@ on:
     types: [created]
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
+  trigger-dfu-check:
+    uses: ./.github/workflows/dfu_check.yml
+
+  trigger-target-test:
+    uses: ./.github/workflows/on_target.yml
     secrets: inherit
-    with:
-      build_bl_update: true
 
   attach-assets:
     runs-on: ubuntu-22.04
-    needs: [build]
+    needs: [trigger-dfu-check, trigger-target-test]
     steps:
         - name: Checkout
           uses: actions/checkout@v4
