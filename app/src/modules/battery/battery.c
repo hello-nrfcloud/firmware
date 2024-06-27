@@ -68,9 +68,6 @@ struct s_object {
 	/* Last channel type that a message was received on */
 	const struct zbus_channel *chan;
 
-	/* Last received message */
-	uint8_t *msg;
-
 	/* Fuel gauge reference time */
 	int64_t fuel_gauge_ref_time;
 };
@@ -281,9 +278,6 @@ static void battery_task(void)
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_BATTERY_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_BATTERY_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
-	uint8_t msg_buf[MAX(sizeof(enum time_status), sizeof(enum trigger_type))];
-
-	s_obj.msg = msg_buf;
 
 	LOG_DBG("Battery module task started");
 
@@ -309,13 +303,6 @@ static void battery_task(void)
 		}
 
 		s_obj.chan = chan;
-
-		err = zbus_chan_read(chan, &msg_buf, K_NO_WAIT);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
-		}
 
 		err = STATE_RUN();
 		if (err) {
