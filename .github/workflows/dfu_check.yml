@@ -6,6 +6,13 @@ on:
     branches:
       - main
   pull_request:
+    paths:
+      - '**/*.c'
+      - '**/*.h'
+      - west.yml
+      - '**/CMakelists.txt'
+      - '**/Kconfig*'
+      - '**/prj.conf'
 
 jobs:
   build:
