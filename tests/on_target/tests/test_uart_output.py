@@ -39,7 +39,9 @@ def check_uart_data(uart, expected_patterns):
 def test_program_board_and_check_uart(t91x_board, hex_file):
     t91x_board.uart.flush()
     flash_device(os.path.abspath(hex_file))
-
+    time.sleep(5)
+    t91x_board.uart.xfactoryreset()
+    reset_device()
     expected_lines = ["Network connectivity established",
                         "Connected to Cloud",
                         "trigger: trigger_poll_work_fn: Sending trigger poll message"
