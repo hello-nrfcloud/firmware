@@ -52,6 +52,12 @@ class Uart:
         chunked = True
         self._writeq.put((data, chunked))
 
+    def xfactoryreset(self) -> None:
+        self.write(b"at AT+CFUN=4\r\n")
+        time.sleep(1)
+        self.write(b"at AT%XFACTORYRESET=0\r\n")
+        time.sleep(1)
+
     def _uart(self) -> None:
         data = None
         s = serial.Serial(
