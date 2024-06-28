@@ -63,6 +63,27 @@ enum time_status {
 	TIME_AVAILABLE = 0x1,
 };
 
+/** @brief Status sent from the FOTA module on the FOTA_STATUS_CHAN channel. */
+enum fota_status {
+	/* No FOTA job is ongoing */
+	FOTA_STATUS_IDLE = 0x1,
+
+	/* The cloud is about to be polled for new FOTA jobs. If a job is found, the
+	 * FOTA job will be started, which includes downloading the firmware and applying it.
+	 * Depending on the formware type, the modem may be rebooted.
+	 */
+	FOTA_STATUS_PROCESSING_START,
+
+	/* FOTA processing completed. */
+	FOTA_STATUS_PROCESSING_DONE,
+
+	/* A firmware image has been downloaded and a reboot is required to apply it.
+	 * The FOTA module will perform the reboot CONFIG_APP_FOTA_REBOOT_DELAY_SECONDS seconds
+	 * after this status is sent.
+	 */
+	FOTA_STATUS_REBOOT_PENDING,
+};
+
 struct configuration {
 	bool led_present;
 	int led_red;
@@ -78,7 +99,7 @@ ZBUS_CHAN_DECLARE(
 	CLOUD_CHAN,
 	CONFIG_CHAN,
 	FATAL_ERROR_CHAN,
-	FOTA_ONGOING_CHAN,
+	FOTA_STATUS_CHAN,
 	LED_CHAN,
 	NETWORK_CHAN,
 	PAYLOAD_CHAN,
