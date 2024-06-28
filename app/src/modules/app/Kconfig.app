@@ -18,4 +18,8 @@ config APP_MODULE_EXEC_TIME_SECONDS_MAX
 	help
 	  Maximum time allowed for a single execution of the module thread loop.
 
+config APP_MODULE_RECV_BUFFER_SIZE
+	int "Receive buffer size"
+	default 512
+
 endmenu

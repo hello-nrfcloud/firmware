@@ -13,7 +13,7 @@
 #include <nrf_cloud_coap_transport.h>
 
 #include "message_channel.h"
-#include "app_object_decode.h" /* change this to config object and add led object here */
+#include "app_object_decode.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
@@ -28,35 +28,18 @@ ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, app, 0);
 BUILD_ASSERT(CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS > CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX,
 	     "Watchdog timeout must be greater than maximum execution time");
 
-static void shadow_get(bool get_desired)
+static void shadow_get(bool delta_only)
 {
 	int err;
 	struct app_object app_object = { 0 };
-	uint8_t buf_cbor[512] = { 0 };
-	uint8_t buf_json[512] = { 0 };
+	struct configuration configuration = { 0 };
+	uint8_t buf_cbor[CONFIG_APP_MODULE_RECV_BUFFER_SIZE] = { 0 };
 	size_t buf_cbor_len = sizeof(buf_cbor);
-	size_t buf_json_len = sizeof(buf_json);
 	size_t not_used;
 
-	/* Request shadow delta, request only changes by setting delta parameter to true. */
-	err = nrf_cloud_coap_shadow_get(buf_json, &buf_json_len, !get_desired,
-					COAP_CONTENT_FORMAT_APP_JSON);
-	if (err == -EACCES) {
-		LOG_WRN("Not connected");
-		return;
-	} else if (err) {
-		LOG_ERR("Failed to request shadow delta: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
+	LOG_DBG("Requesting device configuration from the device shadow");
 
-	if (buf_json_len == 0 || strlen(buf_json) == 0) {
-		LOG_WRN("No shadow delta changes available");
-		return;
-	}
-
-	/* Shadow available, fetch CBOR encoded desired section. */
-	err = nrf_cloud_coap_shadow_get(buf_cbor, &buf_cbor_len, false,
+	err = nrf_cloud_coap_shadow_get(buf_cbor, &buf_cbor_len, delta_only,
 					COAP_CONTENT_FORMAT_APP_CBOR);
 	if (err == -EACCES) {
 		LOG_WRN("Not connected");
@@ -67,9 +50,29 @@ static void shadow_get(bool get_desired)
 		return;
 	}
 
+	if (buf_cbor_len == 0) {
+		LOG_WRN("No shadow delta changes available");
+		return;
+	}
+
 	err = cbor_decode_app_object(buf_cbor, buf_cbor_len, &app_object, &not_used);
 	if (err) {
+		/* Do not throw an error if decoding fails. This might occur if the shadow
+ 		 * structure or content changes. In such cases, we need to ensure the possibility
+ 		 * of performing a Firmware Over-The-Air (FOTA) update to address the issue.
+ 		 * Hardfaulting would prevent FOTA, hence it should be avoided.
+ 		 */
 		LOG_ERR("Ignoring incoming configuration change due to decoding error: %d", err);
+		LOG_HEXDUMP_ERR(buf_cbor, buf_cbor_len, "CBOR data");
+
+		enum error_type type = ERROR_DECODE;
+
+		err = zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
+
 		return;
 	}
 
@@ -77,8 +80,6 @@ static void shadow_get(bool get_desired)
 		LOG_DBG("No LwM2M object present in shadow, ignoring");
 		return;
 	}
-
-	struct configuration configuration = { 0 };
 
 	if (app_object.lwm2m.lwm2m._1424010_present) {
 		configuration.led_present = true;
@@ -113,7 +114,8 @@ static void shadow_get(bool get_desired)
 	}
 
 	/* Send the received configuration back to the reported shadow section. */
-	err = nrf_cloud_coap_shadow_state_update(buf_json);
+	err = nrf_cloud_coap_patch("state/reported", NULL, (uint8_t *)buf_cbor,
+				   buf_cbor_len, COAP_CONTENT_FORMAT_APP_CBOR, true, NULL, NULL);
 	if (err < 0) {
 		LOG_ERR("Failed to send PATCH request: %d", err);
 	} else if (err > 0) {
@@ -183,9 +185,8 @@ static void app_task(void)
 
 			if (*status == CLOUD_CONNECTED_READY_TO_SEND) {
 				LOG_DBG("Cloud ready to send");
-				LOG_DBG("Getting latest device configuration from device shadow");
 
-				shadow_get(true);
+				shadow_get(false);
 			}
 		}
 
@@ -196,9 +197,8 @@ static void app_task(void)
 
 			if (*type == TRIGGER_POLL) {
 				LOG_DBG("Poll trigger received");
-				LOG_DBG("Getting latest device configuration from device shadow");
 
-				shadow_get(false);
+				shadow_get(true);
 			}
 		}
 	}
