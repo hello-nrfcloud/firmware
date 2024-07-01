@@ -14,6 +14,7 @@
 #include <zephyr/smf.h>
 
 #include "modem/lte_lc.h"
+#include "modem/modem_info.h"
 #include "modules_common.h"
 #include "conn_info_object_encode.h"
 #include "message_channel.h"
@@ -117,11 +118,11 @@ static void connectivity_event_handler(struct net_mgmt_event_callback *cb,
 
 
 
-static void sample_energy_estimate(void)
+static void sample_network_quality(void)
 {
 	int64_t system_time;
 	struct payload payload = { 0 };
-	struct energy_estimate energy_estimate = { 0 };
+	struct conn_info_object conn_info_obj = { 0 };
 	int ret;
 
 	struct lte_lc_conn_eval_params conn_eval_params;
@@ -130,6 +131,7 @@ static void sample_energy_estimate(void)
 	__ASSERT_NO_MSG(ret == 0);
 
 	LOG_DBG("Energy estimate: %d", conn_eval_params.energy_estimate);
+	LOG_DBG("RSRP: %d dBm", RSRP_IDX_TO_DBM(conn_eval_params.rsrp));
 
 	ret = date_time_now(&system_time);
 	if (ret) {
@@ -137,11 +139,12 @@ static void sample_energy_estimate(void)
 		return;
 	}
 
-	energy_estimate.bt = (int32_t)(system_time / 1000);
-	energy_estimate.vi = conn_eval_params.energy_estimate;
+	conn_info_obj.base_attributes_m.bt = (int32_t)(system_time / 1000);
+	conn_info_obj.energy_estimate_m.vi = conn_eval_params.energy_estimate;
+	conn_info_obj.rsrp_m.vi = RSRP_IDX_TO_DBM(conn_eval_params.rsrp);
 
 	ret = cbor_encode_conn_info_object(payload.string, sizeof(payload.string),
-					&energy_estimate, &payload.string_len);
+					&conn_info_obj, &payload.string_len);
 	if (ret) {
 		LOG_ERR("Failed to encode conn info object, error: %d", ret);
 		SEND_FATAL_ERROR();
@@ -199,8 +202,8 @@ static void state_sampling_run(void *obj)
 		}
 
 		if (trigger_type == TRIGGER_DATA_SAMPLE) {
-			LOG_DBG("Data sample trigger received, getting energy estimate data");
-			sample_energy_estimate();
+			LOG_DBG("Data sample trigger received, getting network quality data");
+			sample_network_quality();
 		}
 	}
 }
