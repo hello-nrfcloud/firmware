@@ -19,7 +19,7 @@ config APP_LOCATION_ZBUS_QUEUE_SIZE
 
 config APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
-	default 120
+	default 1800
 
 config APP_LOCATION_ZBUS_TIMEOUT_SECONDS
 	int "Wait for zbus timeout seconds"

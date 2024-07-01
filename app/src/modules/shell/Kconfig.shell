@@ -29,7 +29,7 @@ config APP_SHELL_MESSAGE_QUEUE_SIZE
 
 config APP_SHELL_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
-	default 120
+	default 1800
 
 config APP_SHELL_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
