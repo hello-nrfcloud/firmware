@@ -10,7 +10,7 @@ config APP_MODULE_THREAD_STACK_SIZE
 
 config APP_MODULE_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
-	default 120
+	default 1800
 
 config APP_MODULE_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
