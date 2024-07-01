@@ -14,6 +14,7 @@
 #include <zephyr/smf.h>
 
 #include "modem/lte_lc.h"
+#include "modem/modem_info.h"
 #include "modules_common.h"
 #include "conn_info_object_encode.h"
 #include "message_channel.h"
@@ -121,7 +122,7 @@ static void sample_energy_estimate(void)
 {
 	int64_t system_time;
 	struct payload payload = { 0 };
-	struct energy_estimate energy_estimate = { 0 };
+	struct conn_info_object conn_info_obj = { 0 };
 	int ret;
 
 	struct lte_lc_conn_eval_params conn_eval_params;
@@ -137,11 +138,12 @@ static void sample_energy_estimate(void)
 		return;
 	}
 
-	energy_estimate.bt = (int32_t)(system_time / 1000);
-	energy_estimate.vi = conn_eval_params.energy_estimate;
+	conn_info_obj.t_stamp_m.bt = (int32_t)(system_time / 1000);
+	conn_info_obj.energy_estimate_m.vi = conn_eval_params.energy_estimate;
+	conn_info_obj.rsrp_m.vi = RSRP_IDX_TO_DBM(conn_eval_params.rsrp);
 
 	ret = cbor_encode_conn_info_object(payload.string, sizeof(payload.string),
-					&energy_estimate, &payload.string_len);
+					&conn_info_obj, &payload.string_len);
 	if (ret) {
 		LOG_ERR("Failed to encode conn info object, error: %d", ret);
 		SEND_FATAL_ERROR();
