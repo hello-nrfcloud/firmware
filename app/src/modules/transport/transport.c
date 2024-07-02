@@ -389,7 +389,7 @@ static void state_connected_ready_run(void *o)
 		int err;
 		struct payload *payload = (struct payload *)state_object->msg;
 
-		LOG_DBG("Sending payload to cloud: %p, len: %d",
+		LOG_DBG("Sending payload to cloud: %s, len: %d",
 			payload->string, payload->string_len);
 
 		err = nrf_cloud_coap_bytes_send(payload->string, payload->string_len, false);
