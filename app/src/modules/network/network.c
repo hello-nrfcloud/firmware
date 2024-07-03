@@ -26,7 +26,7 @@ LOG_MODULE_REGISTER(network, CONFIG_APP_NETWORK_LOG_LEVEL);
 ZBUS_SUBSCRIBER_DEFINE(network, CONFIG_APP_NETWORK_MESSAGE_QUEUE_SIZE);
 
 /* Observe trigger channel */
-ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, network, 0);
+ZBUS_CHAN_ADD_OBS(DATA_SAMPLE_CHAN, network, 0);
 ZBUS_CHAN_ADD_OBS(TIME_CHAN, network, 0);
 
 /* Macros used to subscribe to specific Zephyr NET management events. */
@@ -190,21 +190,9 @@ static void state_sampling_run(void *obj)
 {
 	struct s_object const *state_object = obj;
 
-	if (&TRIGGER_CHAN == state_object->chan) {
-		int err;
-		enum trigger_type trigger_type;
-
-		err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
-		}
-
-		if (trigger_type == TRIGGER_DATA_SAMPLE) {
-			LOG_DBG("Data sample trigger received, getting network quality data");
-			sample_network_quality();
-		}
+	if (&DATA_SAMPLE_CHAN == state_object->chan) {
+		LOG_DBG("Data sample trigger received, getting network quality data");
+		sample_network_quality();
 	}
 }
 
