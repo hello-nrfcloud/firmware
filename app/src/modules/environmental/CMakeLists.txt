@@ -15,7 +15,7 @@ set(zcbor_command
 	--cddl ${CMAKE_CURRENT_SOURCE_DIR}/env_object.cddl
 	--encode # Generate encoding functions
 	--short-names # Attempt to make generated symbol names shorter (at the risk of collision)
-	-t env-object # Create a public API for decoding/encoding the "board_config" type from the cddl file
+	-t env-object # Create a public API for decoding/encoding the "env-object" type from the cddl file
 	--output-cmake ${CMAKE_CURRENT_BINARY_DIR}/env_object.cmake # The generated cmake file will be placed here
 )
 execute_process(COMMAND ${zcbor_command} COMMAND_ERROR_IS_FATAL ANY)

@@ -13,7 +13,7 @@ set(zcbor_command
 	--cddl ${CMAKE_CURRENT_SOURCE_DIR}/bat_object.cddl
 	--encode # Generate encoding functions
 	--short-names # Attempt to make generated symbol names shorter (at the risk of collision)
-	-t bat-object # Create a public API for decoding/encoding the "board_config" type from the cddl file
+	-t bat-object # Create a public API for decoding/encoding the "bat-object" type from the cddl file
 	--output-cmake ${CMAKE_CURRENT_BINARY_DIR}/bat_object.cmake # The generated cmake file will be placed here
 )
 execute_process(COMMAND ${zcbor_command} COMMAND_ERROR_IS_FATAL ANY)
