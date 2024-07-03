@@ -308,4 +308,4 @@ static void network_task(void)
 
 K_THREAD_DEFINE(network_task_id,
 		CONFIG_APP_NETWORK_THREAD_STACK_SIZE,
-		network_task, NULL, NULL, NULL, 3, 0, 0);
+		network_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);

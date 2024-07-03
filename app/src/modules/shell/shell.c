@@ -109,7 +109,6 @@ static int cmd_zbus_ping(const struct shell *sh, size_t argc,
 {
 	int err;
 	enum zbus_test_type test_type;
-	
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
@@ -253,4 +252,4 @@ SHELL_CMD_REGISTER(uart, &sub_uart, "UART shell", NULL);
 
 K_THREAD_DEFINE(shell_task_id,
 		CONFIG_APP_SHELL_THREAD_STACK_SIZE,
-		shell_task, NULL, NULL, NULL, 3, 0, 0);
+		shell_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);

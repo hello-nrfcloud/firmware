@@ -490,4 +490,4 @@ static void transport_task(void)
 
 K_THREAD_DEFINE(transport_task_id,
 		CONFIG_APP_TRANSPORT_THREAD_STACK_SIZE,
-		transport_task, NULL, NULL, NULL, 3, 0, 0);
+		transport_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
