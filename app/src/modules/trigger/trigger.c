@@ -264,6 +264,16 @@ static void frequent_poll_entry(void *o)
 	LOG_DBG("trigger poll work timeout: %lld seconds", user_object->update_interval_sec);
 	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
 
+	/* Send message on trigger mode channel */
+	enum trigger_mode trigger_mode = TRIGGER_MODE_POLL;
+
+	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &trigger_mode, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
 	refresh_timers();
 }
 
@@ -309,6 +319,16 @@ static void normal_entry(void *o)
 
 	LOG_DBG("trigger poll work timeout: %lld seconds", user_object->update_interval_sec);
 	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
+
+	/* Send message on trigger mode channel */
+	enum trigger_mode trigger_mode = TRIGGER_MODE_NORMAL;
+
+	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &trigger_mode, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
 
 	user_object->poll_interval_sec = user_object->update_interval_sec;
 	refresh_timers();
