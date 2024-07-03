@@ -22,7 +22,7 @@ LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
 ZBUS_MSG_SUBSCRIBER_DEFINE(app);
 
 /* Observe channels */
-ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, app, 0);
+ZBUS_CHAN_ADD_OBS(POLL_CHAN, app, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, app, 0);
 
 BUILD_ASSERT(CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS > CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX,
@@ -152,7 +152,7 @@ static void app_task(void)
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_MODULE_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_MODULE_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
-	uint8_t msg_buf[MAX(sizeof(enum trigger_type), sizeof(enum cloud_status))];
+	uint8_t msg_buf[sizeof(enum cloud_status))];
 
 	LOG_DBG("Application module task started");
 
@@ -190,16 +190,10 @@ static void app_task(void)
 			}
 		}
 
-		if (&TRIGGER_CHAN == chan) {
-			LOG_DBG("Trigger received");
+		if (&POLL_CHAN == chan) {
+			LOG_DBG("Poll trigger received");
 
-			const enum trigger_type *type = (const enum trigger_type *)msg_buf;
-
-			if (*type == TRIGGER_POLL) {
-				LOG_DBG("Poll trigger received");
-
-				shadow_get(true);
-			}
+			shadow_get(true);
 		}
 	}
 }

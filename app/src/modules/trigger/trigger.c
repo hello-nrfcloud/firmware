@@ -105,6 +105,13 @@ static void trigger_send(enum trigger_type type, k_timeout_t timeout)
 		SEND_FATAL_ERROR();
 		return;
 	}
+
+	err = zbus_chan_notify(&DATA_SAMPLE_CHAN, K_NO_WAIT);
+	if (err) {
+		LOG_ERR("zbus_chan_notify, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
 }
 
 /* Handler called when the frequent poll duration timer expires */
