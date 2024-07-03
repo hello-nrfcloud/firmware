@@ -10,6 +10,7 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/logging/log.h>
 #include "modem/lte_lc.h"
+#include "modem/modem_info.h"
 #include "zephyr/net/net_mgmt.h"
 
 #include "message_channel.h"
@@ -33,6 +34,7 @@ ZBUS_MSG_SUBSCRIBER_DEFINE(test_subscriber);
 ZBUS_CHAN_ADD_OBS(PAYLOAD_CHAN, test_subscriber, 0);
 
 #define FAKE_TIME_MS 1716552398505
+#define FAKE_RSRP_IDX  -16
 #define FAKE_ENERGY_ESTIMATE 9
 
 static int date_time_now_custom_fake(int64_t *time)
@@ -44,6 +46,7 @@ static int date_time_now_custom_fake(int64_t *time)
 static int lte_lc_conn_eval_params_get_custom_fake(struct lte_lc_conn_eval_params *params)
 {
 	params->energy_estimate = FAKE_ENERGY_ESTIMATE;
+	params->rsrp = FAKE_RSRP_IDX;
 
 	return 0;
 }
@@ -56,7 +59,7 @@ static void send_time_available(void)
 	TEST_ASSERT_EQUAL(0, err);
 }
 
-void send_trigger(void)
+static void send_trigger(void)
 {
 	enum trigger_type trigger_type = TRIGGER_DATA_SAMPLE;
 	int err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
@@ -64,7 +67,7 @@ void send_trigger(void)
 	TEST_ASSERT_EQUAL(0, err);
 }
 
-void wait_for_and_decode_payload(struct energy_estimate *energy_estimate)
+static void wait_for_and_decode_payload(struct conn_info_object *conn_info_obj)
 {
 	const struct zbus_channel *chan;
 	static struct payload payload;
@@ -91,7 +94,7 @@ void wait_for_and_decode_payload(struct energy_estimate *energy_estimate)
 	}
 
 	/* decode payload */
-	cbor_decode_conn_info_object(payload.string, payload.string_len, energy_estimate, NULL);
+	cbor_decode_conn_info_object(payload.string, payload.string_len, conn_info_obj, NULL);
 	if (err != ZCBOR_SUCCESS) {
 		LOG_ERR("Failed to decode payload");
 		TEST_FAIL();
@@ -127,7 +130,7 @@ void tearDown(void)
 
 void test_energy_estimate(void)
 {
-	static struct energy_estimate energy_estimate = {0};
+	static struct conn_info_object conn_info_obj = {0};
 
 	/* Given */
 	lte_lc_conn_eval_params_get_fake.custom_fake = lte_lc_conn_eval_params_get_custom_fake;
@@ -136,9 +139,10 @@ void test_energy_estimate(void)
 	send_trigger();
 
 	/* Then */
-	wait_for_and_decode_payload(&energy_estimate);
-	TEST_ASSERT_EQUAL(FAKE_ENERGY_ESTIMATE, energy_estimate.vi);
-	TEST_ASSERT_EQUAL(FAKE_TIME_MS / 1000, energy_estimate.bt);
+	wait_for_and_decode_payload(&conn_info_obj);
+	TEST_ASSERT_EQUAL(FAKE_TIME_MS / 1000, conn_info_obj.base_attributes_m.bt);
+	TEST_ASSERT_EQUAL(FAKE_ENERGY_ESTIMATE, conn_info_obj.energy_estimate_m.vi);
+	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX), conn_info_obj.rsrp_m.vi);
 }
 
 void test_no_events_on_zbus_until_watchdog_timeout(void)

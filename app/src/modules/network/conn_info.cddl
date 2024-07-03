@@ -1,13 +1,24 @@
 ; CDDL schema to encode the object defined in https://github.com/hello-nrfcloud/proto-map/blob/saga/lwm2m/14203.xml
 ; depends on lwm2m_senml definitions
 
-energy-estimate = {
-	bn => "14203/0/",                    ; Connection Information object
-	n => "11",                           ; Energy Estimate resource ID
-	vi => 5..9,                          ; Energy Estimate
-	bt => 1700000000...3000000000        ; UNIX timestamp in seconds
+base-attributes = {
+	bn => "14203/0/",                   ; Connection Information object
+	bt => 1700000000...3000000000       ; UNIX timestamp in seconds
 }
 
+rsrp = {
+	n => "2",                           ; RSRP resource ID
+	vi => -157..-44,                    ; RSRP (in dBm)
+}
+
+energy-estimate = {
+	n => "11",                          ; Energy Estimate resource ID
+	vi => 5..9,                         ; Energy Estimate
+}
+
+
 conn-info-object = [
+	base-attributes,
+	rsrp,
 	energy-estimate
 ]
