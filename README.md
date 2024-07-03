@@ -52,3 +52,12 @@ When using an external debugger, you can flash using this command:
 ```shell
 west flash --erase
 ```
+
+### LED pattern
+
+| LED effect     | Color      | Meaning                                      | Duration (seconds)                                  |
+|----------------|------------|----------------------------------------------|-----------------------------------------------------|
+| Blinking       | Yellow     | Device is (re-)connecting to the LTE network | NA                                                  |
+| Blinking slow  | Blue       | Device is actively polling cloud             | 10 minutes after last config update or button press |
+| Solid          | Configured | Device has received a LED configuration      | NA                                                  |
+| Blinking rapid | Red        | Fatal error, the device will reboot          | NA                                                  |

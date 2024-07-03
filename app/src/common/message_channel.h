@@ -59,6 +59,11 @@ enum trigger_type {
 	TRIGGER_DATA_SAMPLE,
 };
 
+enum trigger_mode {
+	TRIGGER_MODE_POLL = 0x1,
+	TRIGGER_MODE_NORMAL,
+};
+
 enum time_status {
 	TIME_AVAILABLE = 0x1,
 };
@@ -88,7 +93,8 @@ ZBUS_CHAN_DECLARE(
 	NETWORK_CHAN,
 	PAYLOAD_CHAN,
 	TIME_CHAN,
-	TRIGGER_CHAN
+	TRIGGER_CHAN,
+	TRIGGER_MODE_CHAN
 );
 
 #ifdef __cplusplus

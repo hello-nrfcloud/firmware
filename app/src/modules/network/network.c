@@ -76,32 +76,34 @@ static const struct smf_state states[] = {
 				 NULL),
 };
 
-
-static void l4_event_handler(struct net_mgmt_event_callback *cb,
-			     uint32_t event,
-			     struct net_if *iface)
+static void network_status_notify(enum network_status status)
 {
 	int err;
-	enum network_status status;
-
-	switch (event) {
-	case NET_EVENT_L4_CONNECTED:
-		LOG_INF("Network connectivity established");
-		status = NETWORK_CONNECTED;
-		break;
-	case NET_EVENT_L4_DISCONNECTED:
-		LOG_INF("Network connectivity lost");
-		status = NETWORK_DISCONNECTED;
-		break;
-	default:
-		/* Don't care */
-		return;
-	}
 
 	err = zbus_chan_pub(&NETWORK_CHAN, &status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
+		return;
+	}
+}
+
+static void l4_event_handler(struct net_mgmt_event_callback *cb,
+			     uint32_t event,
+			     struct net_if *iface)
+{
+	switch (event) {
+	case NET_EVENT_L4_CONNECTED:
+		LOG_INF("Network connectivity established");
+		network_status_notify(NETWORK_CONNECTED);
+		break;
+	case NET_EVENT_L4_DISCONNECTED:
+		LOG_INF("Network connectivity lost");
+		network_status_notify(NETWORK_DISCONNECTED);
+		break;
+	default:
+		/* Don't care */
+		return;
 	}
 }
 
@@ -249,6 +251,8 @@ static void network_task(void)
 		SEND_FATAL_ERROR();
 		return;
 	}
+
+	network_status_notify(NETWORK_DISCONNECTED);
 
 	if (IS_ENABLED(CONFIG_LTE_LINK_CONTROL)) {
 		/* Subscribe to modem events */
