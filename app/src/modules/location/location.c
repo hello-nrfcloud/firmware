@@ -210,7 +210,7 @@ void location_task(void)
 
 K_THREAD_DEFINE(location_module_tid, CONFIG_APP_LOCATION_THREAD_STACK_SIZE,
 		location_task, NULL, NULL, NULL,
-		K_HIGHEST_APPLICATION_THREAD_PRIO, 0, 0);
+		K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
 
 /* Take time from PVT data and apply it to system time. */
 static void apply_gnss_time(const struct nrf_modem_gnss_pvt_data_frame *pvt_data)

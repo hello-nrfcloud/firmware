@@ -240,4 +240,4 @@ static void environmental_task(void)
 
 K_THREAD_DEFINE(environmental_task_id,
 		CONFIG_APP_ENVIRONMENTAL_THREAD_STACK_SIZE,
-		environmental_task, NULL, NULL, NULL, 3, 0, 0);
+		environmental_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);

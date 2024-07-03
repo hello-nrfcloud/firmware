@@ -320,4 +320,4 @@ static void battery_task(void)
 
 K_THREAD_DEFINE(battery_task_id,
 		CONFIG_APP_BATTERY_THREAD_STACK_SIZE,
-		battery_task, NULL, NULL, NULL, 3, 0, 0);
+		battery_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);

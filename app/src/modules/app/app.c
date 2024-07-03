@@ -206,7 +206,7 @@ static void app_task(void)
 
 K_THREAD_DEFINE(app_task_id,
 		CONFIG_APP_MODULE_THREAD_STACK_SIZE,
-		app_task, NULL, NULL, NULL, 3, 0, 0);
+		app_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
 
 static int watchdog_init(void)
 {
