@@ -30,7 +30,7 @@ static K_WORK_DEFINE(uart_disable_work, &uart_disable_handler);
 static K_WORK_DELAYABLE_DEFINE(uart_enable_work, &uart_enable_handler);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(shell, CONFIG_APP_SHELL_MESSAGE_QUEUE_SIZE);
+ZBUS_MSG_SUBSCRIBER_DEFINE(shell);
 
 enum zbus_test_type {
 	PING,
@@ -43,6 +43,8 @@ ZBUS_CHAN_DEFINE(ZBUS_TEST_CHAN,
 		 ZBUS_OBSERVERS(shell),
 		 ZBUS_MSG_INIT(0)
 );
+
+#define MAX_MSG_SIZE (sizeof(enum zbus_test_type))
 
 static void uart_disable_handler(struct k_work *work)
 {
@@ -167,18 +169,10 @@ static void task_wdt_callback(int channel_id, void *user_data)
 /* Handle messages from the message queue.
  * Returns 0 if the message was handled successfully, otherwise an error code.
  */
-static int handle_message(const struct zbus_channel *chan)
+static int handle_message(const struct zbus_channel *chan, uint8_t *msg_buf)
 {
-	int err;
-
 	if (&ZBUS_TEST_CHAN == chan) {
-		enum zbus_test_type test_type;
-
-		err = zbus_chan_read(&ZBUS_TEST_CHAN, &test_type, K_FOREVER);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			return err;
-		}
+		enum zbus_test_type test_type = *(enum zbus_test_type *)msg_buf;
 
 		if (test_type == PING) {
 			LOG_INF("pong");
@@ -196,6 +190,7 @@ static void shell_task(void)
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_SHELL_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_SHELL_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
+	uint8_t msg_buf[MAX_MSG_SIZE];
 
 	LOG_DBG("Shell module task started");
 
@@ -209,16 +204,16 @@ static void shell_task(void)
 			return;
 		}
 
-		err = zbus_sub_wait(&shell, &chan, zbus_wait_ms);
-		if (err == -EAGAIN) {
+		err = zbus_sub_wait_msg(&shell, &chan, msg_buf, zbus_wait_ms);
+		if (err == -ENOMSG) {
 			continue;
 		} else if (err) {
-			LOG_ERR("zbus_sub_wait, error: %d", err);
+			LOG_ERR("zbus_sub_wait_msg, error: %d", err);
 			SEND_FATAL_ERROR();
 			return;
 		}
 
-		err = handle_message(chan);
+		err = handle_message(chan, msg_buf);
 		if (err) {
 			LOG_ERR("handle_message, error: %d", err);
 			SEND_FATAL_ERROR();

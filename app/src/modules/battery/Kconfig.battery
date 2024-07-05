@@ -10,12 +10,6 @@ config APP_BATTERY_THREAD_STACK_SIZE
 	int "Thread stack size"
 	default 2048
 
-config APP_BATTERY_MESSAGE_QUEUE_SIZE
-	int "Message queue size"
-	default 5
-	help
-	  ZBus subscriber message queue size.
-
 config APP_BATTERY_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
 	default 1800

@@ -21,11 +21,13 @@
 LOG_MODULE_REGISTER(environmental_module, CONFIG_APP_ENVIRONMENTAL_LOG_LEVEL);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(environmental, CONFIG_APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZE);
+ZBUS_MSG_SUBSCRIBER_DEFINE(environmental);
 
 /* Observe trigger channel */
 ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, environmental, 0);
 ZBUS_CHAN_ADD_OBS(TIME_CHAN, environmental, 0);
+
+#define MAX_MSG_SIZE (MAX(sizeof(enum trigger_type), sizeof(enum time_status)))
 
 BUILD_ASSERT(CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS >
 			CONFIG_APP_ENVIRONMENTAL_EXEC_TIME_SECONDS_MAX,
@@ -58,6 +60,9 @@ struct s_object {
 
 	/* Last channel type that a message was received on */
 	const struct zbus_channel *chan;
+
+	/* Buffer for last zbus message */
+	uint8_t msg_buf[MAX_MSG_SIZE];
 };
 
 /* Forward declarations of state handlers */
@@ -80,17 +85,10 @@ static const struct smf_state states[] = {
 
 static void state_init_run(void *o)
 {
-	int err;
 	struct s_object *state_object = o;
 
 	if (&TIME_CHAN == state_object->chan) {
-		enum time_status time_status;
-
-		err = zbus_chan_read(&TIME_CHAN, &time_status, K_FOREVER);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			return;
-		}
+		enum time_status time_status = MSG_TO_TIME_STATUS(state_object->msg_buf);
 
 		if (time_status == TIME_AVAILABLE) {
 			LOG_DBG("Time available, sampling can start");
@@ -105,15 +103,7 @@ static void state_sampling_run(void *o)
 	struct s_object *state_object = o;
 
 	if (&TRIGGER_CHAN == state_object->chan) {
-		int err;
-		enum trigger_type trigger_type;
-
-		err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
-		}
+		enum trigger_type trigger_type = MSG_TO_TRIGGER_TYPE(state_object->msg_buf);
 
 		if (trigger_type == TRIGGER_DATA_SAMPLE) {
 			LOG_DBG("Data sample trigger received, getting environmental data");
@@ -197,7 +187,6 @@ static void sample(void)
 
 static void environmental_task(void)
 {
-	const struct zbus_channel *chan;
 	int err;
 	int task_wdt_id;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_ENVIRONMENTAL_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
@@ -218,16 +207,14 @@ static void environmental_task(void)
 			return;
 		}
 
-		err = zbus_sub_wait(&environmental, &chan, zbus_wait_ms);
-		if (err == -EAGAIN) {
+		err = zbus_sub_wait_msg(&environmental, &s_obj.chan, s_obj.msg_buf, zbus_wait_ms);
+		if (err == -ENOMSG) {
 			continue;
 		} else if (err) {
-			LOG_ERR("zbus_sub_wait, error: %d", err);
+			LOG_ERR("zbus_sub_wait_msg, error: %d", err);
 			SEND_FATAL_ERROR();
 			return;
 		}
-
-		s_obj.chan = chan;
 
 		err = STATE_RUN();
 		if (err) {
