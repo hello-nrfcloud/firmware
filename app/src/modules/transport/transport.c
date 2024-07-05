@@ -24,15 +24,14 @@ BUILD_ASSERT(CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS >
 			 CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX,
 			 "Watchdog timeout must be greater than maximum execution time");
 
-/* Get the network status from a NETWORK_CHAN message */
-#define NETWORK_STATUS_MSG(_object)	(*(const enum network_status *)(_object)->msg)
-
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
 
 /* Observe channels */
 ZBUS_CHAN_ADD_OBS(PAYLOAD_CHAN, transport, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, transport, 0);
+
+#define MAX_MSG_SIZE (MAX(sizeof(struct payload), sizeof(enum network_status)))
 
 /* Enumerator to be used in privat transport channel */
 enum priv_transport_evt {
@@ -137,7 +136,7 @@ static struct s_object {
 	const struct zbus_channel *chan;
 
 	/* Last received message */
-	uint8_t *msg;
+	uint8_t msg_buf[MAX_MSG_SIZE];
 
 	/* Network status */
 	enum network_status nw_status;
@@ -242,7 +241,7 @@ static void state_running_run(void *o)
 	LOG_DBG("%s", __func__);
 
 	if (state_object->chan == &NETWORK_CHAN) {
-		enum network_status nw_status = NETWORK_STATUS_MSG(state_object);
+		enum network_status nw_status = MSG_TO_NETWORK_STATUS(state_object->msg_buf);
 
 		if (nw_status == NETWORK_DISCONNECTED) {
 			STATE_SET(STATE_DISCONNECTED);
@@ -273,18 +272,18 @@ static void state_disconnected_entry(void *o)
 
 static void state_disconnected_run(void *o)
 {
-	struct s_object const *user_object = o;
+	struct s_object const *state_object = o;
 
 	LOG_DBG("%s", __func__);
 
-	if ((user_object->chan == &NETWORK_CHAN) &&
-	    (NETWORK_STATUS_MSG(user_object) == NETWORK_CONNECTED)) {
+	if ((state_object->chan == &NETWORK_CHAN) &&
+	    (MSG_TO_NETWORK_STATUS(state_object->msg_buf) == NETWORK_CONNECTED)) {
 		STATE_SET(STATE_CONNECTING);
 
 		return;
 	}
 
-	if (user_object->chan == &PAYLOAD_CHAN) {
+	if (state_object->chan == &PAYLOAD_CHAN) {
 		LOG_WRN("Discarding payload since we are not connected to cloud");
 	}
 }
@@ -307,7 +306,7 @@ static void state_connecting_run(void *o)
 	LOG_DBG("%s", __func__);
 
 	if (state_object->chan == &PRIV_TRANSPORT_CHAN) {
-		enum priv_transport_evt conn_result = *(enum priv_transport_evt *)state_object->msg;
+		enum priv_transport_evt conn_result = *(enum priv_transport_evt *)state_object->msg_buf;
 
 		if (conn_result == CLOUD_CONN_SUCCES) {
 			STATE_SET(STATE_CONNECTED);
@@ -372,13 +371,13 @@ static void state_connected_ready_run(void *o)
 	LOG_DBG("%s", __func__);
 
 	if (state_object->chan == &NETWORK_CHAN) {
-		if (NETWORK_STATUS_MSG(state_object) == NETWORK_DISCONNECTED) {
+		if (MSG_TO_NETWORK_STATUS(state_object->msg_buf) == NETWORK_DISCONNECTED) {
 			STATE_SET(STATE_CONNECTED_PAUSED);
 
 			return;
 		}
 
-		if (NETWORK_STATUS_MSG(state_object) == NETWORK_CONNECTED) {
+		if (MSG_TO_NETWORK_STATUS(state_object->msg_buf) == NETWORK_CONNECTED) {
 			STATE_EVENT_HANDLED();
 
 			return;
@@ -387,7 +386,7 @@ static void state_connected_ready_run(void *o)
 
 	if (state_object->chan == &PAYLOAD_CHAN) {
 		int err;
-		struct payload *payload = (struct payload *)state_object->msg;
+		struct payload *payload = MSG_TO_PAYLOAD(state_object->msg_buf);
 
 		LOG_DBG("Sending payload to cloud: %p, len: %d",
 			payload->string, payload->string_len);
@@ -427,7 +426,7 @@ static void state_connected_paused_run(void *o)
 	LOG_DBG("%s", __func__);
 
 	if ((state_object->chan == &NETWORK_CHAN) &&
-	    (NETWORK_STATUS_MSG(state_object) == NETWORK_CONNECTED)) {
+	    (MSG_TO_NETWORK_STATUS(state_object->msg_buf) == NETWORK_CONNECTED)) {
 		STATE_SET(STATE_CONNECTED_READY);
 
 		return;
@@ -440,15 +439,10 @@ static void state_connected_paused_run(void *o)
 static void transport_task(void)
 {
 	int err;
-	const struct zbus_channel *chan;
 	int task_wdt_id;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
-	uint8_t msg_buf[MAX(sizeof(struct payload), sizeof(enum network_status))];
-
-	/* The most recent message will always have the same address */
-	s_obj.msg = msg_buf;
 
 	LOG_DBG("Transport module task started");
 
@@ -466,17 +460,15 @@ static void transport_task(void)
 			return;
 		}
 
-		err = zbus_sub_wait_msg(&transport, &chan, &msg_buf, zbus_wait_ms);
+		err = zbus_sub_wait_msg(&transport, &s_obj.chan, s_obj.msg_buf, zbus_wait_ms);
 		if (err == -ENOMSG) {
 			continue;
 		} else if (err) {
-			LOG_ERR("zbus_sub_wait, error: %d", err);
+			LOG_ERR("zbus_sub_wait_msg, error: %d", err);
 			SEND_FATAL_ERROR();
 
 			return;
 		}
-
-		s_obj.chan = chan;
 
 		err = STATE_RUN();
 		if (err) {

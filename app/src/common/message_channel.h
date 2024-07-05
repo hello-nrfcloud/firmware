@@ -43,10 +43,14 @@ struct payload {
 	size_t string_len;
 };
 
+#define MSG_TO_PAYLOAD(_msg) ((struct payload *)_msg)
+
 enum network_status {
 	NETWORK_DISCONNECTED = 0x1,
 	NETWORK_CONNECTED,
 };
+
+#define MSG_TO_NETWORK_STATUS(_msg)	(*(const enum network_status *)_msg)
 
 enum cloud_status {
 	CLOUD_DISCONNECTED = 0x1,
@@ -54,10 +58,14 @@ enum cloud_status {
 	CLOUD_CONNECTED_PAUSED,
 };
 
+#define MSG_TO_CLOUD_STATUS(_msg)	(*(const enum cloud_status *)_msg)
+
 enum trigger_type {
 	TRIGGER_POLL = 0x1,
 	TRIGGER_DATA_SAMPLE,
 };
+
+#define MSG_TO_TRIGGER_TYPE(_msg)	(*(const enum trigger_type *)_msg)
 
 enum trigger_mode {
 	TRIGGER_MODE_POLL = 0x1,
@@ -67,6 +75,8 @@ enum trigger_mode {
 enum time_status {
 	TIME_AVAILABLE = 0x1,
 };
+
+#define MSG_TO_TIME_STATUS(_msg)	(*(const enum time_status *)_msg)
 
 enum error_type {
 	ERROR_FATAL = 0x1,
@@ -82,6 +92,8 @@ struct configuration {
 	bool gnss;
 	uint64_t update_interval;
 };
+
+#define MSG_TO_CONFIGURATION(_msg) ((const struct configuration *)_msg)
 
 ZBUS_CHAN_DECLARE(
 	BUTTON_CHAN,

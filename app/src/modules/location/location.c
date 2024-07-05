@@ -26,13 +26,19 @@ BUILD_ASSERT(CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS >
 	     "Watchdog timeout must be greater than trigger timeout");
 
 /* Define listener for this module */
-ZBUS_SUBSCRIBER_DEFINE(location, CONFIG_APP_LOCATION_ZBUS_QUEUE_SIZE);
+ZBUS_MSG_SUBSCRIBER_DEFINE(location);
 
 /* Observe channels */
 ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, location, 0);
+
+#define MAX_MSG_SIZE \
+	(MAX(sizeof(enum trigger_type), \
+		 (MAX(sizeof(enum cloud_status), \
+		     (MAX(sizeof(struct configuration), \
+		         sizeof(enum network_status)))))))
 
 static bool gnss_enabled;
 static bool gnss_initialized;
@@ -82,18 +88,10 @@ void trigger_location_update(void)
 	}
 }
 
-void handle_network_chan(void) {
+void handle_network_chan(enum network_status status) {
 	int err = 0;
-	enum network_status status;
 
 	if (gnss_initialized) {
-		return;
-	}
-
-	err = zbus_chan_read(&NETWORK_CHAN, &status, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("Failed to read network status: %d", err);
-		SEND_FATAL_ERROR();
 		return;
 	}
 
@@ -110,38 +108,18 @@ void handle_network_chan(void) {
 	}
 }
 
-void handle_trigger_chan(void)
+void handle_trigger_chan(enum trigger_type trigger_type)
 {
-	int err = 0;
-	enum trigger_type trigger_type = 0;
-
-	err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("Failed to read trigger from zbus: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
-
 	if (trigger_type == TRIGGER_DATA_SAMPLE) {
 		LOG_DBG("Data sample trigger received, getting location");
 		trigger_location_update();
 	}
 }
 
-void handle_config_chan(void)
+void handle_config_chan(const struct configuration *config)
 {
-	int err = 0;
-	struct configuration config = { 0 };
-
-	err = zbus_chan_read(&CONFIG_CHAN, &config, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("Failed to read configuration from zbus: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
-
-	if (config.config_present) {
-		gnss_enabled = config.gnss;
+	if (config->config_present) {
+		gnss_enabled = config->gnss;
 		LOG_DBG("GNSS enabled: %d", gnss_enabled);
 	} else {
 		LOG_DBG("Configuration not present");
@@ -155,6 +133,7 @@ void location_task(void)
 	int task_wdt_id;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_LOCATION_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const k_timeout_t zbus_timeout = K_SECONDS(CONFIG_APP_LOCATION_ZBUS_TIMEOUT_SECONDS);
+	uint8_t msg_buf[MAX_MSG_SIZE];
 
 	LOG_DBG("Location module task started");
 
@@ -182,8 +161,8 @@ void location_task(void)
 			return;
 		}
 
-		err = zbus_sub_wait(&location, &chan, zbus_timeout);
-		if (err == -EAGAIN) {
+		err = zbus_sub_wait_msg(&location, &chan, &msg_buf, zbus_timeout);
+		if (err == -ENOMSG) {
 			continue;
 		} else if (err) {
 			LOG_ERR("zbus_sub_wait, error: %d", err);
@@ -193,17 +172,17 @@ void location_task(void)
 
 		if (&NETWORK_CHAN == chan) {
 			LOG_DBG("Network status received");
-			handle_network_chan();
+			handle_network_chan(MSG_TO_NETWORK_STATUS(&msg_buf));
 		}
 
 		if (&TRIGGER_CHAN == chan) {
 			LOG_DBG("Trigger received");
-			handle_trigger_chan();
+			handle_trigger_chan(MSG_TO_TRIGGER_TYPE(&msg_buf));
 		}
 
 		if (&CONFIG_CHAN == chan) {
 			LOG_DBG("Configuration received");
-			handle_config_chan();
+			handle_config_chan(MSG_TO_CONFIGURATION(&msg_buf));
 		}
 	}
 }

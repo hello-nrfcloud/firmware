@@ -21,12 +21,6 @@ config APP_SHELL_THREAD_STACK_SIZE
 	int "Thread stack size"
 	default 1024
 
-config APP_SHELL_MESSAGE_QUEUE_SIZE
-	int "Message queue size"
-	default 5
-	help
-	  ZBus subscriber message queue size.
-
 config APP_SHELL_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
 	default 1800

@@ -23,11 +23,13 @@
 LOG_MODULE_REGISTER(network, CONFIG_APP_NETWORK_LOG_LEVEL);
 
 /* Register subscriber */
-ZBUS_SUBSCRIBER_DEFINE(network, CONFIG_APP_NETWORK_MESSAGE_QUEUE_SIZE);
+ZBUS_MSG_SUBSCRIBER_DEFINE(network);
 
 /* Observe trigger channel */
 ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, network, 0);
 ZBUS_CHAN_ADD_OBS(TIME_CHAN, network, 0);
+
+#define MAX_MSG_SIZE (MAX(sizeof(enum trigger_type), sizeof(enum time_status)))
 
 /* Macros used to subscribe to specific Zephyr NET management events. */
 #define L4_EVENT_MASK (NET_EVENT_L4_CONNECTED | NET_EVENT_L4_DISCONNECTED)
@@ -59,6 +61,9 @@ struct s_object {
 
 	/* Last channel type that a message was received on */
 	const struct zbus_channel *chan;
+
+	/* Buffer for last zbus message */
+	uint8_t msg_buf[MAX_MSG_SIZE];
 };
 /* Forward declarations of state handlers */
 static void state_init_run(void *o);
@@ -167,17 +172,10 @@ static void sample_network_quality(void)
 
 static void state_init_run(void *obj)
 {
-	int err;
 	struct s_object const *state_object = obj;
 
 	if (&TIME_CHAN == state_object->chan) {
-		enum time_status time_status;
-
-		err = zbus_chan_read(&TIME_CHAN, &time_status, K_FOREVER);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			return;
-		}
+		enum time_status time_status = MSG_TO_TIME_STATUS(state_object->msg_buf);
 
 		if (time_status == TIME_AVAILABLE) {
 			LOG_DBG("Time available, sampling can start");
@@ -193,15 +191,7 @@ static void state_sampling_run(void *obj)
 	struct s_object const *state_object = obj;
 
 	if (&TRIGGER_CHAN == state_object->chan) {
-		int err;
-		enum trigger_type trigger_type;
-
-		err = zbus_chan_read(&TRIGGER_CHAN, &trigger_type, K_FOREVER);
-		if (err) {
-			LOG_ERR("zbus_chan_read, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
-		}
+		enum trigger_type trigger_type = MSG_TO_TRIGGER_TYPE(state_object->msg_buf);
 
 		if (trigger_type == TRIGGER_DATA_SAMPLE) {
 			LOG_DBG("Data sample trigger received, getting network quality data");
@@ -274,7 +264,6 @@ static void network_task(void)
 		conn_mgr_mon_resend_status();
 	}
 
-	const struct zbus_channel *chan;
 	const uint32_t wdt_timeout_ms = (CONFIG_APP_NETWORK_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
 	const uint32_t execution_time_ms = (CONFIG_APP_NETWORK_EXEC_TIME_SECONDS_MAX * MSEC_PER_SEC);
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
@@ -290,16 +279,14 @@ static void network_task(void)
 			return;
 		}
 
-		err = zbus_sub_wait(&network, &chan, zbus_wait_ms);
-		if (err == -EAGAIN) {
+		err = zbus_sub_wait_msg(&network, &s_obj.chan, s_obj.msg_buf, zbus_wait_ms);
+		if (err == -ENOMSG) {
 			continue;
 		} else if (err) {
-			LOG_ERR("zbus_sub_wait, error: %d", err);
+			LOG_ERR("zbus_sub_wait_msg, error: %d", err);
 			SEND_FATAL_ERROR();
 			return;
 		}
-
-		s_obj.chan = chan;
 
 		err = STATE_RUN();
 		if (err) {
