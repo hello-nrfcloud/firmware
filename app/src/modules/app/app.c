@@ -44,7 +44,10 @@ static void shadow_get(bool delta_only)
 	err = nrf_cloud_coap_shadow_get(buf_cbor, &buf_cbor_len, delta_only,
 					COAP_CONTENT_FORMAT_APP_CBOR);
 	if (err == -EACCES) {
-		LOG_WRN("Not connected");
+		LOG_WRN("Not connected, error: %d", err);
+		return;
+	} else if (err == -ETIMEDOUT) {
+		LOG_WRN("Request timed out, error: %d", err);
 		return;
 	} else if (err) {
 		LOG_ERR("Failed to request shadow delta: %d", err);

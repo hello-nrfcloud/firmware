@@ -55,13 +55,25 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	SEND_FATAL_ERROR_WATCHDOG_TIMEOUT();
 }
 
-static const int gnss_method_index = 0;
 static enum location_method location_method_types[] = {
 	LOCATION_METHOD_GNSS,
 	LOCATION_METHOD_WIFI,
 	LOCATION_METHOD_CELLULAR
 };
 static const uint8_t location_methods_size = ARRAY_SIZE(location_method_types);
+
+static void status_send(enum location_status status)
+{
+	enum location_status location_status = status;
+
+	int err = zbus_chan_pub(&LOCATION_CHAN, &location_status, K_SECONDS(1));
+
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+}
 
 void trigger_location_update(void)
 {
@@ -70,7 +82,6 @@ void trigger_location_update(void)
 
 	if (gnss_enabled) {
 		location_config_defaults_set(&config, location_methods_size, location_method_types);
-		config.methods[gnss_method_index].gnss.visibility_detection=true;
 		LOG_DBG("GNSS enabled");
 	} else {
 		/* Only pass in a subset of the location methods to skip GNSS */
@@ -208,6 +219,8 @@ static void apply_gnss_time(const struct nrf_modem_gnss_pvt_data_frame *pvt_data
 
 static void location_event_handler(const struct location_event_data *event_data)
 {
+	static bool is_method_gnss = false;
+
 	switch (event_data->id) {
 	case LOCATION_EVT_LOCATION:
 		LOG_DBG("Got location: lat: %f, lon: %f, acc: %f",
@@ -225,7 +238,27 @@ static void location_event_handler(const struct location_event_data *event_data)
 				/* this should not happen */
 				LOG_WRN("Got GNSS location without valid time data");
 			}
+
+			status_send(GNSS_DISABLED);
+			is_method_gnss = false;
 		}
+		break;
+	case LOCATION_EVT_FALLBACK:
+
+		if (is_method_gnss) {
+			is_method_gnss = false;
+
+			status_send(GNSS_DISABLED);
+		}
+
+		break;
+	case LOCATION_EVT_STARTED:
+
+		if (event_data->method == LOCATION_METHOD_GNSS) {
+			status_send(GNSS_ENABLED);
+			is_method_gnss = true;
+		}
+
 		break;
 	case LOCATION_EVT_RESULT_UNKNOWN:
 		LOG_DBG("Getting location completed with undefined result");

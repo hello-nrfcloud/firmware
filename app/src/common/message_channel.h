@@ -78,6 +78,11 @@ enum time_status {
 
 #define MSG_TO_TIME_STATUS(_msg)	(*(const enum time_status *)_msg)
 
+enum location_status {
+	GNSS_ENABLED = 0x1,
+	GNSS_DISABLED,
+};
+
 enum error_type {
 	ERROR_FATAL = 0x1,
 	ERROR_DECODE,
@@ -137,7 +142,8 @@ ZBUS_CHAN_DECLARE(
 	PAYLOAD_CHAN,
 	TIME_CHAN,
 	TRIGGER_CHAN,
-	TRIGGER_MODE_CHAN
+	TRIGGER_MODE_CHAN,
+	LOCATION_CHAN
 );
 
 #ifdef __cplusplus
