@@ -25,9 +25,10 @@ ZBUS_LISTENER_DEFINE(trigger, trigger_callback);
 ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(BUTTON_CHAN, trigger, 0);
+ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 
 /* Trigger interval in the frequent poll state */
-#define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 10
+#define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 20
 
 /* Duration that the trigger module is in the frequent poll state */
 #define FREQUENT_POLL_DURATION_INTERVAL_SEC 600
@@ -51,9 +52,13 @@ enum state {
 	STATE_INIT,
 	STATE_CONNECTED,
 	/* Sub-state to STATE_CONNECTED */
-	STATE_FREQUENT_POLL,
+	STATE_BLOCKED,
 	/* Sub-state to STATE_CONNECTED */
+	STATE_UNBLOCKED,
+	/* Sub-state to STATE_UNBLOCKED */
 	STATE_NORMAL,
+	/* Sub-state to STATE_UNBLOCKED */
+	STATE_FREQUENT_POLL,
 	STATE_DISCONNECTED
 };
 
@@ -77,8 +82,18 @@ struct s_object {
 	/* Last channel type that a message was received on */
 	const struct zbus_channel *chan;
 
-	/* Set default update interval */
-	uint64_t update_interval_sec;
+	/* Update interval, will always reflect what is received in incoming CONFIG channel
+	 * messages
+	 */
+	uint64_t update_interval_configured_sec;
+
+	/* Update interval used when scheduling data sample triggers, will differ depending on the
+	 * state that the module is in
+	 */
+	uint64_t update_interval_used_sec;
+
+	/* GNSS status, used to block trigger events */
+	bool gnss;
 
 	/* Set default poll interval */
 	uint64_t poll_interval_sec;
@@ -131,7 +146,6 @@ static void trigger_poll_work_fn(struct k_work *work)
 	ARG_UNUSED(work);
 
 	LOG_DBG("Sending trigger poll message");
-	LOG_DBG("trigger poll work timeout: %lld seconds", state_object.poll_interval_sec);
 
 	trigger_send(TRIGGER_POLL, K_SECONDS(1));
 	k_work_reschedule(&trigger_poll_work, K_SECONDS(state_object.poll_interval_sec));
@@ -143,10 +157,10 @@ static void trigger_data_sample_work_fn(struct k_work *work)
 	ARG_UNUSED(work);
 
 	LOG_DBG("Sending trigger data sample message");
-	LOG_DBG("trigger data sample work timeout: %lld seconds", state_object.update_interval_sec);
 
 	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
-	k_work_reschedule(&trigger_data_sample_work, K_SECONDS(state_object.update_interval_sec));
+	k_work_reschedule(&trigger_data_sample_work,
+			  K_SECONDS(state_object.update_interval_used_sec));
 }
 
 /* Button handler called when a user pushes a button */
@@ -167,32 +181,16 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 	}
 }
 
-static void frequent_poll_duration_timer_start(void)
+static void frequent_poll_duration_timer_start(bool force_restart)
 {
-	LOG_DBG("Starting frequent poll duration timer: %d seconds",
-		FREQUENT_POLL_DURATION_INTERVAL_SEC);
+	if ((k_timer_remaining_get(&frequent_poll_duration_timer) == 0) || force_restart) {
+		LOG_DBG("Starting frequent poll duration timer: %d seconds",
+			FREQUENT_POLL_DURATION_INTERVAL_SEC);
 
-	k_timer_start(&frequent_poll_duration_timer,
-		      K_SECONDS(FREQUENT_POLL_DURATION_INTERVAL_SEC), K_NO_WAIT);
-}
-
-static void refresh_timers(void)
-{
-	LOG_DBG("Scheduling poll work: %lld seconds", state_object.poll_interval_sec);
-	LOG_DBG("Scheduling data sample work: %lld seconds", state_object.update_interval_sec);
-
-	frequent_poll_duration_timer_start();
-	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
-	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
-}
-
-static void cancel_timers(void)
-{
-	LOG_DBG("Cancelling timers");
-
-	k_timer_stop(&frequent_poll_duration_timer);
-	k_work_cancel_delayable(&trigger_poll_work);
-	k_work_cancel_delayable(&trigger_data_sample_work);
+		k_timer_start(&frequent_poll_duration_timer,
+			      K_SECONDS(FREQUENT_POLL_DURATION_INTERVAL_SEC), K_NO_WAIT);
+		return;
+	}
 }
 
 /* Zephyr State Machine framework handlers */
@@ -201,11 +199,19 @@ static void cancel_timers(void)
  *
  * STATE_INIT: Initializing module
  * STATE_CONNECTED: Connected to cloud.
- *	- STATE_FREQUENT_POLL: Sending poll triggers every 10 seconds for 10 minutes
- *			       Sending data sample triggers every configured update interval
- *	- STATE_NORMAL: Sending poll triggers every configured update interval
- *			Sending data sample triggers every configured update interval
- * STATE_DISCONNECTED: Sending of triggers is blocked
+ * 	- STATE_UNBLOCKED:
+ *		- STATE_FREQUENT_POLL: Sending poll and data sample triggers every
+ 				       20 seconds for 10 minutes
+ *		- STATE_NORMAL: Sending poll triggers every configured update interval
+ *				Sending data sample triggers every configured update interval
+ *	- STATE_BLOCKED: Sending of triggers is blocked due to GNSS activity
+ * STATE_DISCONNECTED: Sending of triggers is blocked due to being disconnected
+ *
+ *
+ * Note:
+ *
+ * Every state is responsible for cancelling any delayed work or timer
+ * that was scheduled in that state.
  */
 
 /* STATE_INIT */
@@ -253,6 +259,52 @@ static void connected_run(void *o)
 	}
 }
 
+/* STATE_UNBLOCKED */
+
+static void unblocked_run(void *o)
+{
+	struct s_object *user_object = o;
+
+	LOG_DBG("unblocked_run");
+
+	if (user_object->chan == &LOCATION_CHAN && user_object->gnss) {
+		LOG_DBG("GNSS enabled, going into blocked state");
+
+		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
+		return;
+	}
+}
+
+/* STATE_BLOCKED */
+
+static void blocked_run(void *o)
+{
+	struct s_object *user_object = o;
+
+	LOG_DBG("blocked_run");
+
+	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
+		LOG_DBG("GNSS disabled, going into unblocked state");
+
+		smf_set_state(SMF_CTX(&state_object), &states[STATE_UNBLOCKED]);
+		return;
+	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
+		LOG_DBG("Going into normal state");
+		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
+		return;
+	} else if (user_object->chan == &BUTTON_CHAN) {
+		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
+			user_object->button_number);
+
+		frequent_poll_duration_timer_start(true);
+
+	} else if (user_object->chan == &CONFIG_CHAN) {
+		LOG_DBG("Configuration received, refreshing poll duration timer");
+
+		frequent_poll_duration_timer_start(true);
+	}
+}
+
 /* STATE_FREQUENT_POLL */
 
 static void frequent_poll_entry(void *o)
@@ -260,21 +312,25 @@ static void frequent_poll_entry(void *o)
 	struct s_object *user_object = o;
 
 	LOG_DBG("frequent_poll_entry");
+	LOG_DBG("Sending poll and data sample triggers every %d seconds for %d minutes",
+		FREQUENT_POLL_TRIGGER_INTERVAL_SEC,
+		FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
 
-	LOG_DBG("trigger poll work timeout: %lld seconds", user_object->update_interval_sec);
-	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
-
-	/* Send message on trigger mode channel */
 	enum trigger_mode trigger_mode = TRIGGER_MODE_POLL;
 
 	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &trigger_mode, K_SECONDS(1));
+
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
 		return;
 	}
 
-	refresh_timers();
+	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+
+	frequent_poll_duration_timer_start(false);
+	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
 }
 
 static void frequent_poll_run(void *o)
@@ -283,19 +339,23 @@ static void frequent_poll_run(void *o)
 
 	LOG_DBG("frequent_poll_run");
 
-	if (user_object->chan == &BUTTON_CHAN) {
+	if (user_object->chan == &PRIV_TRIGGER_CHAN) {
+		LOG_DBG("Going into normal state");
+		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
+		return;
+	} else if (user_object->chan == &BUTTON_CHAN) {
 		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
 			user_object->button_number);
 
-		refresh_timers();
-	} else if (user_object->chan == &CONFIG_CHAN) {
-		LOG_DBG("Configuration received, refreshing timers");
+		/* Trigger data sample and poll work and restart the poll duration timer */
+		frequent_poll_duration_timer_start(true);
+		k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
+		k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
 
-		refresh_timers();
-	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
-		LOG_DBG("Frequent poll duration timer expired, going into normal state");
-		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
-		return;
+	} else if (user_object->chan == &CONFIG_CHAN) {
+		LOG_DBG("Configuration received, refreshing poll duration timer");
+
+		frequent_poll_duration_timer_start(true);
 	}
 }
 
@@ -304,9 +364,11 @@ static void frequent_poll_exit(void *o)
 	ARG_UNUSED(o);
 
 	LOG_DBG("frequent_poll_exit");
-	LOG_DBG("Clearing delayed work and frequent poll duration timer");
+	LOG_DBG("Cancelling poll work timers");
 
-	cancel_timers();
+	k_work_cancel_delayable(&trigger_poll_work);
+	k_work_cancel_delayable(&trigger_data_sample_work);
+	k_timer_stop(&frequent_poll_duration_timer);
 }
 
 /* STATE_NORMAL */
@@ -316,9 +378,9 @@ static void normal_entry(void *o)
 	struct s_object *user_object = o;
 
 	LOG_DBG("normal_entry");
-
-	LOG_DBG("trigger poll work timeout: %lld seconds", user_object->update_interval_sec);
-	LOG_DBG("trigger data sample work timeout: %lld seconds", user_object->update_interval_sec);
+	LOG_DBG("Sending poll and data sample triggers every "
+		"configured update interval: %lld seconds",
+		user_object->update_interval_configured_sec);
 
 	/* Send message on trigger mode channel */
 	enum trigger_mode trigger_mode = TRIGGER_MODE_NORMAL;
@@ -330,8 +392,12 @@ static void normal_entry(void *o)
 		return;
 	}
 
-	user_object->poll_interval_sec = user_object->update_interval_sec;
-	refresh_timers();
+	/* In normal mode we poll at the same frequency as we send data sample triggers */
+	user_object->poll_interval_sec = user_object->update_interval_configured_sec;
+	user_object->update_interval_used_sec = user_object->update_interval_configured_sec;
+
+	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
 }
 
 static void normal_run(void *o)
@@ -359,10 +425,14 @@ static void normal_exit(void *o)
 	ARG_UNUSED(o);
 
 	LOG_DBG("normal_exit");
-	LOG_DBG("Clearning delayed work");
 
+	/* Cancel all delayed work scheduled in this state and revert to the default
+	 * poll trigger interval
+	 */
 	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
-	cancel_timers();
+
+	k_work_cancel_delayable(&trigger_poll_work);
+	k_work_cancel_delayable(&trigger_data_sample_work);
 }
 
 /* STATE_DISCONNECTED */
@@ -395,19 +465,33 @@ static const struct smf_state states[] = {
 		connected_run,
 		NULL,
 		NULL,
+		&states[STATE_UNBLOCKED]
+	),
+	[STATE_UNBLOCKED] = SMF_CREATE_STATE(
+		NULL,
+		unblocked_run,
+		NULL,
+		&states[STATE_CONNECTED],
 		&states[STATE_FREQUENT_POLL]
 	),
 	[STATE_FREQUENT_POLL] = SMF_CREATE_STATE(
 		frequent_poll_entry,
 		frequent_poll_run,
 		frequent_poll_exit,
-		&states[STATE_CONNECTED],
+		&states[STATE_UNBLOCKED],
 		NULL
 	),
 	[STATE_NORMAL] = SMF_CREATE_STATE(
 		normal_entry,
 		normal_run,
 		normal_exit,
+		&states[STATE_UNBLOCKED],
+		NULL
+	),
+	[STATE_BLOCKED] = SMF_CREATE_STATE(
+		NULL,
+		blocked_run,
+		NULL,
 		&states[STATE_CONNECTED],
 		NULL
 	),
@@ -427,6 +511,7 @@ void trigger_callback(const struct zbus_channel *chan)
 
 	if ((chan != &CONFIG_CHAN) &&
 	    (chan != &CLOUD_CHAN) &&
+	    (chan != &LOCATION_CHAN) &&
 	    (chan != &BUTTON_CHAN) &&
 	    (chan != &PRIV_TRIGGER_CHAN)) {
 		LOG_ERR("Unknown channel");
@@ -440,13 +525,9 @@ void trigger_callback(const struct zbus_channel *chan)
 	if (&CONFIG_CHAN == chan) {
 		const struct configuration *config = zbus_chan_const_msg(chan);
 
-		if ((config->config_present == false) ||
-		    (config->update_interval_present == false)) {
-			LOG_DBG("Configuration not present");
-			return;
+		if (config->update_interval_present) {
+			state_object.update_interval_configured_sec = config->update_interval;
 		}
-
-		state_object.update_interval_sec = config->update_interval;
 	}
 
 	if (&CLOUD_CHAN == chan) {
@@ -461,6 +542,12 @@ void trigger_callback(const struct zbus_channel *chan)
 		state_object.button_number = (uint8_t)*button_number;
 	}
 
+	if (&LOCATION_CHAN == chan) {
+		const enum location_status *location_status = zbus_chan_const_msg(chan);
+
+		state_object.gnss = (*location_status == GNSS_ENABLED);
+	}
+
 	/* State object updated, run SMF */
 	err = smf_run_state(SMF_CTX(&state_object));
 	if (err) {
@@ -473,7 +560,8 @@ void trigger_callback(const struct zbus_channel *chan)
 static int trigger_init(void)
 {
 	/* Set default update and poll interval */
-	state_object.update_interval_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
+	state_object.update_interval_configured_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
+	state_object.update_interval_used_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
 	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
 
 	smf_set_initial(SMF_CTX(&state_object), &states[STATE_INIT]);

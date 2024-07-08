@@ -135,7 +135,15 @@ static void sample_network_quality(void)
 	struct lte_lc_conn_eval_params conn_eval_params;
 
 	ret = lte_lc_conn_eval_params_get(&conn_eval_params);
-	__ASSERT_NO_MSG(ret == 0);
+	if (ret < 0) {
+		LOG_ERR("lte_lc_conn_eval_params_get, error: %d", ret);
+		SEND_FATAL_ERROR();
+		return;
+	} else if (ret > 0) {
+		LOG_WRN("Connection evaluation failed due to a network/modem related reason: %d",
+			ret);
+		return;
+	}
 
 	LOG_DBG("Energy estimate: %d", conn_eval_params.energy_estimate);
 	LOG_DBG("RSRP: %d dBm", RSRP_IDX_TO_DBM(conn_eval_params.rsrp));
