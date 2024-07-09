@@ -204,14 +204,16 @@ void led_pwm_set_effect(enum led_state state)
 	led_update(&leds);
 }
 
+static struct led_effect effect_on = LED_EFFECT_LED_ON(LED_NOCOLOR());
+
 int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
-	struct led_color color = {
-		.c = { red, green, blue }
-	};
+	effect_on.steps[0].color.c[0] = red;
+	effect_on.steps[0].color.c[1] = green;
+	effect_on.steps[0].color.c[2] = blue;
 
-	k_work_cancel_delayable_sync(&leds.work, &leds.work_sync);
-	pwm_out(&color);
+	leds.effect = &effect_on;
+	led_update(&leds);
 
 	return 0;
 }
