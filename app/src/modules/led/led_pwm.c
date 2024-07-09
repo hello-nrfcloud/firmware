@@ -79,21 +79,21 @@ static void pwm_out(const struct led_color *color)
 	int err;
 
 	/* RED */
-	err = pwm_set_dt(&led0, PWM_USEC(128), PWM_USEC(color->c[0]));
+	err = pwm_set_dt(&led0, PWM_USEC(255), PWM_USEC(color->c[0]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return;
 	}
 
 	/* GREEN */
-	err = pwm_set_dt(&led2, PWM_USEC(128), PWM_USEC(color->c[1]));
+	err = pwm_set_dt(&led2, PWM_USEC(255), PWM_USEC(color->c[1]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return;
 	}
 
 	/* BLUE */
-	err = pwm_set_dt(&led1, PWM_USEC(128), PWM_USEC(color->c[2]));
+	err = pwm_set_dt(&led1, PWM_USEC(255), PWM_USEC(color->c[2]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return;
@@ -206,10 +206,12 @@ void led_pwm_set_effect(enum led_state state)
 
 int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
-	struct led_effect effect = LED_EFFECT_LED_ON(LED_COLOR(red, green, blue));
+	struct led_color color = {
+		.c = { red, green, blue }
+	};
 
-	leds.effect = &effect;
-	led_update(&leds);
+	k_work_cancel_delayable_sync(&leds.work, &leds.work_sync);
+	pwm_out(&color);
 
 	return 0;
 }
