@@ -7,7 +7,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
-#include <dk_buttons_and_leds.h>
+#include <zephyr/smf.h>
 
 #include "message_channel.h"
 #include "led_pwm.h"
@@ -29,8 +29,15 @@ ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(TRIGGER_MODE_CHAN, led, 0);
 
+/* Zephyr SMF states */
+enum state {
+	STATE_RUNNING,
+	STATE_ERROR,
+};
+
 /* Forward declarations */
 static void led_pattern_update_work_fn(struct k_work *work);
+static const struct smf_state states[];
 
 /* Definition used to specify LED patterns that should hold forever. */
 #define HOLD_FOREVER -1
@@ -50,6 +57,17 @@ static struct led_pattern {
 	uint8_t blue;
 
 } led_pattern_list[LED_PATTERN_COUNT];
+
+struct s_object {
+	/* This must be first */
+	struct smf_ctx ctx;
+
+	/* Last channel type that a message was received on */
+	const struct zbus_channel *chan;
+};
+
+/* SMF state object variable */
+static struct s_object state_object;
 
 /* Linked list used to schedule multiple LED pattern transitions. */
 static sys_slist_t pattern_transition_list = SYS_SLIST_STATIC_INIT(&pattern_transition_list);
@@ -128,98 +146,161 @@ static void led_pattern_update_work_fn(struct k_work *work)
 	}
 }
 
-void led_callback(const struct zbus_channel *chan)
+static void on_error_chan(void)
 {
-	if (&TRIGGER_MODE_CHAN == chan) {
-		const enum trigger_mode *mode = zbus_chan_const_msg(chan);
+	transition_list_clear();
+	transition_list_append(LED_ERROR_SYSTEM_FAULT, HOLD_FOREVER, 0, 0, 0);
 
-		if (*mode == TRIGGER_MODE_NORMAL) {
-			LOG_DBG("Trigger mode normal");
+	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 
-			/* Clear all LED patterns and stop the PWM.
-			 * I think we need to use the LED pwm API directly in some way here
-			 * to ensure that we are disabling the PWM.
-			 */
-			transition_list_clear();
-			transition_list_append(LED_OFF, HOLD_FOREVER, 0, 0, 0);
+	smf_set_state(SMF_CTX(&state_object), &states[STATE_ERROR]);
+	return;
+}
 
-			k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+static void on_network_chan(void)
+{
+	transition_list_clear();
+	transition_list_append(LED_LTE_CONNECTING, HOLD_FOREVER, 0, 0, 0);
 
-		} else if (*mode == TRIGGER_MODE_POLL) {
-			LOG_DBG("Trigger mode poll");
+	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+}
 
-			transition_list_clear();
+static void on_trigger_chan(enum trigger_mode mode)
+{
+	if (mode == TRIGGER_MODE_NORMAL) {
+		LOG_DBG("Trigger mode normal");
 
-			/* If we enter poll mode and the LED is configured, we set the configured
-			 * color.
-			 */
-			if (led_pattern_list[LED_CONFIGURED].red != 0 ||
-			    led_pattern_list[LED_CONFIGURED].green != 0 ||
-			    led_pattern_list[LED_CONFIGURED].blue != 0) {
+		/* Clear all LED patterns and stop the PWM.
+		 * I think we need to use the LED pwm API directly in some way here
+		 * to ensure that we are disabling the PWM.
+		 */
+		transition_list_clear();
+		transition_list_append(LED_OFF, HOLD_FOREVER, 0, 0, 0);
 
-				transition_list_append(LED_CONFIGURED, HOLD_FOREVER,
-						       led_pattern_list[LED_CONFIGURED].red,
-						       led_pattern_list[LED_CONFIGURED].green,
-						       led_pattern_list[LED_CONFIGURED].blue);
-			} else {
-				transition_list_append(LED_POLL_MODE, HOLD_FOREVER, 0, 0, 0);
-			}
+		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 
-			k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+	} else if (mode == TRIGGER_MODE_POLL) {
+		LOG_DBG("Trigger mode poll");
+
+		transition_list_clear();
+
+		/* If we enter poll mode and the LED is configured, we set the configured color. */
+		if (led_pattern_list[LED_CONFIGURED].red != 0 ||
+		    led_pattern_list[LED_CONFIGURED].green != 0 ||
+		    led_pattern_list[LED_CONFIGURED].blue != 0) {
+
+			transition_list_append(LED_CONFIGURED, HOLD_FOREVER,
+					       led_pattern_list[LED_CONFIGURED].red,
+					       led_pattern_list[LED_CONFIGURED].green,
+					       led_pattern_list[LED_CONFIGURED].blue);
+		} else {
+			transition_list_append(LED_POLL_MODE, HOLD_FOREVER, 0, 0, 0);
 		}
+
+		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+	}
+}
+
+static void on_config_chan(const struct configuration *config)
+{
+	LOG_DBG("LED configuration: red:%d, green:%d, blue:%d",
+		config->led_red, config->led_green, config->led_blue);
+
+	transition_list_clear();
+	transition_list_append(LED_CONFIGURED, HOLD_FOREVER,
+			       (uint8_t)config->led_red,
+			       (uint8_t)config->led_green,
+			       (uint8_t)config->led_blue);
+
+	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+}
+
+/* STATE_RUNNING */
+static void running_run(void *o)
+{
+	struct s_object *user_object = o;
+
+	LOG_DBG("running_run");
+
+	if (&TRIGGER_MODE_CHAN == user_object->chan) {
+		const enum trigger_mode *mode = zbus_chan_const_msg(user_object->chan);
+
+		on_trigger_chan(*mode);
 	}
 
-	if (&NETWORK_CHAN == chan) {
-
-		const enum network_status *status = zbus_chan_const_msg(chan);
+	if (&NETWORK_CHAN == user_object->chan) {
+		const enum network_status *status = zbus_chan_const_msg(user_object->chan);
 
 		if (*status == NETWORK_DISCONNECTED) {
-			LOG_DBG("Network disconnected");
-
-			transition_list_clear();
-			transition_list_append(LED_LTE_CONNECTING, HOLD_FOREVER, 0, 0, 0);
-
-			k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+			on_network_chan();
 		}
 	}
 
-	if (&CONFIG_CHAN == chan) {
+	if (&CONFIG_CHAN == user_object->chan) {
 		/* Get LED configuration from channel. */
 
-		const struct configuration *config = zbus_chan_const_msg(chan);
+		const struct configuration *config = zbus_chan_const_msg(user_object->chan);
 
 		if (config->led_present == false) {
 			LOG_DBG("LED configuration not present");
 			return;
 		}
 
-		LOG_DBG("LED configuration: red:%d, green:%d, blue:%d",
-			config->led_red, config->led_green, config->led_blue);
-
-		transition_list_clear();
-		transition_list_append(LED_CONFIGURED, HOLD_FOREVER,
-				       (uint8_t)config->led_red,
-				       (uint8_t)config->led_green,
-				       (uint8_t)config->led_blue);
-
-		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+		on_config_chan(config);
 	}
 
-	if (&ERROR_CHAN == chan) {
-		const enum error_type *type = zbus_chan_const_msg(chan);
+	if (&ERROR_CHAN == user_object->chan) {
+		const enum error_type *type = zbus_chan_const_msg(user_object->chan);
 
 		if (*type == ERROR_FATAL) {
-			transition_list_clear();
-			transition_list_append(LED_ERROR_SYSTEM_FAULT, HOLD_FOREVER, 0, 0, 0);
+			on_error_chan();
 		}
 	}
 }
 
-static int leds_init(void)
+/* STATE_ERROR */
+
+/* Construct state table */
+static const struct smf_state states[] = {
+	[STATE_RUNNING] = SMF_CREATE_STATE(
+		NULL,
+		running_run,
+		NULL,
+		NULL,
+		NULL
+	),
+	[STATE_ERROR] = SMF_CREATE_STATE(
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	)
+};
+
+/* Function called when there is a message received on a channel that the module listens to */
+void led_callback(const struct zbus_channel *chan)
 {
-	__ASSERT((dk_leds_init() == 0), "DK LEDs init failure");
+	int err;
+
+	/* Update the state object with the channel that the message was received on */
+	state_object.chan = chan;
+
+	/* State object updated, run SMF */
+	err = smf_run_state(SMF_CTX(&state_object));
+	if (err) {
+		LOG_ERR("smf_run_state, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+}
+
+static int led_init(void)
+{
+	smf_set_initial(SMF_CTX(&state_object), &states[STATE_RUNNING]);
 
 	return 0;
 }
 
-SYS_INIT(leds_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+/* Initialize module at SYS_INIT() */
+SYS_INIT(led_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
