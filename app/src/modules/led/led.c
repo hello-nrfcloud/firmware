@@ -154,7 +154,6 @@ static void on_error_chan(void)
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 
 	smf_set_state(SMF_CTX(&state_object), &states[STATE_ERROR]);
-	return;
 }
 
 static void on_network_chan(void)
@@ -206,11 +205,16 @@ static void on_config_chan(const struct configuration *config)
 	LOG_DBG("LED configuration: red:%d, green:%d, blue:%d",
 		config->led_red, config->led_green, config->led_blue);
 
+	/* Set the changed incoming color, if a color is not present, the old value will be used */
+	uint8_t red = (config->led_red_present) ?
+		(uint8_t)config->led_red : led_pattern_list[LED_CONFIGURED].red;
+	uint8_t green = (config->led_green_present) ?
+		(uint8_t)config->led_green : led_pattern_list[LED_CONFIGURED].green;
+	uint8_t blue = (config->led_blue_present) ?
+		(uint8_t)config->led_blue : led_pattern_list[LED_CONFIGURED].blue;
+
 	transition_list_clear();
-	transition_list_append(LED_CONFIGURED, HOLD_FOREVER,
-			       (uint8_t)config->led_red,
-			       (uint8_t)config->led_green,
-			       (uint8_t)config->led_blue);
+	transition_list_append(LED_CONFIGURED, HOLD_FOREVER, red, green, blue);
 
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 }

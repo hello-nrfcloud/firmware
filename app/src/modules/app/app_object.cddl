@@ -33,9 +33,9 @@ led = {
 }
 
 led_inner_object = {
-  "0": int .size 4,
-  "1": int .size 4,
-  "2": int .size 4,
+  ? "0": int .size 4,
+  ? "1": int .size 4,
+  ? "2": int .size 4,
   "99": int .size 8,
   * tstr => any
 }
@@ -46,8 +46,8 @@ config = {
 }
 
 config_inner_object = {
-  "0": int .size 8,
-  "1": bool,
+  ? "0": int .size 8,
+  ? "1": bool,
   "99": int .size 8,
   * tstr => any
 }

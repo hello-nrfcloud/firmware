@@ -84,13 +84,21 @@ enum error_type {
 };
 
 struct configuration {
-	bool led_present;
+	/* LED */
 	int led_red;
 	int led_green;
 	int led_blue;
-	bool config_present;
+	bool led_present;
+	bool led_red_present;
+	bool led_green_present;
+	bool led_blue_present;
+
+	/* Configuration */
 	bool gnss;
 	uint64_t update_interval;
+	bool config_present;
+	bool gnss_present;
+	bool update_interval_present;
 };
 
 #define MSG_TO_CONFIGURATION(_msg) ((const struct configuration *)_msg)
