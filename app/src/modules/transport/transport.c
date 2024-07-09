@@ -388,8 +388,7 @@ static void state_connected_ready_run(void *o)
 		int err;
 		struct payload *payload = MSG_TO_PAYLOAD(state_object->msg_buf);
 
-		LOG_DBG("Sending payload to cloud: %p, len: %d",
-			payload->string, payload->string_len);
+		LOG_HEXDUMP_DBG(payload->string, MIN(payload->string_len, 32), "Payload");
 
 		err = nrf_cloud_coap_bytes_send(payload->string, payload->string_len, false);
 		if (err) {
