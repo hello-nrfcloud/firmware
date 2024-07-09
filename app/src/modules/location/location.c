@@ -118,7 +118,7 @@ void handle_trigger_chan(enum trigger_type trigger_type)
 
 void handle_config_chan(const struct configuration *config)
 {
-	if (config->config_present) {
+	if (config->config_present && config->gnss_present) {
 		gnss_enabled = config->gnss;
 		LOG_DBG("GNSS enabled: %d", gnss_enabled);
 	} else {

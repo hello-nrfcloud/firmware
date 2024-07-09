@@ -440,7 +440,8 @@ void trigger_callback(const struct zbus_channel *chan)
 	if (&CONFIG_CHAN == chan) {
 		const struct configuration *config = zbus_chan_const_msg(chan);
 
-		if (config->config_present == false) {
+		if ((config->config_present == false) ||
+		    (config->update_interval_present == false)) {
 			LOG_DBG("Configuration not present");
 			return;
 		}
