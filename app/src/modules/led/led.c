@@ -125,12 +125,22 @@ static void led_pattern_update_work_fn(struct k_work *work)
 
 	next_pattern = CONTAINER_OF(node, struct led_pattern, header);
 
-	/* Prevent the same LED led_state from being scheduled twice in a row. */
-	if (next_pattern->led_state != previous_led_state) {
+	/* Prevent the same LED led_state from being scheduled twice in a row unless the state is
+	 * LED_CONFIGURED which means that the user has set a new color.
+	 */
+	if (next_pattern->led_state != previous_led_state ||
+	    next_pattern->led_state == LED_CONFIGURED) {
 
 		if (next_pattern->led_state == LED_CONFIGURED) {
+
+			LOG_DBG("Setting LED configuration: red: %d, green: %d, blue: %d",
+			next_pattern->red, next_pattern->green, next_pattern->blue);
+
 			led_pwm_set_rgb(next_pattern->red, next_pattern->green, next_pattern->blue);
 		} else {
+
+			LOG_DBG("Setting LED effect: %d", next_pattern->led_state);
+
 			led_pwm_set_effect(next_pattern->led_state);
 		}
 
@@ -202,9 +212,6 @@ static void on_trigger_chan(enum trigger_mode mode)
 
 static void on_config_chan(const struct configuration *config)
 {
-	LOG_DBG("LED configuration: red:%d, green:%d, blue:%d",
-		config->led_red, config->led_green, config->led_blue);
-
 	/* Set the changed incoming color, if a color is not present, the old value will be used */
 	uint8_t red = (config->led_red_present) ?
 		(uint8_t)config->led_red : led_pattern_list[LED_CONFIGURED].red;
