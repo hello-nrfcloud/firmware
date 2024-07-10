@@ -51,7 +51,7 @@ def test_program_board_and_check_uart(t91x_board, hex_file):
     patterns_boot = [
             re.compile(r"battery: sample: State of charge: ([\d.]+)"),
             re.compile(r"environmental_module: sample: temp: ([\d.]+); press: ([\d.]+); humidity: ([\d.]+); iaq: ([\d.]+); CO2: ([\d.]+); VOC: ([\d.]+)"),
-            re.compile(r"transport: state_connected_ready_run: Sending payload to cloud: ([0-9a-fA-Fx]+), len: (\d+)")
+            re.compile(r"transport: state_connected_ready_run: Payload\s+([0-9a-fA-F ]+)")
         ]
     check_uart_data(t91x_board.uart, patterns_boot)
 
