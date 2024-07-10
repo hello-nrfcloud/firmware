@@ -156,10 +156,14 @@ static void led_pattern_update_work_fn(struct k_work *work)
 	}
 }
 
-static void on_error_chan(void)
+static void on_error_chan(enum error_type type)
 {
 	transition_list_clear();
-	transition_list_append(LED_ERROR_SYSTEM_FAULT, HOLD_FOREVER, 0, 0, 0);
+	if (type == ERROR_IRRECOVERABLE) {
+		transition_list_append(LED_ERROR_IRRECOVERABLE, HOLD_FOREVER, 0, 0, 0);
+	} else {
+		transition_list_append(LED_ERROR_SYSTEM_FAULT, HOLD_FOREVER, 0, 0, 0);
+	}
 
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 
@@ -262,10 +266,7 @@ static void running_run(void *o)
 
 	if (&ERROR_CHAN == user_object->chan) {
 		const enum error_type *type = zbus_chan_const_msg(user_object->chan);
-
-		if (*type == ERROR_FATAL) {
-			on_error_chan();
-		}
+		on_error_chan(*type);
 	}
 }
 

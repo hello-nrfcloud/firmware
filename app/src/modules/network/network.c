@@ -123,7 +123,32 @@ static void connectivity_event_handler(struct net_mgmt_event_callback *cb,
 	}
 }
 
-
+#if IS_ENABLED(CONFIG_LTE_LINK_CONTROL)
+static void lte_lc_evt_handler(const struct lte_lc_evt *const evt)
+{
+	switch (evt->type) {
+	case LTE_LC_EVT_NW_REG_STATUS:
+		if (evt->nw_reg_status == LTE_LC_NW_REG_UICC_FAIL) {
+			LOG_ERR("No SIM card detected!");
+			SEND_IRRECOVERABLE_ERROR();
+			break;
+		}
+		break;
+	case LTE_LC_EVT_MODEM_EVENT:
+		/* If a reset loop happens in the field, it should not be necessary
+		 * to perform any action. The modem will try to re-attach to the LTE network after
+		 * the 30-minute block.
+		 */
+		if (evt->modem_evt == LTE_LC_MODEM_EVT_RESET_LOOP) {
+			LOG_ERR("The modem has detected a reset loop!");
+			SEND_IRRECOVERABLE_ERROR();
+		}
+		break;
+	default:
+		break;
+	}
+}
+#endif /* IS_ENABLED(CONFIG_LTE_LINK_CONTROL) */
 
 static void sample_network_quality(void)
 {
@@ -214,6 +239,11 @@ static void network_task(void)
 	int err;
 
 	STATE_SET_INITIAL(STATE_INIT);
+
+#if IS_ENABLED(CONFIG_LTE_LINK_CONTROL)
+	/* Setup Link Controller Event handler */
+	lte_lc_register_handler(lte_lc_evt_handler);
+#endif /* IS_ENABLED(CONFIG_LTE_LINK_CONTROL) */
 
 	/* Setup handler for Zephyr NET Connection Manager events. */
 	net_mgmt_init_event_callback(&l4_cb, l4_event_handler, L4_EVENT_MASK);
