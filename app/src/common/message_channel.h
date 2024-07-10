@@ -38,6 +38,13 @@ extern "C" {
 /** @brief Macro used to handle watchdog timeouts. */
 #define SEND_FATAL_ERROR_WATCHDOG_TIMEOUT() FATAL_ERROR_HANDLE(1)
 
+#define SEND_IRRECOVERABLE_ERROR() do {					\
+	enum error_type type = ERROR_IRRECOVERABLE;				\
+	(void)zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(10));			\
+	LOG_PANIC();								\
+	k_sleep(K_SECONDS(5));							\
+} while (0)
+
 struct payload {
 	char string[CONFIG_APP_PAYLOAD_CHANNEL_STRING_MAX_SIZE];
 	size_t string_len;
@@ -85,6 +92,7 @@ enum location_status {
 
 enum error_type {
 	ERROR_FATAL = 0x1,
+	ERROR_IRRECOVERABLE,
 	ERROR_DECODE,
 };
 

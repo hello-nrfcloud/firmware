@@ -47,6 +47,12 @@ To build the application, run the following command:
 west build -b thingy91x/nrf9151/ns app
 ```
 
+When using the serial bootloader, you can update using this command:
+
+```
+west thingy91x-dfu
+```
+
 When using an external debugger, you can flash using this command:
 
 ```shell
@@ -61,3 +67,4 @@ west flash --erase
 | Blinking slow  | Blue       | Device is actively polling cloud             | 10 minutes after last config update or button press |
 | Solid          | Configured | Device has received a LED configuration      | NA                                                  |
 | Blinking rapid | Red        | Fatal error, the device will reboot          | NA                                                  |
+| Blinking slow  | Red        | Irrecoverable Fatal error                    | NA                                                  |
