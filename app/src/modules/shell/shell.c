@@ -26,11 +26,14 @@ LOG_MODULE_REGISTER(shell, CONFIG_APP_SHELL_LOG_LEVEL);
 static const struct device *const shell_uart_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
 static void uart_disable_handler(struct k_work *work);
 static void uart_enable_handler(struct k_work *work);
-static K_WORK_DEFINE(uart_disable_work, &uart_disable_handler);
+static K_WORK_DELAYABLE_DEFINE(uart_disable_work, &uart_disable_handler);
 static K_WORK_DELAYABLE_DEFINE(uart_enable_work, &uart_enable_handler);
 
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(shell);
+
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(TRIGGER_MODE_CHAN, shell, 0);
 
 enum zbus_test_type {
 	PING,
@@ -97,7 +100,7 @@ static int cmd_uart_disable(const struct shell *sh, size_t argc,
 	} else {
 		shell_print(sh, "disable: disabling UARTs indefinitely");
 	}
-	k_work_submit(&uart_disable_work);
+	k_work_schedule(&uart_disable_work, K_NO_WAIT);
 
 	if (sleep_time > 0) {
 		k_work_schedule(&uart_enable_work, K_SECONDS(sleep_time));
@@ -171,11 +174,41 @@ static void task_wdt_callback(int channel_id, void *user_data)
  */
 static int handle_message(const struct zbus_channel *chan, uint8_t *msg_buf)
 {
+	int err;
+
 	if (&ZBUS_TEST_CHAN == chan) {
 		enum zbus_test_type test_type = *(enum zbus_test_type *)msg_buf;
 
 		if (test_type == PING) {
 			LOG_INF("pong");
+		}
+	}
+	else if (&TRIGGER_MODE_CHAN == chan) {
+		enum pm_device_state shell_uart_power_state;
+
+		if (!device_is_ready(shell_uart_dev)) {
+			LOG_INF("Shell UART device not ready");
+			return 0;
+		}
+		err = pm_device_state_get(shell_uart_dev, &shell_uart_power_state);
+		if (err) {
+			LOG_ERR("Failed to assess shell UART power state, pm_device_state_get: %d.",
+				err);
+			return 0;
+		}
+
+		const enum trigger_mode mode = *(enum trigger_mode *)msg_buf;
+		if (mode == TRIGGER_MODE_POLL) {
+			// start uart if not already on
+			if (shell_uart_power_state != PM_DEVICE_STATE_ACTIVE) {
+				k_work_schedule(&uart_enable_work, K_NO_WAIT);
+			}
+		}
+		else  if (mode == TRIGGER_MODE_NORMAL) {
+			// stop uart if not already off
+			if (shell_uart_power_state != PM_DEVICE_STATE_SUSPENDED) {
+				k_work_schedule(&uart_disable_work, K_SECONDS(5));
+			}
 		}
 	}
 
