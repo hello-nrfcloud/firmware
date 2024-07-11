@@ -368,7 +368,6 @@ static void frequent_poll_exit(void *o)
 
 	k_work_cancel_delayable(&trigger_poll_work);
 	k_work_cancel_delayable(&trigger_data_sample_work);
-	k_timer_stop(&frequent_poll_duration_timer);
 }
 
 /* STATE_NORMAL */
