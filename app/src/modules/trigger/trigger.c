@@ -30,9 +30,6 @@ ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 /* Trigger interval in the frequent poll state */
 #define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 20
 
-/* Duration that the trigger module is in the frequent poll state */
-#define FREQUENT_POLL_DURATION_INTERVAL_SEC 600
-
 /* Forward declarations */
 static void trigger_poll_work_fn(struct k_work *work);
 static void trigger_data_sample_work_fn(struct k_work *work);
@@ -185,10 +182,10 @@ static void frequent_poll_duration_timer_start(bool force_restart)
 {
 	if ((k_timer_remaining_get(&frequent_poll_duration_timer) == 0) || force_restart) {
 		LOG_DBG("Starting frequent poll duration timer: %d seconds",
-			FREQUENT_POLL_DURATION_INTERVAL_SEC);
+			CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC);
 
 		k_timer_start(&frequent_poll_duration_timer,
-			      K_SECONDS(FREQUENT_POLL_DURATION_INTERVAL_SEC), K_NO_WAIT);
+			      K_SECONDS(CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC), K_NO_WAIT);
 		return;
 	}
 }
@@ -314,7 +311,7 @@ static void frequent_poll_entry(void *o)
 	LOG_DBG("frequent_poll_entry");
 	LOG_DBG("Sending poll and data sample triggers every %d seconds for %d minutes",
 		FREQUENT_POLL_TRIGGER_INTERVAL_SEC,
-		FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
+		CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
 
 	enum trigger_mode trigger_mode = TRIGGER_MODE_POLL;
 
