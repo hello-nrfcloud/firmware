@@ -37,8 +37,6 @@ static const struct pwm_dt_spec led2 = PWM_DT_SPEC_GET(PWM_LED2_NODE);
 #endif
 
 struct led {
-	const struct device *pwm_dev;
-
 	size_t id;
 	struct led_color color;
 	const struct led_effect *effect;
@@ -103,15 +101,6 @@ static void pwm_out(const struct led_color *color)
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return;
 	}
-}
-
-static void pwm_off(const struct led *led)
-{
-	ARG_UNUSED(led);
-
-	struct led_color nocolor = { 0 };
-
-	pwm_out(&nocolor);
 }
 
 static void work_handler(struct k_work *work)
@@ -179,32 +168,56 @@ static void led_update(struct led *led)
 
 void led_pwm_start(void)
 {
-	int err = pm_device_action_run(leds.pwm_dev, PM_DEVICE_ACTION_RESUME);
+	int err;
 
+	// this action starts also led1 and led2 pwm
+	err = pm_device_action_run(led0.dev, PM_DEVICE_ACTION_RESUME);
 	if (err) {
 		LOG_ERR("PWM enable failed");
 		return;
 	}
-
-	led_update(&leds);
 }
 
 void led_pwm_stop(void)
 {
+	int err;
 	k_work_cancel_delayable_sync(&leds.work, &leds.work_sync);
 
-	int err = pm_device_action_run(leds.pwm_dev, PM_DEVICE_ACTION_SUSPEND);
-
+	// this action suspends also led1 and led2 pwm
+	err = pm_device_action_run(led0.dev, PM_DEVICE_ACTION_SUSPEND);
 	if (err) {
-		LOG_ERR("PWM enable failed");
+		LOG_ERR("PWM disable failed");
 		return;
 	}
-
-	pwm_off(&leds);
 }
 
 void led_pwm_set_effect(enum led_state state)
 {
+	int err;
+	enum pm_device_state led0_pwm_power_state;
+
+	if (pwm_is_ready_dt(&led0)) {
+		err = pm_device_state_get(led0.dev, &led0_pwm_power_state);
+		if (err) {
+			LOG_ERR("Failed to assess leds pwm power state, pm_device_state_get: %d.",
+				err);
+			return;
+		}
+
+		if (state == LED_OFF) {
+			// stop leds pwm if on, and return
+			if (led0_pwm_power_state == PM_DEVICE_STATE_ACTIVE) {
+				led_pwm_stop();
+			}
+			return;
+		}
+
+		if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
+			// start leds pwm if off
+			led_pwm_start();
+		}
+	}
+
 	leds.effect = &effect[state];
 	led_update(&leds);
 }
@@ -213,6 +226,31 @@ static struct led_effect effect_on = LED_EFFECT_LED_ON(LED_NOCOLOR());
 
 int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
+	int err;
+	enum pm_device_state led0_pwm_power_state;
+
+	if (pwm_is_ready_dt(&led0)) {
+		err = pm_device_state_get(led0.dev, &led0_pwm_power_state);
+		if (err) {
+			LOG_ERR("Failed to assess leds pwm power state, pm_device_state_get: %d.",
+				err);
+			return 0;
+		}
+
+        if (red == 0 && green == 0 && blue == 0) {
+			// stop leds pwm if on, and return
+			if (led0_pwm_power_state == PM_DEVICE_STATE_ACTIVE) {
+				led_pwm_stop();
+			}
+			return 0;
+		}
+
+		if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
+			// start leds pwm if off
+			led_pwm_start();
+		}
+	}
+
 	effect_on.steps[0].color.c[0] = red;
 	effect_on.steps[0].color.c[1] = green;
 	effect_on.steps[0].color.c[2] = blue;
