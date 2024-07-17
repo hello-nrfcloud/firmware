@@ -13,6 +13,9 @@
 #include <date_time.h>
 #include <zephyr/smf.h>
 
+#include "nrf_modem_at.h"
+#include "modem/nrf_modem_lib.h"
+#include "modem/pdn.h"
 #include "modem/lte_lc.h"
 #include "modem/modem_info.h"
 #include "modules_common.h"
@@ -241,6 +244,38 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	SEND_FATAL_ERROR_WATCHDOG_TIMEOUT();
 }
 
+static void special_sim_config(void)
+{
+	int err;
+	char buf[23] = {0};
+
+	nrf_modem_at_printf("AT+CFUN=1");
+
+	do {
+		err = nrf_modem_at_scanf("AT%XICCID", "%%XICCID: %23[^\r\n]", buf);
+	} while (err == -77); // retry while SIM card is not ready
+
+	if (err != 1) {
+		LOG_ERR("nrf_modem_at_scanf, ret: %d", err);
+		return;
+	}
+
+	nrf_modem_at_printf("AT+CFUN=0");
+	LOG_INF("SIM card XICCID: %s", buf);
+	const char *wl_prefix = "894446";
+	const size_t wl_prefix_len = sizeof(wl_prefix);
+	if (!memcmp(buf, wl_prefix, wl_prefix_len)) {
+		LOG_INF("Setting credentials for Wireless Logic SIM");
+		err = pdn_ctx_configure(0, "eapn1.net", 0, NULL);
+		if (err) {
+			LOG_ERR("pdn_ctx_configure, err: %d", err);
+		}
+		err = pdn_ctx_auth_set(0, PDN_AUTH_PAP, "NordicSe", "NordicSe");
+		if (err) {
+			LOG_ERR("pdn_ctx_auth_set, err: %d", err);
+		}
+	}
+}
 
 static void network_task(void)
 {
@@ -272,6 +307,8 @@ static void network_task(void)
 		SEND_FATAL_ERROR();
 		return;
 	}
+
+	special_sim_config();
 
 	err = conn_mgr_all_if_connect(true);
 	if (err) {
