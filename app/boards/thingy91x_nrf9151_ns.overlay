@@ -15,3 +15,7 @@
 		gas-sensor = &bme680;
 	};
 };
+
+&uart1 {
+	status = "okay";
+};
