@@ -24,6 +24,8 @@
 LOG_MODULE_REGISTER(shell, CONFIG_APP_SHELL_LOG_LEVEL);
 
 static const struct device *const shell_uart_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
+static const struct device *const uart1_dev = DEVICE_DT_GET(DT_NODELABEL(uart1));
+
 static void uart_disable_handler(struct k_work *work);
 static void uart_enable_handler(struct k_work *work);
 static K_WORK_DELAYABLE_DEFINE(uart_disable_work, &uart_disable_handler);
@@ -58,6 +60,10 @@ static void uart_disable_handler(struct k_work *work)
 	}
 #endif
 
+	if (device_is_ready(uart1_dev)) {
+		pm_device_action_run(uart1_dev, PM_DEVICE_ACTION_SUSPEND);
+	}
+
 	if (device_is_ready(shell_uart_dev)) {
 		pm_device_action_run(shell_uart_dev, PM_DEVICE_ACTION_SUSPEND);
 	}
@@ -67,6 +73,10 @@ static void uart_enable_handler(struct k_work *work)
 {
 	if (device_is_ready(shell_uart_dev)) {
 		pm_device_action_run(shell_uart_dev, PM_DEVICE_ACTION_RESUME);
+	}
+
+	if (device_is_ready(uart1_dev)) {
+		pm_device_action_run(uart1_dev, PM_DEVICE_ACTION_RESUME);
 	}
 
 #ifdef CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_UART
