@@ -61,6 +61,7 @@ jobs:
       - name: 'nrf91: check partition layout'
         working-directory: thingy91x-oob/twister-out/thingy91x_nrf9151_ns/app/app.build/
         run: |
+          ninja partition_manager_report # need to run this twice
           ninja partition_manager_report > partition_manager_report.txt
           sed -i '1d' partition_manager_report.txt
           diff partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
@@ -88,6 +89,7 @@ jobs:
       - name: 'nrf53: check partition layout'
         working-directory: thingy91x-oob/twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/
         run: |
+          ninja partition_manager_report # need to run this twice
           ninja partition_manager_report > partition_manager_report.txt
           sed -i '1d' partition_manager_report.txt
           diff partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf53.txt
