@@ -49,13 +49,11 @@ enum state {
 	STATE_INIT,
 	STATE_CONNECTED,
 	/* Sub-state to STATE_CONNECTED */
-	STATE_BLOCKED,
-	/* Sub-state to STATE_CONNECTED */
-	STATE_UNBLOCKED,
-	/* Sub-state to STATE_UNBLOCKED */
-	STATE_NORMAL,
-	/* Sub-state to STATE_UNBLOCKED */
 	STATE_FREQUENT_POLL,
+	/* Sub-state to STATE_CONNECTED */
+	STATE_NORMAL,
+	/* Sub-state to STATE_CONNECTED */
+	STATE_BLOCKED,
 	STATE_DISCONNECTED
 };
 
@@ -101,6 +99,8 @@ struct s_object {
 	/* Cloud status */
 	enum cloud_status status;
 
+	/* Trigger mode */
+	enum trigger_mode trigger_mode;
 };
 
 /* SMF state object variable */
@@ -196,10 +196,8 @@ static void frequent_poll_duration_timer_start(bool force_restart)
  *
  * STATE_INIT: Initializing module
  * STATE_CONNECTED: Connected to cloud.
- * 	- STATE_UNBLOCKED:
- *		- STATE_FREQUENT_POLL: Sending poll and data sample triggers every
- 				       20 seconds for 10 minutes
- *		- STATE_NORMAL: Sending poll triggers every configured update interval
+ *	- STATE_FREQUENT_POLL: Sending poll and data sample triggers every 20 seconds for 10 minutes
+ *	- STATE_NORMAL: Sending poll triggers every configured update interval
  *				Sending data sample triggers every configured update interval
  *	- STATE_BLOCKED: Sending of triggers is blocked due to GNSS activity
  * STATE_DISCONNECTED: Sending of triggers is blocked due to being disconnected
@@ -235,6 +233,7 @@ static void init_run(void *o)
 	LOG_DBG("init_run");
 
 	if ((user_object->chan == &CLOUD_CHAN) && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
+		LOG_DBG("Cloud connected, going into connected state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
 		return;
 	}
@@ -256,22 +255,6 @@ static void connected_run(void *o)
 	}
 }
 
-/* STATE_UNBLOCKED */
-
-static void unblocked_run(void *o)
-{
-	struct s_object *user_object = o;
-
-	LOG_DBG("unblocked_run");
-
-	if (user_object->chan == &LOCATION_CHAN && user_object->gnss) {
-		LOG_DBG("GNSS enabled, going into blocked state");
-
-		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
-		return;
-	}
-}
-
 /* STATE_BLOCKED */
 
 static void blocked_run(void *o)
@@ -281,9 +264,15 @@ static void blocked_run(void *o)
 	LOG_DBG("blocked_run");
 
 	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
-		LOG_DBG("GNSS disabled, going into unblocked state");
+		LOG_DBG("GNSS disabled");
 
-		smf_set_state(SMF_CTX(&state_object), &states[STATE_UNBLOCKED]);
+		if (user_object->trigger_mode == TRIGGER_MODE_NORMAL) {
+			LOG_DBG("Going into normal state");
+			smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
+		} else {
+			LOG_DBG("Going into frequent poll state");
+			smf_set_state(SMF_CTX(&state_object), &states[STATE_FREQUENT_POLL]);
+		}
 		return;
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		LOG_DBG("Going into normal state");
@@ -299,6 +288,9 @@ static void blocked_run(void *o)
 		LOG_DBG("Configuration received, refreshing poll duration timer");
 
 		frequent_poll_duration_timer_start(true);
+	} else {
+		LOG_WRN("Message received on unknown channel %s. Ignoring.",
+			zbus_chan_name(user_object->chan));
 	}
 }
 
@@ -324,6 +316,7 @@ static void frequent_poll_entry(void *o)
 	}
 
 	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	user_object->trigger_mode = TRIGGER_MODE_POLL;
 
 	frequent_poll_duration_timer_start(false);
 	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
@@ -336,7 +329,12 @@ static void frequent_poll_run(void *o)
 
 	LOG_DBG("frequent_poll_run");
 
-	if (user_object->chan == &PRIV_TRIGGER_CHAN) {
+	if (user_object->chan == &LOCATION_CHAN && user_object->gnss) {
+		LOG_DBG("GNSS enabled, going into blocked state");
+
+		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
+		return;
+	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		LOG_DBG("Going into normal state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
 		return;
@@ -353,6 +351,9 @@ static void frequent_poll_run(void *o)
 		LOG_DBG("Configuration received, refreshing poll duration timer");
 
 		frequent_poll_duration_timer_start(true);
+	} else {
+		LOG_WRN("Message received on unknown channel %s. Ignoring.",
+			zbus_chan_name(user_object->chan));
 	}
 }
 
@@ -391,6 +392,7 @@ static void normal_entry(void *o)
 	/* In normal mode we poll at the same frequency as we send data sample triggers */
 	user_object->poll_interval_sec = user_object->update_interval_configured_sec;
 	user_object->update_interval_used_sec = user_object->update_interval_configured_sec;
+	user_object->trigger_mode = TRIGGER_MODE_NORMAL;
 
 	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
 	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
@@ -402,7 +404,12 @@ static void normal_run(void *o)
 
 	LOG_DBG("normal_run");
 
-	if (user_object->chan == &BUTTON_CHAN) {
+	if (user_object->chan == &LOCATION_CHAN && user_object->gnss) {
+		LOG_DBG("GNSS enabled, going into blocked state");
+
+		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
+		return;
+	} else if (user_object->chan == &BUTTON_CHAN) {
 		LOG_DBG("Button %d pressed in normal state, going into frequent poll state",
 			user_object->button_number);
 
@@ -461,27 +468,20 @@ static const struct smf_state states[] = {
 		connected_run,
 		NULL,
 		NULL,
-		&states[STATE_UNBLOCKED]
-	),
-	[STATE_UNBLOCKED] = SMF_CREATE_STATE(
-		NULL,
-		unblocked_run,
-		NULL,
-		&states[STATE_CONNECTED],
 		&states[STATE_FREQUENT_POLL]
 	),
 	[STATE_FREQUENT_POLL] = SMF_CREATE_STATE(
 		frequent_poll_entry,
 		frequent_poll_run,
 		frequent_poll_exit,
-		&states[STATE_UNBLOCKED],
+		&states[STATE_CONNECTED],
 		NULL
 	),
 	[STATE_NORMAL] = SMF_CREATE_STATE(
 		normal_entry,
 		normal_run,
 		normal_exit,
-		&states[STATE_UNBLOCKED],
+		&states[STATE_CONNECTED],
 		NULL
 	),
 	[STATE_BLOCKED] = SMF_CREATE_STATE(
@@ -514,6 +514,8 @@ void trigger_callback(const struct zbus_channel *chan)
 		return;
 	}
 
+	LOG_DBG("Received message on channel %s", zbus_chan_name(chan));
+
 	/* Update the state object with the channel that the message was received on */
 	state_object.chan = chan;
 
@@ -524,25 +526,24 @@ void trigger_callback(const struct zbus_channel *chan)
 		if (config->update_interval_present) {
 			state_object.update_interval_configured_sec = config->update_interval;
 		}
-	}
-
-	if (&CLOUD_CHAN == chan) {
+	} else if (&CLOUD_CHAN == chan) {
 		const enum cloud_status *status = zbus_chan_const_msg(chan);
 
 		state_object.status = *status;
-	}
-
-	if (&BUTTON_CHAN == chan) {
+	} else if (&BUTTON_CHAN == chan) {
 		const int *button_number = zbus_chan_const_msg(chan);
 
 		state_object.button_number = (uint8_t)*button_number;
-	}
-
-	if (&LOCATION_CHAN == chan) {
+	} else if (&LOCATION_CHAN == chan) {
 		const enum location_status *location_status = zbus_chan_const_msg(chan);
 
 		state_object.gnss = (*location_status == GNSS_ENABLED);
+	} else {
+		LOG_WRN("Message received on unknown channel %s.",
+					zbus_chan_name(state_object.chan));
 	}
+
+	LOG_DBG("Running SMF");
 
 	/* State object updated, run SMF */
 	err = smf_run_state(SMF_CTX(&state_object));
@@ -559,6 +560,7 @@ static int trigger_init(void)
 	state_object.update_interval_configured_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
 	state_object.update_interval_used_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
 	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	state_object.trigger_mode = TRIGGER_MODE_POLL;
 
 	smf_set_initial(SMF_CTX(&state_object), &states[STATE_INIT]);
 
