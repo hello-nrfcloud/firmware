@@ -174,6 +174,11 @@ static void frequent_poll_duration_timer_start(bool force_restart)
 	}
 }
 
+static void frequent_poll_duration_timer_stop(void)
+{
+	k_timer_stop(&frequent_poll_duration_timer);
+}
+
 /* Zephyr State Machine framework handlers */
 
 /* HSM states:
@@ -234,6 +239,7 @@ static void connected_run(void *o)
 	if ((user_object->chan == &CLOUD_CHAN) &&
 	    ((user_object->status == CLOUD_CONNECTED_PAUSED) ||
 	     (user_object->status == CLOUD_DISCONNECTED))) {
+		LOG_DBG("Cloud disconnected/paused, going into disconnected state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_DISCONNECTED]);
 		return;
 	}
@@ -259,8 +265,12 @@ static void blocked_run(void *o)
 		}
 		return;
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
-		LOG_DBG("Going into normal state");
-		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
+		/* Frequent poll duration timer expired. Since the current state is BLOCKED,
+		 * continue to remain in this state but only change the trigger mode so that
+		 * when the GNSS is disabled, the state machine transitions into Normal mode.
+		 */
+		LOG_DBG("Changing the trigger mode in state object ");
+		user_object->trigger_mode = TRIGGER_MODE_NORMAL;
 		return;
 	} else if (user_object->chan == &BUTTON_CHAN) {
 		LOG_DBG("Button %d pressed in blocked state, restarting duration timer",
@@ -273,8 +283,8 @@ static void blocked_run(void *o)
 
 		frequent_poll_duration_timer_start(true);
 	} else {
-		LOG_WRN("Message received on unknown channel %s. Ignoring.",
-			zbus_chan_name(user_object->chan));
+		LOG_DBG("Message received on channel %s. Ignoring.", zbus_chan_name(user_object->chan));
+		/* Do nothing. Parent state may have handling for this. */
 	}
 }
 
@@ -295,10 +305,7 @@ static void frequent_poll_entry(void *o)
 		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
 		return;
 	}
-
-	enum trigger_mode trigger_mode = TRIGGER_MODE_POLL;
-
-	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &trigger_mode, K_SECONDS(1));
+	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_SECONDS(1));
 
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
@@ -341,8 +348,8 @@ static void frequent_poll_run(void *o)
 
 		frequent_poll_duration_timer_start(true);
 	} else {
-		LOG_WRN("Message received on unknown channel %s. Ignoring.",
-			zbus_chan_name(user_object->chan));
+		/* Parent state may have handling of this event. */
+		LOG_DBG("Message received on channel %s. Ignoring.", zbus_chan_name(user_object->chan));
 	}
 }
 
@@ -366,17 +373,8 @@ static void normal_entry(void *o)
 	user_object->update_interval_used_sec = user_object->update_interval_configured_sec;
 	user_object->trigger_mode = TRIGGER_MODE_NORMAL;
 
-	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
-		LOG_DBG("GNSS disabled");
-
-		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
-		return;
-	}
-
 	/* Send message on trigger mode channel */
-	enum trigger_mode trigger_mode = TRIGGER_MODE_NORMAL;
-
-	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &trigger_mode, K_SECONDS(1));
+	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -428,6 +426,17 @@ static void normal_exit(void *o)
 
 /* STATE_DISCONNECTED */
 
+static void disconnected_entry(void *o)
+{
+	ARG_UNUSED(o);
+
+	LOG_DBG("disconnected_entry");
+	/* Cancel frequent poll duration timer if running. This can happen when state machine was
+	 * in BLOCKED state and then a disconnection happened.
+	 */
+	frequent_poll_duration_timer_stop();
+}
+
 static void disconnected_run(void *o)
 {
 	struct s_object *user_object = o;
@@ -478,7 +487,7 @@ static const struct smf_state states[] = {
 		NULL
 	),
 	[STATE_DISCONNECTED] = SMF_CREATE_STATE(
-		NULL,
+		disconnected_entry,
 		disconnected_run,
 		NULL,
 		NULL,
@@ -525,8 +534,9 @@ void trigger_callback(const struct zbus_channel *chan)
 
 		state_object.gnss = (*location_status == GNSS_ENABLED);
 	} else {
-		LOG_WRN("Message received on unknown channel %s.",
-					zbus_chan_name(state_object.chan));
+		/* PRIV_TRIGGER_CHAN event. Frequent Poll Duration timer expired*/
+		LOG_DBG("Message received on PRIV_TRIGGER_CHAN channel.");
+		/* Do nothing to the state object */
 	}
 
 	LOG_DBG("Running SMF");
