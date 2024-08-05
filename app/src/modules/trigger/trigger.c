@@ -31,14 +31,11 @@ ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 #define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 20
 
 /* Forward declarations */
-static void trigger_poll_work_fn(struct k_work *work);
-static void trigger_data_sample_work_fn(struct k_work *work);
+static void trigger_work_fn(struct k_work *work);
 static const struct smf_state states[];
 
-/* Delayable work used to schedule triggers for polling */
-static K_WORK_DELAYABLE_DEFINE(trigger_poll_work, trigger_poll_work_fn);
-/* Delayable work used to schedule triggers for data sampling */
-static K_WORK_DELAYABLE_DEFINE(trigger_data_sample_work, trigger_data_sample_work_fn);
+/* Delayable work used to schedule triggers for polling and data sampling */
+static K_WORK_DELAYABLE_DEFINE(trigger_work, trigger_work_fn);
 
 /* Timer used to exit the frequent poll state after 10 minutes */
 static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id);
@@ -82,16 +79,13 @@ struct s_object {
 	 */
 	uint64_t update_interval_configured_sec;
 
-	/* Update interval used when scheduling data sample triggers, will differ depending on the
+	/* Update interval used when scheduling triggers, will differ depending on the
 	 * state that the module is in
 	 */
 	uint64_t update_interval_used_sec;
 
 	/* GNSS status, used to block trigger events */
 	bool gnss;
-
-	/* Set default poll interval */
-	uint64_t poll_interval_sec;
 
 	/* Button number */
 	uint8_t button_number;
@@ -137,27 +131,17 @@ static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id
 	}
 }
 
-/* Delayed work used to signal poll triggers to the rest of the system */
-static void trigger_poll_work_fn(struct k_work *work)
+/* Delayed work used to signal data sample and poll triggers to the rest of the system */
+static void trigger_work_fn(struct k_work *work)
 {
 	ARG_UNUSED(work);
 
-	LOG_DBG("Sending trigger poll message");
-
-	trigger_send(TRIGGER_POLL, K_SECONDS(1));
-	k_work_reschedule(&trigger_poll_work, K_SECONDS(state_object.poll_interval_sec));
-}
-
-/* Delayed work used to signal data sample triggers to the rest of the system */
-static void trigger_data_sample_work_fn(struct k_work *work)
-{
-	ARG_UNUSED(work);
-
-	LOG_DBG("Sending trigger data sample message");
+	LOG_DBG("Sending trigger");
 
 	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
-	k_work_reschedule(&trigger_data_sample_work,
-			  K_SECONDS(state_object.update_interval_used_sec));
+	trigger_send(TRIGGER_POLL, K_SECONDS(1));
+
+	k_work_reschedule(&trigger_work, K_SECONDS(state_object.update_interval_used_sec));
 }
 
 /* Button handler called when a user pushes a button */
@@ -279,7 +263,7 @@ static void blocked_run(void *o)
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
 		return;
 	} else if (user_object->chan == &BUTTON_CHAN) {
-		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
+		LOG_DBG("Button %d pressed in blocked state, restarting duration timer",
 			user_object->button_number);
 
 		frequent_poll_duration_timer_start(true);
@@ -301,9 +285,16 @@ static void frequent_poll_entry(void *o)
 	struct s_object *user_object = o;
 
 	LOG_DBG("frequent_poll_entry");
-	LOG_DBG("Sending poll and data sample triggers every %d seconds for %d minutes",
-		FREQUENT_POLL_TRIGGER_INTERVAL_SEC,
-		CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
+
+	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	user_object->trigger_mode = TRIGGER_MODE_POLL;
+
+	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
+		LOG_DBG("GNSS disabled");
+
+		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
+		return;
+	}
 
 	enum trigger_mode trigger_mode = TRIGGER_MODE_POLL;
 
@@ -315,12 +306,12 @@ static void frequent_poll_entry(void *o)
 		return;
 	}
 
-	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
-	user_object->trigger_mode = TRIGGER_MODE_POLL;
+	LOG_DBG("Sending poll and data sample triggers every %d seconds for %d minutes",
+		FREQUENT_POLL_TRIGGER_INTERVAL_SEC,
+		CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
 
 	frequent_poll_duration_timer_start(false);
-	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
-	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_work, K_NO_WAIT);
 }
 
 static void frequent_poll_run(void *o)
@@ -342,10 +333,8 @@ static void frequent_poll_run(void *o)
 		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
 			user_object->button_number);
 
-		/* Trigger data sample and poll work and restart the poll duration timer */
 		frequent_poll_duration_timer_start(true);
-		k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
-		k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
+		k_work_reschedule(&trigger_work, K_NO_WAIT);
 
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
@@ -362,10 +351,8 @@ static void frequent_poll_exit(void *o)
 	ARG_UNUSED(o);
 
 	LOG_DBG("frequent_poll_exit");
-	LOG_DBG("Cancelling poll work timers");
 
-	k_work_cancel_delayable(&trigger_poll_work);
-	k_work_cancel_delayable(&trigger_data_sample_work);
+	k_work_cancel_delayable(&trigger_work);
 }
 
 /* STATE_NORMAL */
@@ -375,9 +362,16 @@ static void normal_entry(void *o)
 	struct s_object *user_object = o;
 
 	LOG_DBG("normal_entry");
-	LOG_DBG("Sending poll and data sample triggers every "
-		"configured update interval: %lld seconds",
-		user_object->update_interval_configured_sec);
+
+	user_object->update_interval_used_sec = user_object->update_interval_configured_sec;
+	user_object->trigger_mode = TRIGGER_MODE_NORMAL;
+
+	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
+		LOG_DBG("GNSS disabled");
+
+		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
+		return;
+	}
 
 	/* Send message on trigger mode channel */
 	enum trigger_mode trigger_mode = TRIGGER_MODE_NORMAL;
@@ -389,13 +383,11 @@ static void normal_entry(void *o)
 		return;
 	}
 
-	/* In normal mode we poll at the same frequency as we send data sample triggers */
-	user_object->poll_interval_sec = user_object->update_interval_configured_sec;
-	user_object->update_interval_used_sec = user_object->update_interval_configured_sec;
-	user_object->trigger_mode = TRIGGER_MODE_NORMAL;
+	LOG_DBG("Sending poll and data sample triggers every "
+		"configured update interval: %lld seconds",
+		user_object->update_interval_configured_sec);
 
-	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
-	k_work_reschedule(&trigger_data_sample_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_work, K_NO_WAIT);
 }
 
 static void normal_run(void *o)
@@ -425,28 +417,22 @@ static void normal_run(void *o)
 
 static void normal_exit(void *o)
 {
-	ARG_UNUSED(o);
+	struct s_object *user_object = o;
 
 	LOG_DBG("normal_exit");
 
-	/* Cancel all delayed work scheduled in this state and revert to the default
-	 * poll trigger interval
-	 */
-	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
 
-	k_work_cancel_delayable(&trigger_poll_work);
-	k_work_cancel_delayable(&trigger_data_sample_work);
+	k_work_cancel_delayable(&trigger_work);
 }
 
 /* STATE_DISCONNECTED */
 
 static void disconnected_run(void *o)
 {
-	ARG_UNUSED(o);
+	struct s_object *user_object = o;
 
 	LOG_DBG("disconnected_run");
-
-	struct s_object *user_object = o;
 
 	if (user_object->chan == &CLOUD_CHAN && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
@@ -556,10 +542,8 @@ void trigger_callback(const struct zbus_channel *chan)
 
 static int trigger_init(void)
 {
-	/* Set default update and poll interval */
 	state_object.update_interval_configured_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
 	state_object.update_interval_used_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
-	state_object.poll_interval_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
 	state_object.trigger_mode = TRIGGER_MODE_POLL;
 
 	smf_set_initial(SMF_CTX(&state_object), &states[STATE_INIT]);
