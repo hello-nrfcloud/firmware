@@ -135,6 +135,21 @@ static void state_initialized_run(void *o)
 	}
 }
 
+static bool poll_for_job_grant(void)
+{
+	static uint32_t last_poll_time;
+	uint32_t current_time = k_uptime_get_32();
+	uint32_t time_diff = current_time - last_poll_time;
+
+	if (time_diff < (CONFIG_APP_FOTA_POLL_INTERVAL_SECONDS * MSEC_PER_SEC)) {
+		return false;
+	}
+
+	last_poll_time = current_time;
+
+	return true;
+}
+
 static void state_poll_and_process_run(void *o)
 {
 	struct s_object *state_object = o;
@@ -142,10 +157,14 @@ static void state_poll_and_process_run(void *o)
 	if (&TRIGGER_CHAN == state_object->chan) {
 		int err;
 		const enum trigger_type trigger_type = MSG_TO_TRIGGER_TYPE(state_object->msg_buf);
-
 		enum fota_status fota_status = FOTA_STATUS_PROCESSING_START;
 
 		if (trigger_type != TRIGGER_POLL) {
+			return;
+		}
+
+		if (!poll_for_job_grant()) {
+			LOG_DBG("Not enough time has passed, skipping polling for FOTA update");
 			return;
 		}
 
