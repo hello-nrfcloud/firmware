@@ -32,10 +32,12 @@ ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 
 /* Forward declarations */
 static void trigger_work_fn(struct k_work *work);
+static void trigger_fota_poll_work_fn(struct k_work *work);
 static const struct smf_state states[];
 
 /* Delayable work used to schedule triggers for polling and data sampling */
 static K_WORK_DELAYABLE_DEFINE(trigger_work, trigger_work_fn);
+static K_WORK_DELAYABLE_DEFINE(trigger_fota_poll_work, trigger_fota_poll_work_fn);
 
 /* Timer used to exit the frequent poll state after 10 minutes */
 static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id);
@@ -131,7 +133,7 @@ static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id
 	}
 }
 
-/* Delayed work used to signal data sample and poll triggers to the rest of the system */
+/* Delayed work used to send triggers to the rest of the system */
 static void trigger_work_fn(struct k_work *work)
 {
 	ARG_UNUSED(work);
@@ -142,6 +144,18 @@ static void trigger_work_fn(struct k_work *work)
 	trigger_send(TRIGGER_POLL, K_SECONDS(1));
 
 	k_work_reschedule(&trigger_work, K_SECONDS(state_object.update_interval_used_sec));
+}
+
+static void trigger_fota_poll_work_fn(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	LOG_DBG("Sending FOTA poll trigger");
+
+	trigger_send(TRIGGER_FOTA_POLL, K_SECONDS(1));
+
+	k_work_reschedule(&trigger_fota_poll_work,
+			  K_SECONDS(CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC));
 }
 
 /* Button handler called when a user pushes a button */
@@ -303,6 +317,8 @@ static void frequent_poll_entry(void *o)
 		LOG_DBG("GNSS disabled");
 
 		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
+		k_work_reschedule(&trigger_fota_poll_work,
+				  K_SECONDS(CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC));
 		return;
 	}
 	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_SECONDS(1));
@@ -317,8 +333,12 @@ static void frequent_poll_entry(void *o)
 		FREQUENT_POLL_TRIGGER_INTERVAL_SEC,
 		CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
 
+	LOG_DBG("Sending FOTA poll triggers every %d seconds",
+		CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC);
+
 	frequent_poll_duration_timer_start(false);
 	k_work_reschedule(&trigger_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
 }
 
 static void frequent_poll_run(void *o)
@@ -342,6 +362,7 @@ static void frequent_poll_run(void *o)
 
 		frequent_poll_duration_timer_start(true);
 		k_work_reschedule(&trigger_work, K_NO_WAIT);
+		k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
 
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
@@ -360,6 +381,7 @@ static void frequent_poll_exit(void *o)
 	LOG_DBG("frequent_poll_exit");
 
 	k_work_cancel_delayable(&trigger_work);
+	k_work_cancel_delayable(&trigger_fota_poll_work);
 }
 
 /* STATE_NORMAL */
@@ -385,7 +407,11 @@ static void normal_entry(void *o)
 		"configured update interval: %lld seconds",
 		user_object->update_interval_configured_sec);
 
+	LOG_DBG("Sending FOTA poll triggers every %d seconds",
+		CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC);
+
 	k_work_reschedule(&trigger_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
 }
 
 static void normal_run(void *o)
@@ -422,6 +448,7 @@ static void normal_exit(void *o)
 	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
 
 	k_work_cancel_delayable(&trigger_work);
+	k_work_cancel_delayable(&trigger_fota_poll_work);
 }
 
 /* STATE_DISCONNECTED */

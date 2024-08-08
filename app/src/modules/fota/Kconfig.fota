@@ -33,12 +33,6 @@ config APP_FOTA_REBOOT_DELAY_SECONDS
 	  Delay in seconds before rebooting after a FOTA_STATUS_REBOOT_PENDING event has been
 	  sent.
 
-config APP_FOTA_POLL_INTERVAL_SECONDS
-	int "Min poll interval seconds"
-	default 60
-	help
-	  Minimum duration in between polling for FOTA updates.
-
 if APP_FOTA
 
 module = APP_FOTA

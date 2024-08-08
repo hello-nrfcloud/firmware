@@ -10,6 +10,12 @@ config APP_TRIGGER_TIMEOUT_SECONDS
 	int "Trigger timer timeout"
 	default 3600
 
+config APP_TRIGGER_FOTA_POLL_INTERVAL_SEC
+	int "FOTA poll interval seconds"
+	default 3600
+	help
+	  Duration in between polling for FOTA updates.
+
 config FREQUENT_POLL_DURATION_INTERVAL_SEC
 	int "Poll mode duration"
 	default 600

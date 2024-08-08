@@ -190,6 +190,7 @@ static void go_to_frequent_poll_state(void)
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 }
 
 static void go_to_normal_state(void)
@@ -199,6 +200,7 @@ static void go_to_normal_state(void)
 	check_trigger_mode_event(TRIGGER_MODE_NORMAL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 }
 
 void test_init_to_frequent_poll(void)
@@ -210,6 +212,7 @@ void test_init_to_frequent_poll(void)
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -228,6 +231,7 @@ void test_frequent_poll_to_normal(void)
 	/* Verify that one more trigger event was sent when entering normal mode. */
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_no_trigger_events(FREQUENT_POLL_TRIGGER_INTERVAL_SEC * 10);
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -275,6 +279,7 @@ void test_normal_mode_to_frequent_poll_due_to_button_press(void)
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -292,6 +297,7 @@ void test_normal_mode_to_frequent_poll_due_to_config_update(void)
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -330,6 +336,7 @@ void test_frequent_poll_to_blocked_to_normal(void)
 	check_trigger_mode_event(TRIGGER_MODE_NORMAL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_no_trigger_events(FREQUENT_POLL_TRIGGER_INTERVAL_SEC * 10);
 
 	/* Cleanup */
