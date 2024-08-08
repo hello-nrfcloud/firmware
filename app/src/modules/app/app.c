@@ -51,12 +51,19 @@ static void shadow_get(bool delta_only)
 		return;
 	} else if (err) {
 		LOG_ERR("Failed to request shadow delta: %d", err);
-		SEND_FATAL_ERROR();
 		return;
 	}
 
 	if (buf_cbor_len == 0) {
 		LOG_WRN("No shadow delta changes available");
+		return;
+	}
+
+	/* Workaroud: Sometimes nrf_cloud_coap_shadow_get() returns 0 even though obtaining
+	 * the shadow failed. Ignore the payload if the first 10 bytes are zero.
+	 */
+	if (!memcmp(buf_cbor, "\0\0\0\0\0\0\0\0\0\0", 10)) {
+		LOG_WRN("Returned buffer is empty, ignore");
 		return;
 	}
 

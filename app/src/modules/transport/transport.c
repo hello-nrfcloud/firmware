@@ -24,12 +24,17 @@ BUILD_ASSERT(CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS >
 			 CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX,
 			 "Watchdog timeout must be greater than maximum execution time");
 
+/* Forward declarations */
+static void transport_listener_cb(const struct zbus_channel *chan);
+
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
+ZBUS_LISTENER_DEFINE(transport_listener, transport_listener_cb);
 
 /* Observe channels */
 ZBUS_CHAN_ADD_OBS(PAYLOAD_CHAN, transport, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, transport, 0);
+ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, transport_listener, 0);
 
 #define MAX_MSG_SIZE (MAX(sizeof(struct payload), sizeof(enum network_status)))
 
@@ -370,6 +375,17 @@ static void state_connected_ready_run(void *o)
 
 	LOG_DBG("%s", __func__);
 
+	if (state_object->chan == &PRIV_TRANSPORT_CHAN) {
+		enum priv_transport_evt conn_result =
+			*(enum priv_transport_evt *)state_object->msg_buf;
+
+		if (conn_result == CLOUD_CONN_RETRY) {
+			STATE_SET(STATE_CONNECTING);
+
+			return;
+		}
+	}
+
 	if (state_object->chan == &NETWORK_CHAN) {
 		if (MSG_TO_NETWORK_STATUS(state_object->msg_buf) == NETWORK_DISCONNECTED) {
 			STATE_SET(STATE_CONNECTED_PAUSED);
@@ -391,7 +407,20 @@ static void state_connected_ready_run(void *o)
 		LOG_HEXDUMP_DBG(payload->string, MIN(payload->string_len, 32), "Payload");
 
 		err = nrf_cloud_coap_bytes_send(payload->string, payload->string_len, false);
-		if (err) {
+		if (err == -EACCES) {
+
+			/* Not connected, retry connection */
+
+			enum priv_transport_evt conn_result = CLOUD_CONN_RETRY;
+
+			err = zbus_chan_pub(&PRIV_TRANSPORT_CHAN, &conn_result, K_SECONDS(1));
+			if (err) {
+				LOG_ERR("zbus_chan_pub, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+
+		} else if (err) {
 			LOG_ERR("nrf_cloud_coap_bytes_send, error: %d", err);
 		}
 	}
@@ -475,6 +504,19 @@ static void transport_task(void)
 			SEND_FATAL_ERROR();
 
 			return;
+		}
+	}
+}
+
+static void transport_listener_cb(const struct zbus_channel *chan)
+{
+	const enum network_status *status;
+
+	if (&NETWORK_CHAN == chan) {
+		status = zbus_chan_const_msg(chan);
+
+		if (*status == NETWORK_DISCONNECTED) {
+			nrf_cloud_coap_disconnect();
 		}
 	}
 }
