@@ -59,7 +59,7 @@ include(${CMAKE_CURRENT_BINARY_DIR}/conn_info_object.cmake)
 set_property(
 	DIRECTORY
 	PROPERTY
-	CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/conn_info.cddl
+	CMAKE_CONFIGURE_DEPENDS ${APPLICATION_SOURCE_DIR}/../../../app/src/modules/network/conn_info.cddl
 )
 
 zephyr_link_libraries(conn_info_object)
