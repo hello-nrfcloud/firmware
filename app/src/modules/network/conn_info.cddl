@@ -8,14 +8,13 @@ base-attributes = {
 
 rsrp = {
 	n => "2",                           ; RSRP resource ID
-	vi => -157..-44,                    ; RSRP (in dBm)
+	vi => -157..-43,                    ; RSRP (in dBm)
 }
 
 energy-estimate = {
 	n => "11",                          ; Energy Estimate resource ID
 	vi => 5..9,                         ; Energy Estimate
 }
-
 
 conn-info-object = [
 	base-attributes,

@@ -170,9 +170,6 @@ static void sample_network_quality(void)
 		return;
 	}
 
-	LOG_DBG("Energy estimate: %d", conn_eval_params.energy_estimate);
-	LOG_DBG("RSRP: %d dBm", RSRP_IDX_TO_DBM(conn_eval_params.rsrp));
-
 	ret = date_time_now(&system_time);
 	if (ret) {
 		LOG_ERR("Failed to convert uptime to unix time, error: %d", ret);
@@ -182,6 +179,10 @@ static void sample_network_quality(void)
 	conn_info_obj.base_attributes_m.bt = (int32_t)(system_time / 1000);
 	conn_info_obj.energy_estimate_m.vi = conn_eval_params.energy_estimate;
 	conn_info_obj.rsrp_m.vi = RSRP_IDX_TO_DBM(conn_eval_params.rsrp);
+
+	LOG_DBG("System Time: %d", conn_info_obj.base_attributes_m.bt);
+	LOG_DBG("Energy Estimate: %d", conn_info_obj.energy_estimate_m.vi);
+	LOG_DBG("RSRP: %d dBm", conn_info_obj.rsrp_m.vi);
 
 	ret = cbor_encode_conn_info_object(payload.string, sizeof(payload.string),
 					&conn_info_obj, &payload.string_len);
