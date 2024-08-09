@@ -14,7 +14,6 @@ cscope.*
 venv
 .venv
 .idea
-.DS_Store
 
 /*.patch
 
