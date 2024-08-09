@@ -250,6 +250,13 @@ static void running_run(void *o)
 		on_network_disconnected();
 		return;
 	}
+
+	if (&NETWORK_CHAN == user_object->chan && user_object->status == NETWORK_CONNECTED) {
+
+		/* If the network is connected, we just reenter the same state */
+		smf_set_state(SMF_CTX(user_object), &states[STATE_RUNNING]);
+		return;
+	}
 }
 
 /* STATE_LED_SET */
