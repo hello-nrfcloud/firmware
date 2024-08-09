@@ -2,4 +2,5 @@
  * Please refer to https://docs.memfault.com/docs/embedded/trace-events for more details.
  */
 
-MEMFAULT_TRACE_REASON_DEFINE(decode_error)
+MEMFAULT_TRACE_REASON_DEFINE(cbor_decode_app_object)
+MEMFAULT_TRACE_REASON_DEFINE(nrf_cloud_coap_shadow_get)

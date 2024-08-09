@@ -12,6 +12,10 @@
 #include <net/nrf_cloud_coap.h>
 #include <nrf_cloud_coap_transport.h>
 
+#if defined(CONFIG_MEMFAULT)
+#include <memfault/core/trace_event.h>
+#endif /* CONFIG_MEMFAULT */
+
 #include "message_channel.h"
 #include "app_object_decode.h"
 
@@ -49,6 +53,13 @@ static void shadow_get(bool delta_only)
 	} else if (err == -ETIMEDOUT) {
 		LOG_WRN("Request timed out, error: %d", err);
 		return;
+	} else if (err > 0) {
+		LOG_WRN("Cloud error: %d", err);
+
+		IF_ENABLED(CONFIG_MEMFAULT,
+			(MEMFAULT_TRACE_EVENT_WITH_STATUS(nrf_cloud_coap_shadow_get, err)));
+
+		return;
 	} else if (err) {
 		LOG_ERR("Failed to request shadow delta: %d", err);
 		return;
@@ -77,13 +88,8 @@ static void shadow_get(bool delta_only)
 		LOG_ERR("Ignoring incoming configuration change due to decoding error: %d", err);
 		LOG_HEXDUMP_ERR(buf_cbor, buf_cbor_len, "CBOR data");
 
-		enum error_type type = ERROR_DECODE;
-
-		err = zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(1));
-		if (err) {
-			LOG_ERR("zbus_chan_pub, error: %d", err);
-			SEND_FATAL_ERROR();
-		}
+		IF_ENABLED(CONFIG_MEMFAULT,
+			(MEMFAULT_TRACE_EVENT_WITH_STATUS(cbor_decode_app_object, err)));
 
 		return;
 	}
