@@ -17,7 +17,7 @@ config APP_NETWORK_WATCHDOG_TIMEOUT_SECONDS
 
 config APP_NETWORK_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
-	default 3
+	default 30
 	help
 	  Maximum time allowed for a single execution of the module's thread loop.
 
