@@ -94,7 +94,6 @@ enum location_status {
 enum error_type {
 	ERROR_FATAL = 0x1,
 	ERROR_IRRECOVERABLE,
-	ERROR_DECODE,
 };
 
 /** @brief Status sent from the FOTA module on the FOTA_STATUS_CHAN channel. */
