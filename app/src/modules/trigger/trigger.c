@@ -410,8 +410,9 @@ static void normal_entry(void *o)
 	LOG_DBG("Sending FOTA poll triggers every %d seconds",
 		CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC);
 
-	k_work_reschedule(&trigger_work, K_NO_WAIT);
-	k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
+	k_work_reschedule(&trigger_fota_poll_work,
+			  K_SECONDS(CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC));
 }
 
 static void normal_run(void *o)
