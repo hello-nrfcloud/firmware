@@ -12,7 +12,8 @@
 #include "dk_buttons_and_leds.h"
 #include "message_channel.h"
 
-#define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 20
+#define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 60
+#define FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC 20
 
 DEFINE_FFF_GLOBALS;
 
@@ -171,16 +172,26 @@ static void send_frequent_poll_duration_timer_expiry(void)
 	/* Wait until CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC */
 	k_sleep(K_SECONDS(CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC));
 
+	uint32_t interval = ((CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC /
+			     FREQUENT_POLL_TRIGGER_INTERVAL_SEC) - 1);
+
 	/* Check if the required number of trigger events was sent during frequent poll state.
-	   We reduce 1 from the expected number of trigger events because one trigger event is sent
-	   when entering the frequent poll state. */
-	for (int i = 0;
-	     i <
-	     (CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / FREQUENT_POLL_TRIGGER_INTERVAL_SEC) - 1;
-	     i++) {
-		check_trigger_event(TRIGGER_DATA_SAMPLE);
+	 * We reduce 1 from the expected number of trigger events because one trigger event is sent
+	 * when entering the frequent poll state.
+	 */
+	for (int i = 0; i < interval; i++) {
+		if (i != 0) {
+			check_trigger_event(TRIGGER_POLL);
+		}
+
 		check_trigger_event(TRIGGER_POLL);
+		check_trigger_event(TRIGGER_POLL);
+		check_trigger_event(TRIGGER_DATA_SAMPLE);
 	}
+
+	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_POLL);
 }
 
 static void go_to_frequent_poll_state(void)
@@ -189,8 +200,8 @@ static void go_to_frequent_poll_state(void)
 
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_FOTA_POLL);
+	check_trigger_event(TRIGGER_POLL);
 }
 
 static void go_to_normal_state(void)
@@ -208,8 +219,8 @@ void test_init_to_frequent_poll(void)
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_FOTA_POLL);
+	check_trigger_event(TRIGGER_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -278,8 +289,8 @@ void test_normal_mode_to_frequent_poll_due_to_button_press(void)
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_FOTA_POLL);
+	check_trigger_event(TRIGGER_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -296,8 +307,8 @@ void test_normal_mode_to_frequent_poll_due_to_config_update(void)
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_FOTA_POLL);
+	check_trigger_event(TRIGGER_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -314,9 +325,12 @@ void test_frequent_poll_to_blocked_to_frequent_poll(void)
 
 	/* Then */
 	k_sleep(K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
-	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
-	check_no_trigger_mode_events(1);
+	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_DATA_SAMPLE);
+	check_no_trigger_mode_events(5);
+
+	check_trigger_event(TRIGGER_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();

@@ -27,17 +27,21 @@ ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(BUTTON_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 
-/* Trigger interval in the frequent poll state */
-#define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 20
+/* Data sample trigger interval in the frequent poll state */
+#define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 60
+/* Shadow poll trigger interval in the frequent poll state */
+#define FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC 20
 
 /* Forward declarations */
 static void trigger_work_fn(struct k_work *work);
 static void trigger_fota_poll_work_fn(struct k_work *work);
+static void trigger_shadow_poll_work_fn(struct k_work *work);
 static const struct smf_state states[];
 
 /* Delayable work used to schedule triggers for polling and data sampling */
 static K_WORK_DELAYABLE_DEFINE(trigger_work, trigger_work_fn);
 static K_WORK_DELAYABLE_DEFINE(trigger_fota_poll_work, trigger_fota_poll_work_fn);
+static K_WORK_DELAYABLE_DEFINE(trigger_shadow_poll_work, trigger_shadow_poll_work_fn);
 
 /* Timer used to exit the frequent poll state after 10 minutes */
 static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id);
@@ -81,10 +85,15 @@ struct s_object {
 	 */
 	uint64_t update_interval_configured_sec;
 
-	/* Update interval used when scheduling triggers, will differ depending on the
+	/* Update interval used when scheduling data sample triggers, will differ depending on the
 	 * state that the module is in
 	 */
 	uint64_t update_interval_used_sec;
+
+	/* Update interval used when scheduling shadow poll triggers, will differ depending on the
+	 * state that the module is in
+	 */
+	uint64_t shadow_poll_interval_used_sec;
 
 	/* GNSS status, used to block trigger events */
 	bool gnss;
@@ -138,12 +147,23 @@ static void trigger_work_fn(struct k_work *work)
 {
 	ARG_UNUSED(work);
 
-	LOG_DBG("Sending trigger");
+	LOG_DBG("Sending data sample trigger");
 
 	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
-	trigger_send(TRIGGER_POLL, K_SECONDS(1));
 
 	k_work_reschedule(&trigger_work, K_SECONDS(state_object.update_interval_used_sec));
+}
+
+static void trigger_shadow_poll_work_fn(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	LOG_DBG("Sending shadow poll trigger");
+
+	trigger_send(TRIGGER_POLL, K_SECONDS(1));
+
+	k_work_reschedule(&trigger_shadow_poll_work,
+			  K_SECONDS(state_object.shadow_poll_interval_used_sec));
 }
 
 static void trigger_fota_poll_work_fn(struct k_work *work)
@@ -311,12 +331,15 @@ static void frequent_poll_entry(void *o)
 	LOG_DBG("frequent_poll_entry");
 
 	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	user_object->shadow_poll_interval_used_sec = FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC;
 	user_object->trigger_mode = TRIGGER_MODE_POLL;
 
 	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
 		LOG_DBG("GNSS disabled");
 
 		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
+		k_work_reschedule(&trigger_shadow_poll_work,
+				  K_SECONDS(user_object->shadow_poll_interval_used_sec));
 		k_work_reschedule(&trigger_fota_poll_work,
 				  K_SECONDS(CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC));
 		return;
@@ -329,8 +352,12 @@ static void frequent_poll_entry(void *o)
 		return;
 	}
 
-	LOG_DBG("Sending poll and data sample triggers every %d seconds for %d minutes",
+	LOG_DBG("Sending data sample triggers every %d seconds for %d minutes",
 		FREQUENT_POLL_TRIGGER_INTERVAL_SEC,
+		CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
+
+	LOG_DBG("Sending shadow poll triggers every %d seconds for %d minutes",
+		FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC,
 		CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC / 60);
 
 	LOG_DBG("Sending FOTA poll triggers every %d seconds",
@@ -339,6 +366,7 @@ static void frequent_poll_entry(void *o)
 	frequent_poll_duration_timer_start(false);
 	k_work_reschedule(&trigger_work, K_NO_WAIT);
 	k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
+	k_work_reschedule(&trigger_shadow_poll_work, K_NO_WAIT);
 }
 
 static void frequent_poll_run(void *o)
@@ -363,6 +391,7 @@ static void frequent_poll_run(void *o)
 		frequent_poll_duration_timer_start(true);
 		k_work_reschedule(&trigger_work, K_NO_WAIT);
 		k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
+		k_work_reschedule(&trigger_shadow_poll_work, K_NO_WAIT);
 
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
@@ -382,6 +411,7 @@ static void frequent_poll_exit(void *o)
 
 	k_work_cancel_delayable(&trigger_work);
 	k_work_cancel_delayable(&trigger_fota_poll_work);
+	k_work_cancel_delayable(&trigger_shadow_poll_work);
 }
 
 /* STATE_NORMAL */
@@ -393,6 +423,7 @@ static void normal_entry(void *o)
 	LOG_DBG("normal_entry");
 
 	user_object->update_interval_used_sec = user_object->update_interval_configured_sec;
+	user_object->shadow_poll_interval_used_sec = user_object->update_interval_configured_sec;
 	user_object->trigger_mode = TRIGGER_MODE_NORMAL;
 
 	/* Send message on trigger mode channel */
@@ -403,14 +434,19 @@ static void normal_entry(void *o)
 		return;
 	}
 
-	LOG_DBG("Sending poll and data sample triggers every "
+	LOG_DBG("Sending data sample triggers every "
 		"configured update interval: %lld seconds",
 		user_object->update_interval_configured_sec);
+
+	LOG_DBG("Sending shadow poll triggers every %d seconds",
+		user_object->shadow_poll_interval_used_sec);
 
 	LOG_DBG("Sending FOTA poll triggers every %d seconds",
 		CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC);
 
 	k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
+	k_work_reschedule(&trigger_shadow_poll_work,
+			  K_SECONDS(user_object->shadow_poll_interval_used_sec));
 	k_work_reschedule(&trigger_fota_poll_work,
 			  K_SECONDS(CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC));
 }
@@ -447,9 +483,11 @@ static void normal_exit(void *o)
 	LOG_DBG("normal_exit");
 
 	user_object->update_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
+	user_object->shadow_poll_interval_used_sec = FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC;
 
 	k_work_cancel_delayable(&trigger_work);
 	k_work_cancel_delayable(&trigger_fota_poll_work);
+	k_work_cancel_delayable(&trigger_shadow_poll_work);
 }
 
 /* STATE_DISCONNECTED */
@@ -582,6 +620,7 @@ static int trigger_init(void)
 {
 	state_object.update_interval_configured_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
 	state_object.update_interval_used_sec = CONFIG_APP_TRIGGER_TIMEOUT_SECONDS;
+	state_object.shadow_poll_interval_used_sec = FREQUENT_POLL_TRIGGER_INTERVAL_SEC;
 	state_object.trigger_mode = TRIGGER_MODE_POLL;
 
 	smf_set_initial(SMF_CTX(&state_object), &states[STATE_INIT]);
