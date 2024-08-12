@@ -198,9 +198,6 @@ static void go_to_normal_state(void)
 	go_to_frequent_poll_state();
 	send_frequent_poll_duration_timer_expiry();
 	check_trigger_mode_event(TRIGGER_MODE_NORMAL);
-	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_POLL);
-	check_trigger_event(TRIGGER_FOTA_POLL);
 }
 
 void test_init_to_frequent_poll(void)
@@ -228,11 +225,14 @@ void test_frequent_poll_to_normal(void)
 
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_NORMAL);
-	/* Verify that one more trigger event was sent when entering normal mode. */
+	check_no_trigger_events(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS - 10);
+
+	k_sleep(K_SECONDS(10));
+
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_FOTA_POLL);
-	check_no_trigger_events(FREQUENT_POLL_TRIGGER_INTERVAL_SEC * 10);
+
 	/* Cleanup */
 	send_cloud_disconnected();
 }
@@ -334,10 +334,15 @@ void test_frequent_poll_to_blocked_to_normal(void)
 
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_NORMAL);
+	check_no_trigger_events(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS - 10);
+
+	k_sleep(K_SECONDS(10));
+
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_FOTA_POLL);
-	check_no_trigger_events(FREQUENT_POLL_TRIGGER_INTERVAL_SEC * 10);
+
+	check_no_trigger_events(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS - 10);
 
 	/* Cleanup */
 	send_cloud_disconnected();
