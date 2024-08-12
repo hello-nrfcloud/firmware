@@ -346,8 +346,9 @@ static void state_connected_exit(void *o)
 		LOG_ERR("nrf_cloud_coap_disconnect, error: %d", err);
 		SEND_FATAL_ERROR();
 	}
-}
 
+	connect_work_cancel();
+}
 
 /* Handlers for STATE_CONNECTED_READY */
 
