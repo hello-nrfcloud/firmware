@@ -73,7 +73,7 @@ static void send_cloud_disconnected(void)
 	TEST_ASSERT_EQUAL(0, err);
 }
 
-static void send_gnss_event(enum location_status location_status)
+static void send_location_event(enum location_status location_status)
 {
 	int err = zbus_chan_pub(&LOCATION_CHAN, &location_status, K_SECONDS(1));
 
@@ -254,7 +254,7 @@ void test_frequent_poll_to_blocked(void)
 	go_to_frequent_poll_state();
 
 	/* When */
-	send_gnss_event(GNSS_ENABLED);
+	send_location_event(LOCATION_SEARCH_STARTED);
 
 	/* Then */
 	check_no_trigger_events(FREQUENT_POLL_TRIGGER_INTERVAL_SEC * 2);
@@ -269,7 +269,7 @@ void test_normal_to_blocked(void)
 	go_to_normal_state();
 
 	/* When */
-	send_gnss_event(GNSS_ENABLED);
+	send_location_event(LOCATION_SEARCH_STARTED);
 
 	/* Then */
 	check_no_trigger_events(CONFIG_APP_TRIGGER_TIMEOUT_SECONDS * 2);
@@ -318,10 +318,10 @@ void test_frequent_poll_to_blocked_to_frequent_poll(void)
 {
 	/* Given */
 	go_to_frequent_poll_state();
-	send_gnss_event(GNSS_ENABLED);
+	send_location_event(LOCATION_SEARCH_STARTED);
 
 	/* When */
-	send_gnss_event(GNSS_DISABLED);
+	send_location_event(LOCATION_SEARCH_DONE);
 
 	/* Then */
 	k_sleep(K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
@@ -340,11 +340,11 @@ void test_frequent_poll_to_blocked_to_normal(void)
 {
 	/* Given */
 	go_to_frequent_poll_state();
-	send_gnss_event(GNSS_ENABLED);
+	send_location_event(LOCATION_SEARCH_STARTED);
 
 	/* When */
 	k_sleep(K_SECONDS(CONFIG_FREQUENT_POLL_DURATION_INTERVAL_SEC));
-	send_gnss_event(GNSS_DISABLED);
+	send_location_event(LOCATION_SEARCH_DONE);
 
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_NORMAL);
