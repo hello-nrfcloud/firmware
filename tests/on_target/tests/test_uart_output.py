@@ -44,7 +44,7 @@ def test_program_board_and_check_uart(t91x_board, hex_file):
     reset_device()
     expected_lines = ["Network connectivity established",
                         "Connected to Cloud",
-                        "trigger: trigger_work_fn: Sending trigger"
+                        "trigger: trigger_work_fn: Sending data sample trigger"
                     ]
     t91x_board.uart.wait_for_str(expected_lines, timeout=TEST_TIMEOUT)
 
