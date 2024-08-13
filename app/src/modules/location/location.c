@@ -219,8 +219,6 @@ static void apply_gnss_time(const struct nrf_modem_gnss_pvt_data_frame *pvt_data
 
 static void location_event_handler(const struct location_event_data *event_data)
 {
-	static bool is_method_gnss = false;
-
 	switch (event_data->id) {
 	case LOCATION_EVT_LOCATION:
 		LOG_DBG("Got location: lat: %f, lon: %f, acc: %f",
@@ -239,35 +237,19 @@ static void location_event_handler(const struct location_event_data *event_data)
 				LOG_WRN("Got GNSS location without valid time data");
 			}
 
-			status_send(GNSS_DISABLED);
-			is_method_gnss = false;
 		}
-		break;
-	case LOCATION_EVT_FALLBACK:
-
-		if (is_method_gnss) {
-			is_method_gnss = false;
-
-			status_send(GNSS_DISABLED);
-		}
-
+		status_send(LOCATION_SEARCH_DONE);
 		break;
 	case LOCATION_EVT_STARTED:
-
-		if (event_data->method == LOCATION_METHOD_GNSS) {
-			status_send(GNSS_ENABLED);
-			is_method_gnss = true;
-		}
-
-		break;
-	case LOCATION_EVT_RESULT_UNKNOWN:
-		LOG_DBG("Getting location completed with undefined result");
+		status_send(LOCATION_SEARCH_STARTED);
 		break;
 	case LOCATION_EVT_TIMEOUT:
 		LOG_DBG("Getting location timed out");
+		status_send(LOCATION_SEARCH_DONE);
 		break;
 	case LOCATION_EVT_ERROR:
 		LOG_WRN("Getting location failed");
+		SEND_FATAL_ERROR();
 		break;
 	default:
 		LOG_DBG("Getting location: Unknown event %d", event_data->id);

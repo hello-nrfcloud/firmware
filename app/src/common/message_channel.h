@@ -87,8 +87,8 @@ enum time_status {
 #define MSG_TO_TIME_STATUS(_msg)	(*(const enum time_status *)_msg)
 
 enum location_status {
-	GNSS_ENABLED = 0x1,
-	GNSS_DISABLED,
+	LOCATION_SEARCH_STARTED = 0x1,
+	LOCATION_SEARCH_DONE,
 };
 
 enum error_type {

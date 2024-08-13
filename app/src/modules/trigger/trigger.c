@@ -95,8 +95,8 @@ struct s_object {
 	 */
 	uint64_t shadow_poll_interval_used_sec;
 
-	/* GNSS status, used to block trigger events */
-	bool gnss;
+	/* Location search status, used to block trigger events */
+	bool location_search;
 
 	/* Button number */
 	uint8_t button_number;
@@ -222,7 +222,7 @@ static void frequent_poll_duration_timer_stop(void)
  *	- STATE_FREQUENT_POLL: Sending poll and data sample triggers every 20 seconds for 10 minutes
  *	- STATE_NORMAL: Sending poll triggers every configured update interval
  *				Sending data sample triggers every configured update interval
- *	- STATE_BLOCKED: Sending of triggers is blocked due to GNSS activity
+ *	- STATE_BLOCKED: Sending of triggers is blocked due to an active location search
  * STATE_DISCONNECTED: Sending of triggers is blocked due to being disconnected
  *
  *
@@ -287,8 +287,8 @@ static void blocked_run(void *o)
 
 	LOG_DBG("blocked_run");
 
-	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
-		LOG_DBG("GNSS disabled");
+	if (user_object->chan == &LOCATION_CHAN && !user_object->location_search) {
+		LOG_DBG("Location search done");
 
 		if (user_object->trigger_mode == TRIGGER_MODE_NORMAL) {
 			LOG_DBG("Going into normal state");
@@ -301,7 +301,7 @@ static void blocked_run(void *o)
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		/* Frequent poll duration timer expired. Since the current state is BLOCKED,
 		 * continue to remain in this state but only change the trigger mode so that
-		 * when the GNSS is disabled, the state machine transitions into Normal mode.
+		 * when the location search is done, the state machine transitions into Normal mode.
 		 */
 		LOG_DBG("Changing the trigger mode in state object ");
 		user_object->trigger_mode = TRIGGER_MODE_NORMAL;
@@ -334,8 +334,8 @@ static void frequent_poll_entry(void *o)
 	user_object->shadow_poll_interval_used_sec = FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC;
 	user_object->trigger_mode = TRIGGER_MODE_POLL;
 
-	if (user_object->chan == &LOCATION_CHAN && !user_object->gnss) {
-		LOG_DBG("GNSS disabled");
+	if (user_object->chan == &LOCATION_CHAN && !user_object->location_search) {
+		LOG_DBG("Location search done");
 
 		k_work_reschedule(&trigger_work, K_SECONDS(user_object->update_interval_used_sec));
 		k_work_reschedule(&trigger_shadow_poll_work,
@@ -375,8 +375,8 @@ static void frequent_poll_run(void *o)
 
 	LOG_DBG("frequent_poll_run");
 
-	if (user_object->chan == &LOCATION_CHAN && user_object->gnss) {
-		LOG_DBG("GNSS enabled, going into blocked state");
+	if (user_object->chan == &LOCATION_CHAN && user_object->location_search) {
+		LOG_DBG("Location search started, going into blocked state");
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
 		return;
@@ -457,8 +457,8 @@ static void normal_run(void *o)
 
 	LOG_DBG("normal_run");
 
-	if (user_object->chan == &LOCATION_CHAN && user_object->gnss) {
-		LOG_DBG("GNSS enabled, going into blocked state");
+	if (user_object->chan == &LOCATION_CHAN && user_object->location_search) {
+		LOG_DBG("Location search started, going into blocked state");
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
 		return;
@@ -598,7 +598,7 @@ void trigger_callback(const struct zbus_channel *chan)
 	} else if (&LOCATION_CHAN == chan) {
 		const enum location_status *location_status = zbus_chan_const_msg(chan);
 
-		state_object.gnss = (*location_status == GNSS_ENABLED);
+		state_object.location_search = (*location_status == LOCATION_SEARCH_STARTED);
 	} else {
 		/* PRIV_TRIGGER_CHAN event. Frequent Poll Duration timer expired*/
 		LOG_DBG("Message received on PRIV_TRIGGER_CHAN channel.");

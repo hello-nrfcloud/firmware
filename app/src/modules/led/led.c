@@ -114,8 +114,8 @@ char *led_state_name(enum led_state state)
 		return "LED_CONFIGURED";
 	case LED_POLL_MODE:
 		return "LED_POLL_MODE";
-	case LED_GNSS_SEARCHING:
-		return "LED_GNSS_SEARCHING";
+	case LED_LOCATION_SEARCHING:
+		return "LED_LOCATION_SEARCHING";
 	case LED_LTE_CONNECTING:
 		return "LED_LTE_CONNECTING";
 	case LED_ERROR_SYSTEM_FAULT:
@@ -226,9 +226,9 @@ static void on_network_disconnected(void)
  * - STATE_RUNNING: Initial state, the module is running
  *	- STATE_LED_SET: LED is configured by the user
  *	- STATE_LED_NOT_SET: LED is not configured by the user, operational pattern is displayed
- *		- STATE_POLL: Poll pattern or GNSS search pattern is displayed depending on
+ *		- STATE_POLL: Poll pattern or location search pattern is displayed depending on
  			      the location status
- *		- STATE_NORMAL: Led is off or GNSS search pattern is displayed depending on
+ *		- STATE_NORMAL: Led is off or location search pattern is displayed depending on
  *				the location status
  * - STATE_ERROR: An error has occured
  */
@@ -337,18 +337,17 @@ static void poll_running(void *o)
 		return;
 	}
 
-	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == GNSS_ENABLED) {
+	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_STARTED) {
 
 		transition_list_clear();
-		transition_list_append(LED_GNSS_SEARCHING, HOLD_FOREVER, 0, 0, 0);
+		transition_list_append(LED_LOCATION_SEARCHING, HOLD_FOREVER, 0, 0, 0);
 
 		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 		return;
 	}
 
-	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == GNSS_DISABLED) {
+	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_DONE) {
 
-		/* When GNSS is disabled, we just reenter the same state */
 		smf_set_state(SMF_CTX(user_object), &states[STATE_POLL]);
 		return;
 	}
@@ -379,18 +378,17 @@ static void normal_running(void *o)
 		return;
 	}
 
-	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == GNSS_ENABLED) {
+	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_STARTED) {
 
 		transition_list_clear();
-		transition_list_append(LED_GNSS_SEARCHING, HOLD_FOREVER, 0, 0, 0);
+		transition_list_append(LED_LOCATION_SEARCHING, HOLD_FOREVER, 0, 0, 0);
 
 		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 		return;
 	}
 
-	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == GNSS_DISABLED) {
+	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_DONE) {
 
-		/* When GNSS is disabled, we just reenter the same state */
 		smf_set_state(SMF_CTX(user_object), &states[STATE_NORMAL]);
 		return;
 	}
