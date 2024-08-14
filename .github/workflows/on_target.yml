@@ -22,7 +22,7 @@ jobs:
     runs-on: self-hosted
     environment: production
     container:
-      image: ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview31
+      image: ghcr.io/jorgenmk/hello-fw:latest
       options: --privileged
       volumes:
         - /dev:/dev:rw
