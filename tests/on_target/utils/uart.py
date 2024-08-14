@@ -157,20 +157,33 @@ class Uart:
     ) -> None:
         start = time.time()
         msgs = msgs if isinstance(msgs, (list, tuple)) else [msgs]
+
         while True:
             time.sleep(1)
-            if all(msg in self.log for msg in msgs):
+
+            # Check if all msgs appear in the log in the correct order
+            log_str = ''.join(self.log)
+            pos = 0
+            all_found = True
+
+            for msg in msgs:
+                pos = log_str.find(msg, pos)
+                if pos == -1:
+                    all_found = False
+                    break
+                pos += len(msg)
+
+            if all_found:
                 break
 
             if start + timeout < time.time():
                 not_found = [x for x in msgs if x not in self.log]
                 raise AssertionError(
-                    f"{not_found} missing in UART log. {error_msg}\nUart log:\n{self.log}"
+                    f"{not_found} missing in UART log in the expected order. {error_msg}\nUart log:\n{self.log}"
                 )
 
             if self._evt.is_set():
                 raise RuntimeError(f"Uart thread stopped, log:\n{self.log}")
-
 
 class UartBinary(Uart):
     def __init__(
