@@ -160,13 +160,15 @@ static void sample_network_quality(void)
 	struct lte_lc_conn_eval_params conn_eval_params;
 
 	ret = lte_lc_conn_eval_params_get(&conn_eval_params);
-	if (ret < 0) {
+	if (ret == -EOPNOTSUPP) {
+		LOG_WRN("Connection evaluation not supported in current functional mode");
+		return;
+	} else if (ret < 0) {
 		LOG_ERR("lte_lc_conn_eval_params_get, error: %d", ret);
 		SEND_FATAL_ERROR();
 		return;
 	} else if (ret > 0) {
-		LOG_WRN("Connection evaluation failed due to a network/modem related reason: %d",
-			ret);
+		LOG_WRN("Connection evaluation failed due to a network related reason: %d", ret);
 		return;
 	}
 
