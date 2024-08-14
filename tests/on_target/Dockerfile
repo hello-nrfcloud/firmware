@@ -1,22 +1,26 @@
-FROM ubuntu:24.04 as base
+FROM python:3.12.4-slim-bookworm
 
 ARG JLINK_VERSION=V794e
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+WORKDIR /work
+
+COPY requirements.txt /work/
+
 RUN <<EOT
     apt-get -y update
     apt-get -y upgrade
-    apt-get -y install wget libusb-1.0-0 python3-pip
+    apt-get -y install wget libusb-1.0-0 dbus
     apt-get clean
+    pip install -r requirements.txt
+    rm -rf requirements.txt
 EOT
 
-WORKDIR /work
-
 # Install Segger J-Link software
-RUN wget -q --post-data 'accept_license_agreement=accepted&non_emb_ctr=confirmed&submit=Download+software' https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.tgz
 ENV LD_LIBRARY_PATH=/opt/SEGGER/JLink/JLink_Linux_${JLINK_VERSION}_x86_64
 RUN <<EOT
+    wget -q --post-data 'accept_license_agreement=accepted' https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.tgz
     mkdir -p /opt/SEGGER/JLink
     tar -xvf JLink_Linux_${JLINK_VERSION}_x86_64.tgz -C /opt/SEGGER/JLink
     rm JLink_Linux_${JLINK_VERSION}_x86_64.tgz
@@ -29,7 +33,7 @@ EOT
 # checkout.
 ENV NRFUTIL_HOME=/usr/local/share/nrfutil
 RUN <<EOT
-    wget --max-redirect=0 -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
+    wget -q "https://files.nordicsemi.com/ui/api/v1/download?repoKey=swtools&path=external/nrfutil/executables/x86_64-unknown-linux-gnu/nrfutil&isNativeBrowsing=false" -O nrfutil
     mv nrfutil /usr/local/bin
     chmod +x /usr/local/bin/nrfutil
     nrfutil install device
