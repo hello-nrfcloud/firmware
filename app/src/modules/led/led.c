@@ -294,6 +294,13 @@ static void led_set_running(void *o)
 			return;
 		}
 	}
+
+	if ((&CONFIG_CHAN == user_object->chan) &&
+	    !is_rgb_off(user_object->red, user_object->green, user_object->blue)) {
+
+		smf_set_state(SMF_CTX(user_object), &states[STATE_LED_SET]);
+		return;
+	}
 }
 
 /* STATE_LED_NOT_SET */
