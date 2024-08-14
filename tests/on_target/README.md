@@ -16,7 +16,7 @@ docker run --rm -it \
   --privileged \
   -v /dev:/dev:rw \
   -v /run/udev:/run/udev \
-  ghcr.io/dematteisgiacomo/ubuntu-jlink-nrfutil:latest
+  ghcr.io/hello-nrfcloud/firmware:latest
 ```
 
 ## Test docker image version control
