@@ -57,6 +57,8 @@ def test_program_board_and_check_uart(t91x_board, hex_file):
 
 
     t91x_board.uart.flush()
+    # Sleep for 5 seconds to allow any location update to complete before button press
+    time.sleep(5)
     # Simulate button press
     t91x_board.uart.write("zbus button_press\r\n")
 
