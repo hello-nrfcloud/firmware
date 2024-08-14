@@ -249,6 +249,7 @@ static void location_event_handler(const struct location_event_data *event_data)
 		break;
 	case LOCATION_EVT_ERROR:
 		LOG_WRN("Getting location failed");
+		status_send(LOCATION_SEARCH_DONE);
 		break;
 	default:
 		LOG_DBG("Getting location: Unknown event %d", event_data->id);
