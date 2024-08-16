@@ -260,7 +260,7 @@ K_THREAD_DEFINE(app_task_id,
 static int watchdog_init(void)
 {
 	__ASSERT((task_wdt_init(NULL) == 0), "Task watchdog init failure");
-	/* This is an intentionally longgggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg line.*/
+	/* This is an intentionally short line.*/
 
 	return 0;
 }
