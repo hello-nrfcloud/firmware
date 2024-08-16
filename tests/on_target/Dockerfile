@@ -8,6 +8,7 @@ RUN <<EOT
     apt-get -y update
     apt-get -y upgrade
     apt-get -y install wget libusb-1.0-0 python3-pip
+    apt-get clean
 EOT
 
 WORKDIR /work
@@ -28,7 +29,7 @@ EOT
 # checkout.
 ENV NRFUTIL_HOME=/usr/local/share/nrfutil
 RUN <<EOT
-    wget -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
+    wget --max-redirect=0 -q https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
     mv nrfutil /usr/local/bin
     chmod +x /usr/local/bin/nrfutil
     nrfutil install device
@@ -36,7 +37,7 @@ EOT
 
 # Install Go
 RUN <<EOT
-    wget https://golang.org/dl/go1.20.5.linux-amd64.tar.gz
+    wget --max-redirect=0  https://golang.org/dl/go1.20.5.linux-amd64.tar.gz
     tar -C /usr/local -xzf go1.20.5.linux-amd64.tar.gz
     rm go1.20.5.linux-amd64.tar.gz
 EOT
