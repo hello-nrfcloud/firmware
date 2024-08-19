@@ -311,6 +311,8 @@ static void blocked_run(void *o)
 			user_object->button_number);
 
 		frequent_poll_duration_timer_start(true);
+		trigger_send(TRIGGER_POLL, K_SECONDS(1));
+		trigger_send(TRIGGER_FOTA_POLL, K_SECONDS(1));
 
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
