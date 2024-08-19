@@ -31,10 +31,8 @@ def test_program_board_and_check_uart(t91x_board, hex_file):
     ]
     patterns_button_press = [
         "trigger: frequent_poll_run: Button 1 pressed in frequent poll state, restarting duration timer",
-        "location_module: location_event_handler: Got location: lat:",
-        "location: location_utils_event_dispatch: Done",
-        "blocked_run: Location search done",
-        "trigger: frequent_poll_entry: frequent_poll_entry"
+        "trigger_fota_poll_work_fn: Sending FOTA poll trigger",
+        "trigger_shadow_poll_work_fn: Sending shadow poll trigger"
     ]
     patterns_lte_offline = [
             "network: Network connectivity lost",
