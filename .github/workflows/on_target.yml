@@ -59,12 +59,14 @@ jobs:
         run: |
           pip install -r requirements.txt --break-system-packages
 
-      - name: Run UART output tests
+      - name: Run UART and FOTA tests
         working-directory: thingy91x-oob/tests/on_target
         run: |
           pytest -s -v -m dut1 tests --firmware-hex artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+          IMEI: ${{ secrets.IMEI_DUT_1 }}
+          FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
 
       - name: Run DFU tests
         working-directory: thingy91x-oob/tests/on_target
