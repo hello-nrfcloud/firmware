@@ -8,13 +8,14 @@ import re
 import pytest
 import types
 from utils.uart import Uart
+from utils.hellonrfcloud_fota import HelloNrfCloudFOTA
 import sys
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
 
 logger = get_logger()
 
-UART_TIMEOUT = 60 * 10
+UART_TIMEOUT = 60 * 15
 
 SEGGER = os.getenv('SEGGER')
 UART_ID = os.getenv('UART_ID', SEGGER)
@@ -48,8 +49,11 @@ def t91x_board():
 
     uart = Uart(log_uart_string, timeout=UART_TIMEOUT)
 
+    fota = HelloNrfCloudFOTA()
+
     yield types.SimpleNamespace(
 		uart=uart,
+        fota=fota
 		)
 
     uart.stop()

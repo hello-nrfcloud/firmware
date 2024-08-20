@@ -3,3 +3,4 @@ pyserial
 termcolor
 pyusb
 imgtool
+requests
