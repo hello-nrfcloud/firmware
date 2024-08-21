@@ -6,7 +6,7 @@
 ```shell
 docker pull ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview31
 cd <path_to_oob_dir>
-cp <path_to_hex>/merged.hex thingy91x-oob/tests/on_target/artifacts/
+cp <path_to_hex>/merged.hex tests/on_target/artifacts/
 docker run --rm -it \
   --privileged \
   -v /dev:/dev:rw \
