@@ -19,9 +19,12 @@ DEVICE_ID = f"oob-{FOTADEVICE_IMEI}"
 
 MFW_201_FILEPATH = "artifacts/mfw_nrf91x1_2.0.1.zip"
 DELTA_MFW_BUNDLEID = "MODEM*ad48df2a*mfw_nrf91x1_2.0.1-FOTA-TEST"
+FULL_MFW_BUNDLEID = "MDM_FULL*bdd24c80*mfw_nrf91x1_full_2.0.1"
+
 
 WAIT_FOR_FOTA_AVAILABLE = 60 * 2
 APP_FOTA_TIMEOUT = 60 * 10
+FULL_MFW_FOTA_TIMEOUT = 60 * 20
 
 
 def post_job_and_trigger_fota(t91x_board, bundle_id, fota_type):
@@ -70,6 +73,7 @@ def run_fota_fixture(t91x_board, hex_file):
         flash_device(os.path.abspath(hex_file))
         time.sleep(5)
         t91x_board.uart.xfactoryreset()
+        t91x_board.uart.flush()
         reset_device()
         t91x_board.uart.wait_for_str("Connected to Cloud")
 
@@ -78,11 +82,14 @@ def run_fota_fixture(t91x_board, hex_file):
         if test_fota_resumption:
             run_fota_resumption(t91x_board, fota_type)
 
+        t91x_board.uart.flush()
         t91x_board.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
         if fota_type == "app":
             t91x_board.uart.wait_for_str("App FOTA update confirmed")
         elif fota_type == "delta":
             t91x_board.uart.wait_for_str("Modem (delta) FOTA complete")
+        elif fota_type == "full":
+            t91x_board.uart.wait_for_str("FMFU finished")
         t91x_board.uart.wait_for_str("Connected to Cloud", "Failed to connect to Cloud after FOTA")
     return _run_fota
 
@@ -114,3 +121,9 @@ def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
 
     # Restore mfw201
     flash_device(os.path.abspath(MFW_201_FILEPATH))
+
+
+@pytest.mark.dut1
+@pytest.mark.fota
+def test_full_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+    run_fota_fixture(FULL_MFW_BUNDLEID, "full", FULL_MFW_FOTA_TIMEOUT)
