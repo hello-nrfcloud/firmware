@@ -13,7 +13,7 @@
 #include "message_channel.h"
 
 #define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 60
-#define FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC 20
+#define FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC 30
 
 DEFINE_FFF_GLOBALS;
 
@@ -179,19 +179,14 @@ static void send_frequent_poll_duration_timer_expiry(void)
 	 * We reduce 1 from the expected number of trigger events because one trigger event is sent
 	 * when entering the frequent poll state.
 	 */
+
+	check_trigger_event(TRIGGER_POLL);
+
 	for (int i = 0; i < interval; i++) {
-		if (i != 0) {
-			check_trigger_event(TRIGGER_POLL);
-		}
-
-		check_trigger_event(TRIGGER_POLL);
-		check_trigger_event(TRIGGER_POLL);
 		check_trigger_event(TRIGGER_DATA_SAMPLE);
+		check_trigger_event(TRIGGER_POLL);
+		check_trigger_event(TRIGGER_POLL);
 	}
-
-	check_trigger_event(TRIGGER_POLL);
-	check_trigger_event(TRIGGER_POLL);
-	check_trigger_event(TRIGGER_POLL);
 }
 
 static void go_to_frequent_poll_state(void)
@@ -325,7 +320,6 @@ void test_frequent_poll_to_blocked_to_frequent_poll(void)
 
 	/* Then */
 	k_sleep(K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
-	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_no_trigger_mode_events(5);
