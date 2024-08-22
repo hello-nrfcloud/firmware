@@ -15,7 +15,8 @@ from utils.logger import get_logger
 logger = get_logger()
 
 @pytest.mark.dut1
-def test_program_board_and_check_uart(t91x_board, hex_file):
+@pytest.mark.uart
+def test_uart_output(t91x_board, hex_file):
     flash_device(os.path.abspath(hex_file))
     time.sleep(5)
     t91x_board.uart.xfactoryreset()

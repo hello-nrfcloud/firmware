@@ -21,6 +21,7 @@ WAIT_FOR_FOTA_AVAILABLE = 60
 APP_FOTA_TIMEOUT = 60 * 10
 
 @pytest.mark.dut1
+@pytest.mark.fota
 def test_app_fota(t91x_board, hex_file):
     flash_device(os.path.abspath(hex_file))
     time.sleep(5)
