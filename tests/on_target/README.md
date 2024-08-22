@@ -6,12 +6,12 @@
 ```shell
 docker pull ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview31
 cd <path_to_oob_dir>
-cp <path_to_hex>/merged.hex tests/on_target/artifacts/
+cp build/merged.hex tests/on_target/artifacts/
 docker run --rm -it \
   --privileged \
   -v /dev:/dev:rw \
   -v /run/udev:/run/udev \
-  -v <abspath_to_oob_dir>:/work/thingy91x-oob \
+  -v .:/work/thingy91x-oob \
   ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview31 \
   /bin/bash
 ```
