@@ -11,20 +11,17 @@ menuconfig APP_FOTA
 
 config APP_FOTA_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 2048
+	default 2500
 
 config APP_FOTA_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
-	default 600
+	default 120
 
 config APP_FOTA_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
-	default 480
+	default 90
 	help
 	  Watchdog timeout in seconds for a state machine run.
-	  The FOTA module may perform downloads of large files,
-	  and the watchdog timeout should be set to a value that is longer than the expected
-	  maximum download time in normal operation.
 
 config APP_FOTA_REBOOT_DELAY_SECONDS
 	int "Reboot delay seconds"
