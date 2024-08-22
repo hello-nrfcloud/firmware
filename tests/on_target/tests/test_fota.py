@@ -13,8 +13,8 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-FOTADEVICE_IMEI = os.environ["IMEI"]
-FOTADEVICE_FINGERPRINT = os.environ["FINGERPRINT"]
+FOTADEVICE_IMEI = os.getenv('IMEI')
+FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
 DEVICE_ID = f"oob-{FOTADEVICE_IMEI}"
 
 WAIT_FOR_FOTA_AVAILABLE = 60

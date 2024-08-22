@@ -40,6 +40,14 @@ def get_uarts():
     return uarts
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_logstart(nodeid, location):
+    print(f"Starting test: {nodeid}")
+
+@pytest.hookimpl(trylast=True)
+def pytest_runtest_logfinish(nodeid, location):
+    print(f"Finished test: {nodeid}")
+
 @pytest.fixture(scope="module")
 def t91x_board():
     all_uarts = get_uarts()
