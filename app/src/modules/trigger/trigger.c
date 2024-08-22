@@ -310,14 +310,14 @@ static void blocked_run(void *o)
 		LOG_DBG("Button %d pressed in blocked state, restarting duration timer",
 			user_object->button_number);
 
-		frequent_poll_duration_timer_start(true);
+		// frequent_poll_duration_timer_start(true);
 		trigger_send(TRIGGER_POLL, K_SECONDS(1));
 		trigger_send(TRIGGER_FOTA_POLL, K_SECONDS(1));
 
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
 
-		frequent_poll_duration_timer_start(true);
+		// frequent_poll_duration_timer_start(true);
 	} else {
 		LOG_DBG("Message received on channel %s. Ignoring.", zbus_chan_name(user_object->chan));
 		/* Do nothing. Parent state may have handling for this. */
@@ -365,8 +365,8 @@ static void frequent_poll_entry(void *o)
 	LOG_DBG("Sending FOTA poll triggers every %d seconds",
 		CONFIG_APP_TRIGGER_FOTA_POLL_INTERVAL_SEC);
 
-	frequent_poll_duration_timer_start(false);
-	k_work_reschedule(&trigger_work, K_NO_WAIT);
+	// frequent_poll_duration_timer_start(false);
+	// k_work_reschedule(&trigger_work, K_NO_WAIT);
 	k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
 	k_work_reschedule(&trigger_shadow_poll_work, K_NO_WAIT);
 }
@@ -390,7 +390,7 @@ static void frequent_poll_run(void *o)
 		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
 			user_object->button_number);
 
-		frequent_poll_duration_timer_start(true);
+		// frequent_poll_duration_timer_start(true);
 		k_work_reschedule(&trigger_work, K_NO_WAIT);
 		k_work_reschedule(&trigger_fota_poll_work, K_NO_WAIT);
 		k_work_reschedule(&trigger_shadow_poll_work, K_NO_WAIT);
@@ -398,7 +398,7 @@ static void frequent_poll_run(void *o)
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
 
-		frequent_poll_duration_timer_start(true);
+		// frequent_poll_duration_timer_start(true);
 	} else {
 		/* Parent state may have handling of this event. */
 		LOG_DBG("Message received on channel %s. Ignoring.", zbus_chan_name(user_object->chan));
