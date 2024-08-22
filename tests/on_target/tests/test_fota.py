@@ -17,34 +17,71 @@ FOTADEVICE_IMEI = os.getenv('IMEI')
 FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
 DEVICE_ID = f"oob-{FOTADEVICE_IMEI}"
 
-WAIT_FOR_FOTA_AVAILABLE = 60
+MFW_201_FILEPATH = "artifacts/mfw_nrf91x1_2.0.1.zip"
+DELTA_MFW_BUNDLEID = "MODEM*ad48df2a*mfw_nrf91x1_2.0.1-FOTA-TEST"
+
+WAIT_FOR_FOTA_AVAILABLE = 60 * 2
 APP_FOTA_TIMEOUT = 60 * 10
+
+@pytest.fixture
+def run_fota_fixture(t91x_board, hex_file):
+    def _run_fota(bundleId, fota_type, fotatimeout=APP_FOTA_TIMEOUT):
+        flash_device(os.path.abspath(hex_file))
+        time.sleep(5)
+        t91x_board.uart.xfactoryreset()
+        reset_device()
+
+        t91x_board.uart.wait_for_str("Connected to Cloud")
+
+        t91x_board.fota.post_fota_job(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundleId)
+
+        t91x_board.uart.flush()
+        start = time.time()
+        while time.time() - start < WAIT_FOR_FOTA_AVAILABLE:
+            time.sleep(20)
+            try:
+                t91x_board.uart.write("zbus button_press\r\n")
+                t91x_board.uart.wait_for_str("FOTA job received", timeout=30)
+                break
+            except AssertionError:
+                logger.debug(f"{fota_type} fota not available yet, trying again...")
+                continue
+        else:
+            raise RuntimeError(f"{fota_type} fota not available after {WAIT_FOR_FOTA_AVAILABLE} seconds")
+
+        t91x_board.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
+        if fota_type == "app":
+            t91x_board.uart.wait_for_str("App FOTA update confirmed")
+        elif fota_type == "delta":
+            t91x_board.uart.wait_for_str("Modem (delta) FOTA complete")
+        t91x_board.uart.wait_for_str("Connected to Cloud")
+    return _run_fota
+
 
 @pytest.mark.dut1
 @pytest.mark.fota
-def test_app_fota(t91x_board, hex_file):
-    flash_device(os.path.abspath(hex_file))
-    time.sleep(5)
-    t91x_board.uart.xfactoryreset()
-    reset_device()
-
-    t91x_board.uart.wait_for_str("Connected to Cloud")
-
+def test_app_fota(t91x_board, hex_file, run_fota_fixture):
+    # Get latest app fota bundle
     results = t91x_board.fota.get_fota_bundles(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT)
     if not results:
-        pytest.fail("Failed to get FOTA bundles")
+        pytest.fail("Failed to get APP FOTA bundles")
     available_bundles = results["bundles"]
     logger.debug(f"Number of available bundles: {len(available_bundles)}")
     latest_bundle = available_bundles[0]
 
     logger.debug(f"Latest bundle: {latest_bundle}")
 
-    t91x_board.uart.flush()
+    run_fota_fixture(latest_bundle["bundleId"], "app")
 
-    t91x_board.fota.post_fota_job(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=latest_bundle["bundleId"])
 
-    time.sleep(WAIT_FOR_FOTA_AVAILABLE)
-    t91x_board.uart.write("zbus button_press\r\n")
+@pytest.mark.dut1
+@pytest.mark.fota
+def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+    # Flash with mfw201
+    flash_device(os.path.abspath(MFW_201_FILEPATH))
 
-    t91x_board.uart.wait_for_str("nrf_cloud_fota_poll: FOTA download finished", timeout=APP_FOTA_TIMEOUT)
-    t91x_board.uart.wait_for_str("Connected to Cloud")
+    # run_fota(DELTA_MFW_BUNDLEID, hex_file)
+    run_fota_fixture(DELTA_MFW_BUNDLEID, "delta")
+
+    # Restore mfw201
+    flash_device(os.path.abspath(MFW_201_FILEPATH))
