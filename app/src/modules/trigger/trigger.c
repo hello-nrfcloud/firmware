@@ -30,7 +30,7 @@ ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 /* Data sample trigger interval in the frequent poll state */
 #define FREQUENT_POLL_TRIGGER_INTERVAL_SEC 60
 /* Shadow poll trigger interval in the frequent poll state */
-#define FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC 20
+#define FREQUENT_POLL_SHADOW_POLL_TRIGGER_INTERVAL_SEC 30
 
 /* Forward declarations */
 static void trigger_work_fn(struct k_work *work);
