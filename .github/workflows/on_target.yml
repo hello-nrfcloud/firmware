@@ -2,23 +2,51 @@ name: Target tests
 
 on:
   workflow_call:
+    inputs:
+      artifact_fw_version:
+        type: string
+        required: true
+      artifact_run_id:
+        type: string
+        required: true
+      run_fota_tests:
+        type: boolean
+        required: false
+        default: true
+      run_dfu_tests:
+        type: boolean
+        required: false
+        default: true
+      run_connectivity_bridge_tests:
+        type: boolean
+        required: false
+        default: true
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *"
-  push:
-    branches:
-      - main
+    inputs:
+      artifact_fw_version:
+        description: The firmware version found under this run_id
+        type: string
+        required: true
+      artifact_run_id:
+        description: The run ID of the workflow to fetch artifacts from
+        type: string
+        required: true
+      run_fota_tests:
+        type: boolean
+        required: true
+        default: false
+      run_dfu_tests:
+        type: boolean
+        required: true
+        default: false
+      run_connectivity_bridge_tests:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      build_bl_update: true
-
-  test:
-    name: Test
-    needs: build
+  target_test:
+    name: Target Test
     runs-on: self-hosted
     environment: production
     container:
@@ -39,15 +67,8 @@ jobs:
         with:
           name: firmware
           path: thingy91x-oob/tests/on_target/artifacts
-
-      - name: Set version
-        shell: bash
-        run: |
-          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
-            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
-          else
-            echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
-          fi
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify artifact path
         working-directory: thingy91x-oob
@@ -62,20 +83,22 @@ jobs:
       - name: Run UART tests
         working-directory: thingy91x-oob/tests/on_target
         run: |
-          pytest -s -v -m "dut1 and uart" tests --firmware-hex artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
+          pytest -s -v -m "dut1 and uart" tests --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
       - name: Run FOTA tests
+        if: ${{ inputs.run_fota_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
-          pytest -s -v -m "dut1 and fota" tests --firmware-hex artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-debug-app.hex
+          pytest -s -v -m "dut1 and fota" tests --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
           IMEI: ${{ secrets.IMEI_DUT_1 }}
           FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
 
       - name: Run DFU tests
+        if: ${{ inputs.run_dfu_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
           pytest -s -v -m dut2 tests
@@ -83,14 +106,15 @@ jobs:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
           UART_ID: ${{ secrets.UART_DUT_2 }}
-          NRF53_HEX_FILE: artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge.hex
-          NRF53_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge-verbose.zip
-          NRF53_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
-          NRF91_HEX_FILE: artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-bootloader.hex
-          NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
-          NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
+          NRF53_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-connectivity-bridge.hex
+          NRF53_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-connectivity-bridge-verbose.zip
+          NRF53_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
+          NRF91_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-bootloader.hex
+          NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
+          NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
 
       - name: Check nRF53 connectivity bridge version
+        if: ${{ inputs.run_connectivity_bridge_tests }}
         working-directory: thingy91x-oob
         run: |
           python3 ./tests/on_target/utils/thingy91x_dfu.py --check-nrf53-version --serial THINGY91X_${{ secrets.UART_DUT_2 }} 2>&1 >/dev/null | grep "S1: 1"
