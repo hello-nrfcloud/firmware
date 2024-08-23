@@ -1,0 +1,24 @@
+name: Build and Test on Target
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+  push:
+    branches:
+      - main
+      - update-dockerfile-target
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      build_bl_update: true
+
+  test:
+    uses: ./.github/workflows/on_target.yml
+    needs: build
+    secrets: inherit
+    with:
+      artifact_fw_version: ${{ needs.build.outputs.version }}
+      artifact_run_id: ${{ needs.build.outputs.run_id }}

@@ -1,12 +1,27 @@
 name: Build
 
 on:
+  workflow_dispatch:
+    inputs:
+      build_bl_update:
+        description: Build bootloader update
+        type: boolean
+        required: false
+        default: false
   workflow_call:
     inputs:
       build_bl_update:
         type: boolean
         required: false
         default: false
+    outputs:
+      run_id: 
+        description: The run ID of the workflow to fetch artifacts from
+        value: ${{ jobs.build.outputs.run_id }}
+      version:
+        description: The version of the firmware built on this run_id
+        value: ${{ jobs.build.outputs.version }}
+      
   push:
     branches:
       - main
@@ -20,6 +35,9 @@ jobs:
     container: ghcr.io/zephyrproject-rtos/ci:v0.26.13
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
+    outputs:
+      run_id: ${{ github.run_id }}
+      version: ${{ env.VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,7 +82,12 @@ jobs:
 
       - name: Create nrf91 Bootloader HEX file
         run: |
-          python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/b0_s0_s1_merged.hex $(pwd)/thingy91x-oob/app/build/b0_container.hex $(pwd)/thingy91x-oob/app/build/app_provision.hex $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $(pwd)/thingy91x-oob/app/build/b0_s0_s1_merged.hex \
+            $(pwd)/thingy91x-oob/app/build/b0_container.hex \
+            $(pwd)/thingy91x-oob/app/build/app_provision.hex \
+            $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex \
+            $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
 
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
@@ -73,15 +96,26 @@ jobs:
 
       - name: Create nrf53 merged_domains HEX file
         run: |
-          python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge.hex $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex
 
       - name: Create nrf53 Bootloader HEX file
         run: |
-          python3 zephyr/scripts/build/mergehex.py -o $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.hex $(pwd)/nrf/applications/connectivity_bridge/build/b0_container.hex $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_mcuboot.hex $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_s1_image.hex $(pwd)/nrf/applications/connectivity_bridge/build/app_provision.hex $(pwd)/nrf/applications/connectivity_bridge/build/b0n_container.hex $(pwd)/nrf/applications/connectivity_bridge/build/net_provision.hex
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/b0_container.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_mcuboot.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_s1_image.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/app_provision.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/b0n_container.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/net_provision.hex
 
       - name: Copy nrf53 DFU file
         run: |
-          cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
+          cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip \
+            $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
 
       - name: Apply Connectivity Bridge Patch
         run: git apply thingy91x-oob/scripts/connectivity_bridge.patch --directory=nrf
@@ -91,11 +125,15 @@ jobs:
         working-directory: thingy91x-oob
         run: |
           west twister -T . --test app/app.build.bootloader_update -v -p thingy91x/nrf9151/ns --inline-logs
-          cp twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/dfu_mcuboot.zip app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
+          cp twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/dfu_mcuboot.zip \
+            app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
           rm -rf twister-out
-          west twister -T ../nrf/applications/connectivity_bridge --test applications.connectivity_bridge.bootloader_update -v -p thingy91x/nrf5340/cpuapp --inline-logs
-          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_mcuboot.zip app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
-          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_application.zip app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge-verbose.zip
+          west twister -T ../nrf/applications/connectivity_bridge \
+            --test applications.connectivity_bridge.bootloader_update -v -p thingy91x/nrf5340/cpuapp --inline-logs
+          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_mcuboot.zip \
+            app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
+          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_application.zip \
+            app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-connectivity-bridge-verbose.zip
 
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
@@ -110,8 +148,15 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        id: artifact-upload-step
         with:
           name: firmware
           if-no-files-found: error
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
+      
+      - name: Debug print
+        run: |
+          echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
+          echo Run id: ${{ github.run_id }}
+          echo Version: ${{ env.VERSION }}
