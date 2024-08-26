@@ -6,7 +6,7 @@ jobs:
   compliance_job:
     runs-on: ubuntu-22.04
     name: Run compliance checks on patch series (PR)
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.13
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.14
 
     # Skip job if it was triggered by Renovate Bot
     if: ${{ !contains(github.actor, 'renovate') }}
