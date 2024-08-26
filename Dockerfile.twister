@@ -1,4 +1,4 @@
-FROM zephyrprojectrtos/ci:v0.26.13 as base
+FROM zephyrprojectrtos/ci:v0.26.14 as base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
