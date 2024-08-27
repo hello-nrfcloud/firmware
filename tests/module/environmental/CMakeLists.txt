@@ -26,7 +26,7 @@ zephyr_include_directories(../../../app/src/common)
 target_link_options(app PRIVATE --whole-archive)
 # Options that cannot be passed through Kconfig fragments
 target_compile_definitions(app PRIVATE
-	-DCONFIG_APP_PAYLOAD_CHANNEL_STRING_MAX_SIZE=100
+	-DCONFIG_APP_PAYLOAD_CHANNEL_BUFFER_MAX_SIZE=100
 	-DCONFIG_APP_ENVIRONMENTAL_LOG_LEVEL=4
 	-DCONFIG_APP_ENVIRONMENTAL_THREAD_STACK_SIZE=1024
 	-DCONFIG_APP_ENVIRONMENTAL_MESSAGE_QUEUE_SIZE=5

@@ -186,8 +186,8 @@ static void sample_network_quality(void)
 	LOG_DBG("Energy Estimate: %d", conn_info_obj.energy_estimate_m.vi);
 	LOG_DBG("RSRP: %d dBm", conn_info_obj.rsrp_m.vi);
 
-	ret = cbor_encode_conn_info_object(payload.string, sizeof(payload.string),
-					&conn_info_obj, &payload.string_len);
+	ret = cbor_encode_conn_info_object(payload.buffer, sizeof(payload.buffer),
+					   &conn_info_obj, &payload.buffer_len);
 	if (ret) {
 		LOG_ERR("Failed to encode conn info object, error: %d", ret);
 		SEND_FATAL_ERROR();
