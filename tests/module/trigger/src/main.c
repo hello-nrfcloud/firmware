@@ -29,15 +29,6 @@ ZBUS_CHAN_ADD_OBS(TRIGGER_MODE_CHAN, trig_mode_subscriber, 0);
 ZBUS_MSG_SUBSCRIBER_DEFINE(trigger_subscriber);
 ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, trigger_subscriber, 0);
 
-static button_handler_t test_button_handler;
-
-static int dk_buttons_init_custom_fake(button_handler_t button_handler)
-{
-	test_button_handler = button_handler;
-
-	return 0;
-}
-
 void setUp(void)
 {
 	RESET_FAKE(task_wdt_feed);
@@ -276,13 +267,30 @@ void test_normal_to_blocked(void)
 	send_cloud_disconnected();
 }
 
+static void button_handler(uint32_t button_states, uint32_t has_changed)
+{
+	int err;
+	uint8_t button_number = 1;
+
+	if (has_changed & button_states & DK_BTN1_MSK) {
+		LOG_DBG("Button 1 pressed!");
+
+		err = zbus_chan_pub(&BUTTON_CHAN, &button_number, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+	}
+}
+
 void test_normal_mode_to_frequent_poll_due_to_button_press(void)
 {
 	/* Given */
 	go_to_normal_state();
 
 	/* When */
-	test_button_handler(DK_BTN1_MSK, true);
+	button_handler(DK_BTN1_MSK, DK_BTN1_MSK);
 
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
@@ -375,15 +383,3 @@ int main(void)
 
 	return 0;
 }
-
-static int test_init(void)
-{
-	LOG_WRN("Running test_init");
-	dk_buttons_init_fake.custom_fake = dk_buttons_init_custom_fake;
-	return 0;
-}
-
-/* Initialize the dk_buttons_init_fake.custom_fake before DUT's init function is called by
- * SYS_INIT()
- */
-SYS_INIT(test_init, POST_KERNEL, CONFIG_APPLICATION_INIT_PRIORITY);

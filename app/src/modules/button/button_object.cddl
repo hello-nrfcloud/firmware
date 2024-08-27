@@ -1,0 +1,8 @@
+; CDDL schema to encode objects like defined in https://github.com/hello-nrfcloud/proto-map/blob/saga/lwm2m/14220.xml
+; depends on lwm2m_senml definitions
+
+button-object = [{
+	bn => "14220/0/",                    ; Custom Environment information object
+	bt => 1700000000...3000000000        ; UNIX timestamp in seconds
+}]
+
