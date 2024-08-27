@@ -8,7 +8,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/task_wdt/task_wdt.h>
-#include <dk_buttons_and_leds.h>
 #include <zephyr/smf.h>
 
 #include "message_channel.h"
@@ -165,24 +164,6 @@ static void trigger_poll_work_fn(struct k_work *work)
 			  K_SECONDS(state_object.poll_interval_used_sec));
 }
 
-/* Button handler called when a user pushes a button */
-static void button_handler(uint32_t button_states, uint32_t has_changed)
-{
-	int err;
-	uint8_t button_number = 1;
-
-	if (has_changed & button_states & DK_BTN1_MSK) {
-		LOG_DBG("Button 1 pressed!");
-
-		err = zbus_chan_pub(&BUTTON_CHAN, &button_number, K_SECONDS(1));
-		if (err) {
-			LOG_ERR("zbus_chan_pub, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
-		}
-	}
-}
-
 static void frequent_poll_duration_timer_start(bool force_restart)
 {
 	if ((k_timer_remaining_get(&frequent_poll_duration_timer) == 0) || force_restart) {
@@ -226,14 +207,6 @@ static void init_entry(void *o)
 	ARG_UNUSED(o);
 
 	LOG_DBG("init_entry");
-
-	int err = dk_buttons_init(button_handler);
-
-	if (err) {
-		LOG_ERR("dk_buttons_init, error: %d", err);
-		SEND_FATAL_ERROR();
-		return;
-	}
 }
 
 static void init_run(void *o)
