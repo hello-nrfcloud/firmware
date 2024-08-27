@@ -167,8 +167,8 @@ static void sample(void)
 	env_obj.pressure_m.vf = sensor_value_to_double(&press) / 100;
 	env_obj.iaq_m.vi = iaq.val1;
 
-	ret = cbor_encode_env_object(payload.string, sizeof(payload.string),
-					&env_obj, &payload.string_len);
+	ret = cbor_encode_env_object(payload.buffer, sizeof(payload.buffer),
+				     &env_obj, &payload.buffer_len);
 	if (ret) {
 		LOG_ERR("Failed to encode env object, error: %d", ret);
 		SEND_FATAL_ERROR();

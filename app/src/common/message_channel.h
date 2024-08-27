@@ -46,8 +46,8 @@ extern "C" {
 } while (0)
 
 struct payload {
-	char string[CONFIG_APP_PAYLOAD_CHANNEL_STRING_MAX_SIZE];
-	size_t string_len;
+	uint8_t buffer[CONFIG_APP_PAYLOAD_CHANNEL_BUFFER_MAX_SIZE];
+	size_t buffer_len;
 };
 
 #define MSG_TO_PAYLOAD(_msg) ((struct payload *)_msg)

@@ -243,8 +243,8 @@ static void sample(int64_t *ref_time)
 	bat_object.voltage_m.vf = voltage;
 	bat_object.temperature_m.vf = temp;
 
-	err = cbor_encode_bat_object(payload.string, sizeof(payload.string),
-				     &bat_object, &payload.string_len);
+	err = cbor_encode_bat_object(payload.buffer, sizeof(payload.buffer),
+				     &bat_object, &payload.buffer_len);
 	if (err) {
 		LOG_ERR("Failed to encode env object, error: %d", err);
 		SEND_FATAL_ERROR();

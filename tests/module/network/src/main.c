@@ -114,7 +114,7 @@ static void wait_for_and_decode_payload(struct conn_info_object *conn_info_obj)
 	}
 
 	/* decode payload */
-	cbor_decode_conn_info_object(payload.string, payload.string_len, conn_info_obj, NULL);
+	cbor_decode_conn_info_object(payload.buffer, payload.buffer_len, conn_info_obj, NULL);
 	if (err != ZCBOR_SUCCESS) {
 		LOG_ERR("Failed to decode payload");
 		TEST_FAIL();

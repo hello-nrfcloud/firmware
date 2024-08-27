@@ -109,8 +109,8 @@ void test_transition_disconnected_connected_ready(void)
 void test_sending_payload(void)
 {
 	struct payload payload = {
-		.string = "test",
-		.string_len = sizeof(payload.string) - 1,
+		.buffer = "test",
+		.buffer_len = sizeof(payload.buffer) - 1,
 	};
 
 	zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_NO_WAIT);
@@ -120,8 +120,8 @@ void test_sending_payload(void)
 
 	TEST_ASSERT_EQUAL(1, nrf_cloud_coap_bytes_send_fake.call_count);
 	TEST_ASSERT_EQUAL(0, strncmp(nrf_cloud_coap_bytes_send_fake.arg0_val,
-				     payload.string, payload.string_len));
-	TEST_ASSERT_EQUAL(payload.string_len, nrf_cloud_coap_bytes_send_fake.arg1_val);
+				     payload.buffer, payload.buffer_len));
+	TEST_ASSERT_EQUAL(payload.buffer_len, nrf_cloud_coap_bytes_send_fake.arg1_val);
 }
 
 void test_connected_ready_to_paused(void)
@@ -143,8 +143,8 @@ void test_connected_paused_to_ready_send_payload(void)
 	int err;
 	enum network_status status = NETWORK_CONNECTED;
 	struct payload payload = {
-		.string = "Another test",
-		.string_len = sizeof(payload.string) - 1,
+		.buffer = "Another test",
+		.buffer_len = sizeof(payload.buffer) - 1,
 	};
 
 	/* Reset call count */
@@ -165,8 +165,8 @@ void test_connected_paused_to_ready_send_payload(void)
 
 	TEST_ASSERT_EQUAL(1, nrf_cloud_coap_bytes_send_fake.call_count);
 	TEST_ASSERT_EQUAL(0, strncmp(nrf_cloud_coap_bytes_send_fake.arg0_val,
-				     payload.string, payload.string_len));
-	TEST_ASSERT_EQUAL(payload.string_len, nrf_cloud_coap_bytes_send_fake.arg1_val);
+				     payload.buffer, payload.buffer_len));
+	TEST_ASSERT_EQUAL(payload.buffer_len, nrf_cloud_coap_bytes_send_fake.arg1_val);
 }
 
 /* This is required to be added to each test. That is because unity's

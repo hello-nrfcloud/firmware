@@ -405,9 +405,9 @@ static void state_connected_ready_run(void *o)
 		int err;
 		struct payload *payload = MSG_TO_PAYLOAD(state_object->msg_buf);
 
-		LOG_HEXDUMP_DBG(payload->string, MIN(payload->string_len, 32), "Payload");
+		LOG_HEXDUMP_DBG(payload->buffer, MIN(payload->buffer_len, 32), "Payload");
 
-		err = nrf_cloud_coap_bytes_send(payload->string, payload->string_len, false);
+		err = nrf_cloud_coap_bytes_send(payload->buffer, payload->buffer_len, false);
 		if (err == -EACCES) {
 
 			/* Not connected, retry connection */

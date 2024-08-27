@@ -86,7 +86,8 @@ void wait_for_and_decode_payload(struct env_object *env_object)
 	}
 
 	/* decode payload */
-	cbor_decode_env_object(received_payload.string, received_payload.string_len, env_object, NULL);
+	cbor_decode_env_object(received_payload.buffer,
+			       received_payload.buffer_len, env_object, NULL);
 	if (err != ZCBOR_SUCCESS) {
 		LOG_ERR("Failed to decode payload");
 		TEST_FAIL();
