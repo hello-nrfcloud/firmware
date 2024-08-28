@@ -78,7 +78,9 @@ jobs:
           echo "CONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"" >> overlay-memfault.conf
           echo CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y >> overlay-memfault.conf
           echo CONFIG_MEMFAULT_NCS_FW_VERSION=\"${{ env.VERSION }}\" >> overlay-memfault.conf
+          echo ::group::{west build log}
           west build -b thingy91x/nrf9151/ns -p --sysbuild -- -DEXTRA_CONF_FILE="overlay-memfault.conf"
+          echo ::endgroup::
 
       - name: Create nrf91 Bootloader HEX file
         run: |
@@ -92,7 +94,9 @@ jobs:
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
+          echo ::group::{west build log}
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild
+          echo ::endgroup::
 
       - name: Create nrf53 merged_domains HEX file
         run: |
@@ -124,12 +128,16 @@ jobs:
         if: ${{ inputs.build_bl_update }}
         working-directory: thingy91x-oob
         run: |
+          echo ::group::{twister bootloader_update log}
           west twister -T . --test app/app.build.bootloader_update -v -p thingy91x/nrf9151/ns --inline-logs
+          echo ::endgroup::
           cp twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/dfu_mcuboot.zip \
             app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
           rm -rf twister-out
+          echo ::group::{twister connectivity_bridge log}
           west twister -T ../nrf/applications/connectivity_bridge \
             --test applications.connectivity_bridge.bootloader_update -v -p thingy91x/nrf5340/cpuapp --inline-logs
+          echo ::endgroup::
           cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_mcuboot.zip \
             app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
           cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_application.zip \
