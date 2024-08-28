@@ -83,7 +83,11 @@ jobs:
       - name: Run UART tests
         working-directory: thingy91x-oob/tests/on_target
         run: |
-          pytest -s -v -m "dut1 and uart" tests --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex
+          mkdir -p results
+          pytest -s -v -m "dut1 and uart" \
+            --junit-xml=results/test-results-uart.xml \
+            --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex \
+            tests
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
@@ -91,7 +95,10 @@ jobs:
         if: ${{ inputs.run_fota_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
-          pytest -s -v -m "dut1 and fota" tests --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex
+          pytest -s -v -m "dut1 and fota" \
+            --junit-xml=results/test-results-fota.xml \
+            --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex \
+            tests
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
           IMEI: ${{ secrets.IMEI_DUT_1 }}
@@ -101,7 +108,7 @@ jobs:
         if: ${{ inputs.run_dfu_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
-          pytest -s -v -m dut2 tests
+          pytest -s -v -m dut2 --junit-xml=results/test-results-dfu.xml tests
         env:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
@@ -118,3 +125,12 @@ jobs:
         working-directory: thingy91x-oob
         run: |
           python3 ./tests/on_target/utils/thingy91x_dfu.py --check-nrf53-version --serial THINGY91X_${{ secrets.UART_DUT_2 }} 2>&1 >/dev/null | grep "S1: 1"
+
+      - name: Results
+        if: always()
+        uses: pmeier/pytest-results-action@v0.7.1
+        with:
+          path: thingy91x-oob/tests/on_target/results/*.xml
+          summary: true
+          fail-on-empty: true
+          title: OOB FW Test Results
