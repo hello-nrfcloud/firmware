@@ -2,6 +2,23 @@ name: Build and Test on Target
 
 on:
   workflow_dispatch:
+    inputs:
+      run_fota_tests:
+        type: boolean
+        required: true
+        default: true
+      run_fullmfwfota_test:
+        type: boolean
+        required: true
+        default: false
+      run_dfu_tests:
+        type: boolean
+        required: true
+        default: true
+      run_connectivity_bridge_tests:
+        type: boolean
+        required: true
+        default: true
   schedule:
     - cron: "0 0 * * *"
   push:
@@ -20,3 +37,11 @@ jobs:
     with:
       artifact_fw_version: ${{ needs.build.outputs.version }}
       artifact_run_id: ${{ needs.build.outputs.run_id }}
+      run_fota_tests: ${{ github.event.inputs.run_fota_tests == 'true' }}
+      run_fullmfwfota_test: >-
+        ${{
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_fullmfwfota_test == 'true')
+        }}
+      run_dfu_tests: ${{ github.event.inputs.run_dfu_tests == 'true' }}
+      run_connectivity_bridge_tests: ${{ github.event.inputs.run_connectivity_bridge_tests == 'true' }}

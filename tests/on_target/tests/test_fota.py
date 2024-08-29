@@ -124,6 +124,6 @@ def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
 
 
 @pytest.mark.dut1
-@pytest.mark.fota
+@pytest.mark.fullmfw_fota
 def test_full_mfw_fota(t91x_board, hex_file, run_fota_fixture):
     run_fota_fixture(FULL_MFW_BUNDLEID, "full", FULL_MFW_FOTA_TIMEOUT)

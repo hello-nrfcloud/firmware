@@ -13,6 +13,10 @@ on:
         type: boolean
         required: false
         default: true
+      run_fullmfwfota_test:
+        type: boolean
+        required: true
+        default: false
       run_dfu_tests:
         type: boolean
         required: false
@@ -32,6 +36,10 @@ on:
         type: string
         required: true
       run_fota_tests:
+        type: boolean
+        required: true
+        default: false
+      run_fullmfwfota_test:
         type: boolean
         required: true
         default: false
@@ -91,12 +99,25 @@ jobs:
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
-      - name: Run FOTA tests
+      - name: Run FOTA tests (standard)
         if: ${{ inputs.run_fota_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
           pytest -s -v -m "dut1 and fota" \
             --junit-xml=results/test-results-fota.xml \
+            --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex \
+            tests
+        env:
+          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+          IMEI: ${{ secrets.IMEI_DUT_1 }}
+          FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
+
+      - name: Run FOTA tests (FULLMFW)
+        if: ${{ inputs.run_fullmfwfota_test }}
+        working-directory: thingy91x-oob/tests/on_target
+        run: |
+          pytest -s -v -m "dut1 and fullmfw_fota" \
+            --junit-xml=results/test-results-fullmfw-fota.xml \
             --firmware-hex artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.hex \
             tests
         env:
