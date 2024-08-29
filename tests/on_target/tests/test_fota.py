@@ -34,7 +34,7 @@ def post_job_and_trigger_fota(t91x_board, bundle_id, fota_type):
         time.sleep(20)
         try:
             t91x_board.uart.write("zbus button_press\r\n")
-            t91x_board.uart.wait_for_str("FOTA job received", timeout=30)
+            t91x_board.uart.wait_for_str("FOTA Job: ", timeout=30)
             return
         except AssertionError:
             logger.debug(f"{fota_type} fota not available yet, trying again...")
