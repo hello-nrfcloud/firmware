@@ -181,11 +181,14 @@ static void send_frequent_poll_duration_timer_expiry(void)
 	 */
 
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	for (int i = 0; i < interval; i++) {
 		check_trigger_event(TRIGGER_DATA_SAMPLE);
 		check_trigger_event(TRIGGER_POLL);
+		check_trigger_event(TRIGGER_FOTA_POLL);
 		check_trigger_event(TRIGGER_POLL);
+		check_trigger_event(TRIGGER_FOTA_POLL);
 	}
 }
 
@@ -195,8 +198,8 @@ static void go_to_frequent_poll_state(void)
 
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 }
 
 static void go_to_normal_state(void)
@@ -214,8 +217,8 @@ void test_init_to_frequent_poll(void)
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -284,8 +287,8 @@ void test_normal_mode_to_frequent_poll_due_to_button_press(void)
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -302,8 +305,8 @@ void test_normal_mode_to_frequent_poll_due_to_config_update(void)
 	/* Then */
 	check_trigger_mode_event(TRIGGER_MODE_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
-	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
@@ -321,10 +324,12 @@ void test_frequent_poll_to_blocked_to_frequent_poll(void)
 	/* Then */
 	k_sleep(K_SECONDS(FREQUENT_POLL_TRIGGER_INTERVAL_SEC));
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 	check_trigger_event(TRIGGER_DATA_SAMPLE);
 	check_no_trigger_mode_events(5);
 
 	check_trigger_event(TRIGGER_POLL);
+	check_trigger_event(TRIGGER_FOTA_POLL);
 
 	/* Cleanup */
 	send_cloud_disconnected();
