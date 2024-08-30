@@ -37,11 +37,26 @@ jobs:
     with:
       artifact_fw_version: ${{ needs.build.outputs.version }}
       artifact_run_id: ${{ needs.build.outputs.run_id }}
-      run_fota_tests: ${{ github.event.inputs.run_fota_tests == 'true' }}
+      run_fota_tests: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_fota_tests == 'true')
+        }}
       run_fullmfwfota_test: >-
         ${{
           github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.run_fullmfwfota_test == 'true')
         }}
-      run_dfu_tests: ${{ github.event.inputs.run_dfu_tests == 'true' }}
-      run_connectivity_bridge_tests: ${{ github.event.inputs.run_connectivity_bridge_tests == 'true' }}
+      run_dfu_tests: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_dfu_tests == 'true')
+        }}
+      run_connectivity_bridge_tests: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_connectivity_bridge_tests == 'true')
+        }}
