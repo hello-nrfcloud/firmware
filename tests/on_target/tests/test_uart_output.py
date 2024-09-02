@@ -32,8 +32,7 @@ def test_uart_output(t91x_board, hex_file):
     ]
     patterns_button_press = [
         "trigger: frequent_poll_run: Button 1 pressed in frequent poll state, restarting duration timer",
-        "trigger_fota_poll_work_fn: Sending FOTA poll trigger",
-        "trigger_shadow_poll_work_fn: Sending shadow poll trigger"
+        "trigger_poll_work_fn: Sending shadow/fota poll trigger"
     ]
     patterns_lte_offline = [
             "network: Network connectivity lost",
