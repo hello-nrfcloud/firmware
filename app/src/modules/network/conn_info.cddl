@@ -8,7 +8,7 @@ base-attributes = {
 
 rsrp = {
 	n => "2",                           ; RSRP resource ID
-	vi => -157..-43,                    ; RSRP (in dBm)
+	? vi => -157..-43,                  ; RSRP (in dBm)
 }
 
 energy-estimate = {
