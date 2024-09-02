@@ -22,27 +22,28 @@ DELTA_MFW_BUNDLEID = "MODEM*ad48df2a*mfw_nrf91x1_2.0.1-FOTA-TEST"
 FULL_MFW_BUNDLEID = "MDM_FULL*bdd24c80*mfw_nrf91x1_full_2.0.1"
 
 
-WAIT_FOR_FOTA_AVAILABLE = 60 * 2
+WAIT_FOR_FOTA_AVAILABLE = 60 * 4
 APP_FOTA_TIMEOUT = 60 * 10
 FULL_MFW_FOTA_TIMEOUT = 60 * 20
 
 
-def post_job_and_trigger_fota(t91x_board, bundle_id, fota_type):
-    if bundle_id:
-        t91x_board.fota.post_fota_job(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
-    t91x_board.uart.flush()
-
+def wait_for_fota_available(t91x_board):
     start = time.time()
     while time.time() - start < WAIT_FOR_FOTA_AVAILABLE:
         time.sleep(20)
         try:
-            t91x_board.uart.write("zbus button_press\r\n")
             t91x_board.uart.wait_for_str("FOTA Job: ", timeout=30)
             return
         except AssertionError:
-            logger.debug(f"{fota_type} fota not available yet, trying again...")
+            logger.debug("FOTA not available yet, trying again...")
 
-    raise RuntimeError(f"{fota_type} fota not available after {WAIT_FOR_FOTA_AVAILABLE} seconds")
+    raise RuntimeError(f"FOTA not available after {WAIT_FOR_FOTA_AVAILABLE} seconds")
+
+
+def post_job(t91x_board, bundle_id, fota_type):
+    t91x_board.fota.post_fota_job(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
+    t91x_board.uart.flush()
+    wait_for_fota_available(t91x_board)
 
 
 def run_fota_resumption(t91x_board, fota_type):
@@ -62,7 +63,7 @@ def run_fota_resumption(t91x_board, fota_type):
     t91x_board.uart.write("lte normal\r\n")
     t91x_board.uart.wait_for_str(patterns_lte_normal, timeout=120)
 
-    post_job_and_trigger_fota(t91x_board, None, fota_type)  # We don't need bundle_id here
+    wait_for_fota_available(t91x_board)
 
     t91x_board.uart.wait_for_str("fota_download: Refuse fragment, restart with offset")
     t91x_board.uart.wait_for_str("fota_download: Downloading from offset:")
@@ -77,7 +78,7 @@ def run_fota_fixture(t91x_board, hex_file):
         reset_device()
         t91x_board.uart.wait_for_str("Connected to Cloud")
 
-        post_job_and_trigger_fota(t91x_board, bundleId, fota_type)
+        post_job(t91x_board, bundleId, fota_type)
 
         if test_fota_resumption:
             run_fota_resumption(t91x_board, fota_type)
