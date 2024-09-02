@@ -35,6 +35,7 @@ ZBUS_CHAN_ADD_OBS(PAYLOAD_CHAN, test_subscriber, 0);
 
 #define FAKE_TIME_MS 1723099642000
 #define FAKE_RSRP_IDX_MAX 97
+#define FAKE_RSRP_IDX_INVALID 255
 #define FAKE_RSRP_IDX 0
 #define FAKE_RSRP_IDX_MIN -17
 #define FAKE_ENERGY_ESTIMATE_MAX 9
@@ -59,6 +60,14 @@ static int lte_lc_conn_eval_params_get_max_custom_fake(struct lte_lc_conn_eval_p
 {
 	params->energy_estimate = FAKE_ENERGY_ESTIMATE_MAX;
 	params->rsrp = FAKE_RSRP_IDX_MAX;
+
+	return 0;
+}
+
+static int lte_lc_conn_eval_params_get_invalid_custom_fake(struct lte_lc_conn_eval_params *params)
+{
+	params->energy_estimate = FAKE_ENERGY_ESTIMATE_MAX;
+	params->rsrp = FAKE_RSRP_IDX_INVALID;
 
 	return 0;
 }
@@ -162,7 +171,7 @@ void test_energy_estimate(void)
 	wait_for_and_decode_payload(&conn_info_obj);
 	TEST_ASSERT_EQUAL(FAKE_TIME_MS / 1000, conn_info_obj.base_attributes_m.bt);
 	TEST_ASSERT_EQUAL(FAKE_ENERGY_ESTIMATE, conn_info_obj.energy_estimate_m.vi);
-	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX), conn_info_obj.rsrp_m.vi);
+	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX), conn_info_obj.rsrp_m.vi.vi);
 }
 
 void test_conn_info_max_values(void)
@@ -179,7 +188,28 @@ void test_conn_info_max_values(void)
 	wait_for_and_decode_payload(&conn_info_obj);
 	TEST_ASSERT_EQUAL(FAKE_TIME_MS / 1000, conn_info_obj.base_attributes_m.bt);
 	TEST_ASSERT_EQUAL(FAKE_ENERGY_ESTIMATE_MAX, conn_info_obj.energy_estimate_m.vi);
-	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX_MAX), conn_info_obj.rsrp_m.vi);
+	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX_MAX), conn_info_obj.rsrp_m.vi.vi);
+}
+
+void test_conn_info_invalid_values(void)
+{
+	static struct conn_info_object conn_info_obj = {0};
+
+	/* Given */
+	lte_lc_conn_eval_params_get_fake.custom_fake =
+		lte_lc_conn_eval_params_get_invalid_custom_fake;
+
+	/* When */
+	send_trigger();
+
+	/* Then */
+	wait_for_and_decode_payload(&conn_info_obj);
+	TEST_ASSERT_EQUAL(FAKE_TIME_MS / 1000, conn_info_obj.base_attributes_m.bt);
+	TEST_ASSERT_EQUAL(FAKE_ENERGY_ESTIMATE_MAX, conn_info_obj.energy_estimate_m.vi);
+
+	if (conn_info_obj.rsrp_m.vi_present) {
+		TEST_FAIL();
+	}
 }
 
 void test_conn_info_min_values(void)
@@ -196,7 +226,7 @@ void test_conn_info_min_values(void)
 	wait_for_and_decode_payload(&conn_info_obj);
 	TEST_ASSERT_EQUAL(FAKE_TIME_MS / 1000, conn_info_obj.base_attributes_m.bt);
 	TEST_ASSERT_EQUAL(FAKE_ENERGY_ESTIMATE_MIN, conn_info_obj.energy_estimate_m.vi);
-	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX_MIN), conn_info_obj.rsrp_m.vi);
+	TEST_ASSERT_EQUAL(RSRP_IDX_TO_DBM(FAKE_RSRP_IDX_MIN), conn_info_obj.rsrp_m.vi.vi);
 }
 
 void test_no_events_on_zbus_until_watchdog_timeout(void)

@@ -180,11 +180,18 @@ static void sample_network_quality(void)
 
 	conn_info_obj.base_attributes_m.bt = (int32_t)(system_time / 1000);
 	conn_info_obj.energy_estimate_m.vi = conn_eval_params.energy_estimate;
-	conn_info_obj.rsrp_m.vi = RSRP_IDX_TO_DBM(conn_eval_params.rsrp);
+
+	if (conn_eval_params.rsrp == LTE_LC_CELL_RSRP_INVALID) {
+		LOG_WRN("RSRP value is invalid, ignoring");
+	} else {
+		conn_info_obj.rsrp_m.vi_present = true;
+		conn_info_obj.rsrp_m.vi.vi = RSRP_IDX_TO_DBM(conn_eval_params.rsrp);
+
+		LOG_DBG("RSRP: %d dBm", conn_info_obj.rsrp_m.vi.vi);
+	}
 
 	LOG_DBG("System Time: %d", conn_info_obj.base_attributes_m.bt);
 	LOG_DBG("Energy Estimate: %d", conn_info_obj.energy_estimate_m.vi);
-	LOG_DBG("RSRP: %d dBm", conn_info_obj.rsrp_m.vi);
 
 	ret = cbor_encode_conn_info_object(payload.buffer, sizeof(payload.buffer),
 					   &conn_info_obj, &payload.buffer_len);
