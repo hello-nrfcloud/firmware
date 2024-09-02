@@ -72,6 +72,9 @@ jobs:
           python3 scripts/app_version.py ${GITHUB_REF_NAME} > app/VERSION
           cat app/VERSION
 
+      - name: Apply nrf_wifi HAL patch
+        run: git apply thingy91x-oob/scripts/nrf_wifi_hal_memory_leak_fix.patch --directory=nrfxlib
+
       - name: Build nrf91 firmware
         working-directory: thingy91x-oob/app
         run: |
