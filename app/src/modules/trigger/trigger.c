@@ -131,7 +131,7 @@ static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id
 
 	LOG_DBG("Frequent poll duration timer expired");
 
-	err = zbus_chan_pub(&PRIV_TRIGGER_CHAN, &unused, K_NO_WAIT);
+	err = zbus_chan_pub(&PRIV_TRIGGER_CHAN, &unused, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();

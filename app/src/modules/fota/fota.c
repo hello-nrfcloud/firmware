@@ -191,7 +191,7 @@ static void state_poll_and_process_entry(void *o)
 	/* Notify the rest of the system that FOTA processing is starting */
 	enum fota_status fota_status = FOTA_STATUS_PROCESSING_START;
 
-	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_NO_WAIT);
+	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -206,7 +206,7 @@ static void state_poll_and_process_entry(void *o)
 			LOG_ERR("nrf_cloud_fota_poll_process failed: %d", err);
 		}
 
-		err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_NO_WAIT);
+		err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_SECONDS(1));
 		if (err) {
 			LOG_ERR("zbus_chan_pub, error: %d", err);
 			SEND_FATAL_ERROR();
@@ -243,7 +243,7 @@ static void state_poll_and_process_exit(void *o)
 
 	ARG_UNUSED(o);
 
-	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_NO_WAIT);
+	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -258,7 +258,7 @@ static void state_reboot_pending_entry(void *o)
 	enum fota_status fota_status = FOTA_STATUS_REBOOT_PENDING;
 
 	/* Notify the rest of the system that a reboot is pending */
-	err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_NO_WAIT);
+	err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -288,7 +288,7 @@ static void fota_reboot(enum nrf_cloud_fota_reboot_status status)
 
 	LOG_INF("Reboot requested with FOTA status %d", status);
 
-	err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_NO_WAIT);
+	err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -307,7 +307,7 @@ static void fota_error(enum nrf_cloud_fota_status status, const char *const stat
 
 	LOG_ERR("FOTA error: %d, details: %s", status, status_details);
 
-	err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_NO_WAIT);
+	err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();

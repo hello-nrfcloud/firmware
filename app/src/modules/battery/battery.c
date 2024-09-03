@@ -251,7 +251,7 @@ static void sample(int64_t *ref_time)
 		return;
 	}
 
-	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_FOREVER);
+	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
