@@ -4,7 +4,7 @@
 
 ### Setup docker
 ```shell
-docker pull ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview31
+docker pull ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview42
 cd <path_to_oob_dir>
 cp build/merged.hex tests/on_target/artifacts/
 docker run --rm -it \
@@ -12,7 +12,7 @@ docker run --rm -it \
   -v /dev:/dev:rw \
   -v /run/udev:/run/udev \
   -v .:/work/thingy91x-oob \
-  ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview31 \
+  ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview42 \
   /bin/bash
 ```
 
