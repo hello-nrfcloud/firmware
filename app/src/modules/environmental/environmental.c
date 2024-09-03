@@ -177,7 +177,7 @@ static void sample(void)
 
 	LOG_DBG("Submitting payload");
 
-	int err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_NO_WAIT);
+	int err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();

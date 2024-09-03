@@ -40,7 +40,7 @@ static void send_button_payload(void)
 		return;
 	}
 
-	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_FOREVER);
+	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();

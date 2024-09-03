@@ -266,7 +266,7 @@ static void state_disconnected_entry(void *o)
 
 	LOG_DBG("%s", __func__);
 
-	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_NO_WAIT);
+	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -361,7 +361,7 @@ static void state_connected_ready_entry(void *o)
 
 	LOG_DBG("%s", __func__);
 
-	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_NO_WAIT);
+	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -438,7 +438,7 @@ static void state_connected_paused_entry(void *o)
 
 	LOG_DBG("%s", __func__);
 
-	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_NO_WAIT);
+	err = zbus_chan_pub(&CLOUD_CHAN, &cloud_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
