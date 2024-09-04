@@ -6,7 +6,8 @@
 ```shell
 docker pull ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview42
 cd <path_to_oob_dir>
-cp build/merged.hex tests/on_target/artifacts/
+west build -p -b thingy91x/nrf9151/ns app
+cp build/merged.hex tests/on_target/artifacts/hello.nrfcloud.com-aaa000-thingy91x-debug-app.hex
 docker run --rm -it \
   --privileged \
   -v /dev:/dev:rw \
@@ -34,7 +35,7 @@ Precondition: thingy91x with segger fw on 53
 
 ```shell
 export SEGGER=<your_segger>
-pytest -s -v -m "dut1 and uart" tests --firmware-hex artifacts/merged.hex
+pytest -s -v -m "dut1 and uart" tests
 ```
 
 ### Run FOTA tests
@@ -45,7 +46,7 @@ Precondition: thingy91x with segger fw on 53
 export SEGGER=<your_segger>
 export IMEI=<your_imei>
 export FINGERPRINT=<your_fingerprint>
-pytest -s -v -m "dut1 and fota" tests --firmware-hex artifacts/merged.hex
+pytest -s -v -m "dut1 and fota" tests
 ```
 
 ### Run DFU tests
