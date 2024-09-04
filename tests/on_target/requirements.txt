@@ -4,3 +4,4 @@ termcolor
 pyusb
 imgtool
 requests
+memfault-cli

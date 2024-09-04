@@ -66,17 +66,14 @@ def t91x_board():
 
     uart.stop()
 
+@pytest.fixture(scope="session")
+def hex_file():
+    # Search for the firmware hex file in the artifacts folder
+    artifacts_dir = "artifacts"
+    hex_pattern = r"hello\.nrfcloud\.com-[a-f0-9]+-thingy91x-debug-app\.hex"
 
-@pytest.fixture(scope="module")
-def hex_file(request):
-    return request.config.getoption("--firmware-hex")
+    for file in os.listdir(artifacts_dir):
+        if re.match(hex_pattern, file):
+            return os.path.join(artifacts_dir, file)
 
-
-# Add support for input arguments
-def pytest_addoption(parser):
-    parser.addoption(
-        "--firmware-hex",
-        action="store",
-        default="artifacts/merged.hex",
-        help="Path to the firmware hex file",
-    )
+    pytest.fail("No matching firmware .hex file found in the artifacts directory")
