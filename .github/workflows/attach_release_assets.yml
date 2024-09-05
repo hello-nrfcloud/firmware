@@ -15,6 +15,7 @@ jobs:
     secrets: inherit
     with:
       build_bl_update: true
+      memfault_sw_type: "hello.nrfcloud.com"
 
   attach-assets:
     runs-on: ubuntu-22.04
