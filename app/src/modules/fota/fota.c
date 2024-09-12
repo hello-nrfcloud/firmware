@@ -37,6 +37,7 @@ ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, fota, 0);
 /* FOTA support context */
 static void fota_reboot(enum nrf_cloud_fota_reboot_status status);
 static void fota_error(enum nrf_cloud_fota_status status, const char *const status_details);
+static void fota_download_status(enum nrf_cloud_fota_download_status status);
 
 /* State machine */
 
@@ -97,12 +98,12 @@ static void state_wait_for_cloud_run(void *o);
 static void state_wait_for_trigger_run(void *o);
 static void state_poll_and_process_entry(void *o);
 static void state_poll_and_process_run(void *o);
-static void state_poll_and_process_exit(void *o);
 static void state_reboot_pending_entry(void *o);
 
 static struct s_object s_obj = {
 	.fota_ctx.reboot_fn = fota_reboot,
 	.fota_ctx.error_fn = fota_error,
+	.fota_ctx.download_status_fn = fota_download_status,
 };
 
 static const struct smf_state states[] = {
@@ -120,7 +121,7 @@ static const struct smf_state states[] = {
 				 NULL),
 	[STATE_POLL_AND_PROCESS] =
 		SMF_CREATE_STATE(state_poll_and_process_entry, state_poll_and_process_run,
-				 state_poll_and_process_exit,
+				 NULL,
 				 &states[STATE_RUNNING],
 				 NULL),
 	[STATE_REBOOT_PENDING] =
@@ -188,17 +189,10 @@ static void state_wait_for_trigger_run(void *o)
 static void state_poll_and_process_entry(void *o)
 {
 	struct s_object *state_object = o;
-	/* Notify the rest of the system that FOTA processing is starting */
-	enum fota_status fota_status = FOTA_STATUS_PROCESSING_START;
-
-	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
 
 	/* Start the FOTA processing */
-	err = nrf_cloud_fota_poll_process(&state_object->fota_ctx);
+	int err = nrf_cloud_fota_poll_process(&state_object->fota_ctx);
+
 	if (err) {
 		enum priv_fota_evt evt = FOTA_PRIV_PROCESSING_DONE;
 
@@ -234,19 +228,6 @@ static void state_poll_and_process_run(void *o)
 			LOG_ERR("Unknown event: %d", evt);
 			break;
 		}
-	}
-}
-
-static void state_poll_and_process_exit(void *o)
-{
-	enum fota_status fota_status = FOTA_STATUS_PROCESSING_DONE;
-
-	ARG_UNUSED(o);
-
-	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
 	}
 }
 
@@ -312,6 +293,30 @@ static void fota_error(enum nrf_cloud_fota_status status, const char *const stat
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
 	}
+}
+
+static void download_events_notify(enum nrf_cloud_fota_download_status status)
+{
+	int err;
+
+	__ASSERT_NO_MSG(status == NRF_CLOUD_FOTA_DOWNLOAD_STARTED ||
+			status == NRF_CLOUD_FOTA_DOWNLOAD_STOPPED);
+
+	enum fota_status fota_status = status == NRF_CLOUD_FOTA_DOWNLOAD_STARTED ?
+		FOTA_STATUS_DOWNLOAD_STARTED : FOTA_STATUS_DOWNLOAD_STOPPED;
+
+	err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+}
+
+static void fota_download_status(enum nrf_cloud_fota_download_status status)
+{
+	LOG_DBG("FOTA download status: %s", (status == NRF_CLOUD_FOTA_DOWNLOAD_STARTED) ? "started" : "stopped");
+	download_events_notify(status);
 }
 
 static void fota_task(void)
