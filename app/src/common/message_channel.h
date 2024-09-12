@@ -101,14 +101,11 @@ enum fota_status {
 	/* No FOTA job is ongoing */
 	FOTA_STATUS_IDLE = 0x1,
 
-	/* The cloud is about to be polled for new FOTA jobs. If a job is found, the
-	 * FOTA job will be started, which includes downloading the firmware and applying it.
-	 * Depending on the formware type, the modem may be rebooted.
-	 */
-	FOTA_STATUS_PROCESSING_START,
+	/* FOTA started. */
+	FOTA_STATUS_START,
 
-	/* FOTA processing completed. */
-	FOTA_STATUS_PROCESSING_DONE,
+	/* FOTA stopped. */
+	FOTA_STATUS_STOP,
 
 	/* A firmware image has been downloaded and a reboot is required to apply it.
 	 * The FOTA module will perform the reboot CONFIG_APP_FOTA_REBOOT_DELAY_SECONDS seconds

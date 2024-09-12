@@ -25,6 +25,7 @@ ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(BUTTON_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
+ZBUS_CHAN_ADD_OBS(FOTA_STATUS_CHAN, trigger, 0);
 
 /* Data sample trigger interval in the frequent poll state */
 #define FREQUENT_POLL_DATA_SAMPLE_TRIGGER_INTERVAL_SEC 60
@@ -54,7 +55,8 @@ enum state {
 	STATE_NORMAL,
 	/* Sub-state to STATE_CONNECTED */
 	STATE_BLOCKED,
-	STATE_DISCONNECTED
+	STATE_DISCONNECTED,
+	STATE_FOTA_ONGOING
 };
 
 /* Private channel used to signal when the duration in the frequent poll state expires */
@@ -100,6 +102,9 @@ struct s_object {
 
 	/* Cloud status */
 	enum cloud_status status;
+
+	/* FOTA download status */
+	enum fota_status fota_status;
 
 	/* Trigger mode */
 	enum trigger_mode trigger_mode;
@@ -192,6 +197,7 @@ static void frequent_poll_duration_timer_stop(void)
  *				Sending data sample triggers every configured update interval
  *	- STATE_BLOCKED: Sending of triggers is blocked due to an active location search
  * STATE_DISCONNECTED: Sending of triggers is blocked due to being disconnected
+ * STATE_FOTA_ONGOING: Sending of triggers is blocked due and ongoing FOTA
  *
  *
  * Note:
@@ -236,6 +242,14 @@ static void connected_run(void *o)
 		LOG_DBG("Cloud disconnected/paused, going into disconnected state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_DISCONNECTED]);
 		return;
+	}
+
+	if (user_object->chan == &FOTA_STATUS_CHAN) {
+		if (user_object->fota_status == FOTA_STATUS_START) {
+			LOG_DBG("FOTA download started, going into FOTA ongoing state");
+			smf_set_state(SMF_CTX(&state_object), &states[STATE_FOTA_ONGOING]);
+			return;
+		}
 	}
 }
 
@@ -463,6 +477,40 @@ static void disconnected_run(void *o)
 	}
 }
 
+/* STATE_FOTA_ONGOING */
+
+static void fota_ongoing_entry(void *o)
+{
+	ARG_UNUSED(o);
+
+	LOG_DBG("fota_ongoing_entry");
+	/* Cancel frequent poll duration timer if running. This can happen when state machine was
+	 * in BLOCKED state when the FOTA download starts.
+	 */
+	frequent_poll_duration_timer_stop();
+}
+
+static void fota_ongoing_run(void *o)
+{
+	struct s_object *user_object = o;
+
+	LOG_DBG("fota_ongoing_run");
+
+	if (user_object->chan == &FOTA_STATUS_CHAN) {
+		if (user_object->fota_status == FOTA_STATUS_STOP) {
+			LOG_DBG("FOTA download stopped");
+
+			if (user_object->status == CLOUD_CONNECTED_READY_TO_SEND) {
+				smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
+			} else {
+				smf_set_state(SMF_CTX(&state_object), &states[STATE_DISCONNECTED]);
+			}
+
+			return;
+		}
+	}
+}
+
 /* Construct state table */
 static const struct smf_state states[] = {
 	[STATE_INIT] = SMF_CREATE_STATE(
@@ -506,6 +554,13 @@ static const struct smf_state states[] = {
 		NULL,
 		NULL,
 		NULL
+	),
+	[STATE_FOTA_ONGOING] = SMF_CREATE_STATE(
+		fota_ongoing_entry,
+		fota_ongoing_run,
+		NULL,
+		NULL,
+		NULL
 	)
 };
 
@@ -518,6 +573,7 @@ void trigger_callback(const struct zbus_channel *chan)
 	    (chan != &CLOUD_CHAN) &&
 	    (chan != &LOCATION_CHAN) &&
 	    (chan != &BUTTON_CHAN) &&
+	    (chan != &FOTA_STATUS_CHAN) &&
 	    (chan != &PRIV_TRIGGER_CHAN)) {
 		LOG_ERR("Unknown channel");
 		return;
@@ -539,6 +595,10 @@ void trigger_callback(const struct zbus_channel *chan)
 		const enum cloud_status *status = zbus_chan_const_msg(chan);
 
 		state_object.status = *status;
+	} else if (&FOTA_STATUS_CHAN == chan) {
+		const enum fota_status *fota_status = zbus_chan_const_msg(chan);
+
+		state_object.fota_status = *fota_status;
 	} else if (&BUTTON_CHAN == chan) {
 		const int *button_number = zbus_chan_const_msg(chan);
 

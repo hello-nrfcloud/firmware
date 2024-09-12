@@ -36,7 +36,7 @@ ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, fota, 0);
 
 /* FOTA support context */
 static void fota_reboot(enum nrf_cloud_fota_reboot_status status);
-static void fota_error(enum nrf_cloud_fota_status status, const char *const status_details);
+static void fota_status(enum nrf_cloud_fota_status status, const char *const status_details);
 
 /* State machine */
 
@@ -97,12 +97,11 @@ static void state_wait_for_cloud_run(void *o);
 static void state_wait_for_trigger_run(void *o);
 static void state_poll_and_process_entry(void *o);
 static void state_poll_and_process_run(void *o);
-static void state_poll_and_process_exit(void *o);
 static void state_reboot_pending_entry(void *o);
 
 static struct s_object s_obj = {
 	.fota_ctx.reboot_fn = fota_reboot,
-	.fota_ctx.error_fn = fota_error,
+	.fota_ctx.status_fn = fota_status,
 };
 
 static const struct smf_state states[] = {
@@ -120,7 +119,7 @@ static const struct smf_state states[] = {
 				 NULL),
 	[STATE_POLL_AND_PROCESS] =
 		SMF_CREATE_STATE(state_poll_and_process_entry, state_poll_and_process_run,
-				 state_poll_and_process_exit,
+				 NULL,
 				 &states[STATE_RUNNING],
 				 NULL),
 	[STATE_REBOOT_PENDING] =
@@ -147,7 +146,7 @@ static void state_running_entry(void *o)
 	if (err < 0) {
 		LOG_ERR("nrf_cloud_fota_poll_process_pending failed: %d", err);
 	} else if (err != NRF_CLOUD_FOTA_TYPE__INVALID) {
-		LOG_INF("Processed pending FOTA job type: %d", err);
+		LOG_DBG("Processed pending FOTA job type: %d", err);
 	}
 }
 
@@ -188,22 +187,15 @@ static void state_wait_for_trigger_run(void *o)
 static void state_poll_and_process_entry(void *o)
 {
 	struct s_object *state_object = o;
-	/* Notify the rest of the system that FOTA processing is starting */
-	enum fota_status fota_status = FOTA_STATUS_PROCESSING_START;
-
-	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
 
 	/* Start the FOTA processing */
-	err = nrf_cloud_fota_poll_process(&state_object->fota_ctx);
+	int err = nrf_cloud_fota_poll_process(&state_object->fota_ctx);
+
 	if (err) {
 		enum priv_fota_evt evt = FOTA_PRIV_PROCESSING_DONE;
 
 		if (err != -EAGAIN) {
-			LOG_ERR("nrf_cloud_fota_poll_process failed: %d", err);
+			LOG_DBG("No job available");
 		}
 
 		err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_SECONDS(1));
@@ -237,19 +229,6 @@ static void state_poll_and_process_run(void *o)
 	}
 }
 
-static void state_poll_and_process_exit(void *o)
-{
-	enum fota_status fota_status = FOTA_STATUS_PROCESSING_DONE;
-
-	ARG_UNUSED(o);
-
-	int err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
-}
-
 static void state_reboot_pending_entry(void *o)
 {
 	ARG_UNUSED(o);
@@ -265,7 +244,7 @@ static void state_reboot_pending_entry(void *o)
 	}
 
 	/* Reboot the device */
-	LOG_INF("Rebooting in %d seconds to complete FOTA process",
+	LOG_DBG("Rebooting in %d seconds to complete FOTA process",
 		CONFIG_APP_FOTA_REBOOT_DELAY_SECONDS);
 	k_sleep(K_SECONDS(CONFIG_APP_FOTA_REBOOT_DELAY_SECONDS));
 	sys_reboot(SYS_REBOOT_COLD);
@@ -286,7 +265,7 @@ static void fota_reboot(enum nrf_cloud_fota_reboot_status status)
 	int err;
 	enum priv_fota_evt evt = FOTA_PRIV_REBOOT_PENDING;
 
-	LOG_INF("Reboot requested with FOTA status %d", status);
+	LOG_DBG("Reboot requested with FOTA status %d", status);
 
 	err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_SECONDS(1));
 	if (err) {
@@ -300,12 +279,58 @@ static void fota_reboot(enum nrf_cloud_fota_reboot_status status)
 	 */
 }
 
-static void fota_error(enum nrf_cloud_fota_status status, const char *const status_details)
+static void status_events_notify(enum fota_status status)
+{
+	int err;
+
+	enum fota_status fota_status = status;
+
+	err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+}
+
+static void fota_status(enum nrf_cloud_fota_status status, const char *const status_details)
 {
 	int err;
 	enum priv_fota_evt evt = FOTA_PRIV_PROCESSING_DONE;
 
-	LOG_ERR("FOTA error: %d, details: %s", status, status_details);
+	LOG_DBG("FOTA status: %d, details: %s", status, status_details ? status_details : "None");
+
+	/* Don't send processing done on FOTA_DOWNLOADING and FOTA_SUCCEEDED. We want to persist the
+	 * module in the poll_and_process state until a failure occurs or the FOTA has succeeded.
+	 * In that case the reboot_pending state will be triggered via the fota_reboot function.
+	 */
+
+	switch (status) {
+	case NRF_CLOUD_FOTA_DOWNLOADING:
+		LOG_DBG("Downloading firmware update");
+
+		status_events_notify(FOTA_STATUS_START);
+		return;
+	case NRF_CLOUD_FOTA_FAILED:
+		LOG_ERR("Firmware download failed");
+
+		status_events_notify(FOTA_STATUS_STOP);
+		break;
+	case NRF_CLOUD_FOTA_TIMED_OUT:
+		LOG_ERR("Firmware download timed out");
+
+		status_events_notify(FOTA_STATUS_STOP);
+		break;
+	case NRF_CLOUD_FOTA_SUCCEEDED:
+		LOG_DBG("Firmware update succeeded");
+
+		/* Dont */
+		status_events_notify(FOTA_STATUS_STOP);
+		return;
+	default:
+		LOG_ERR("Unknown FOTA status: %d", status);
+		break;
+	}
 
 	err = zbus_chan_pub(&PRIV_FOTA_CHAN, &evt, K_SECONDS(1));
 	if (err) {
