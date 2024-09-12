@@ -66,7 +66,7 @@ static void shadow_get(bool delta_only)
 	}
 
 	if (buf_cbor_len == 0) {
-		LOG_WRN("No shadow delta changes available");
+		LOG_DBG("No shadow delta changes available");
 		return;
 	}
 
