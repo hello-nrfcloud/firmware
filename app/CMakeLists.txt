@@ -13,7 +13,6 @@ project("Thingy:91 X Out-of-Box Firmware")
 add_subdirectory(src/common)
 
 # Include mandatory module source folders
-add_subdirectory(src/modules/trigger)
 add_subdirectory(src/modules/battery)
 add_subdirectory(src/modules/network)
 add_subdirectory(src/modules/transport)

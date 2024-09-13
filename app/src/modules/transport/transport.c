@@ -321,6 +321,12 @@ static void state_connecting_run(void *o)
 	}
 }
 
+#include <zephyr/sys/sys_heap.h>
+#include <zephyr/linker/linker-defs.h>
+
+#include <stdlib.h>
+#include <malloc.h>
+
 /* Handler for STATE_CLOUD_CONNECTED. */
 static void state_connected_entry(void *o)
 {
@@ -329,8 +335,40 @@ static void state_connected_entry(void *o)
 	LOG_DBG("%s", __func__);
 	LOG_INF("Connected to Cloud");
 
+	struct mallinfo system_stats;
+	extern struct sys_heap _system_heap;
+	struct sys_memory_stats kernel_stats;
+
 	/* Cancel any ongoing connect work when we enter STATE_CLOUD_CONNECTED */
 	connect_work_cancel();
+
+	int err = nrf_cloud_coap_disconnect();
+
+	if (err) {
+		LOG_ERR("Failed to disconnect, error: %d", err);
+	}
+
+	err = sys_heap_runtime_stats_get(&_system_heap, &kernel_stats);
+	if (err) {
+		LOG_ERR("heap: failed to read kernel heap statistics, error: %d", err);
+	} else {
+		LOG_ERR("kernel heap statistics:");
+		LOG_ERR("free:           %6d", kernel_stats.free_bytes);
+		LOG_ERR("allocated:      %6d", kernel_stats.allocated_bytes);
+		LOG_ERR("max. allocated: %6d\n", kernel_stats.max_allocated_bytes);
+	}
+
+	#define USED_RAM_END_ADDR POINTER_TO_UINT(&_end)
+	#define HEAP_BASE USED_RAM_END_ADDR
+	#define MAX_HEAP_SIZE (KB(CONFIG_SRAM_SIZE) - (HEAP_BASE - CONFIG_SRAM_BASE_ADDRESS))
+
+	system_stats = mallinfo();
+
+	LOG_ERR("system heap statistics:");
+	LOG_ERR("max. size:      %ld", MAX_HEAP_SIZE);
+	LOG_ERR("size:           %6d", system_stats.arena);
+	LOG_ERR("free:           %6d", system_stats.fordblks);
+	LOG_ERR("allocated:      %6d", system_stats.uordblks);
 }
 
 static void state_connected_exit(void *o)
