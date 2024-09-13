@@ -121,10 +121,10 @@ void handle_network_chan(enum network_status status) {
 
 void handle_trigger_chan(enum trigger_type trigger_type)
 {
-	if (trigger_type == TRIGGER_DATA_SAMPLE) {
-		LOG_DBG("Data sample trigger received, getting location");
-		trigger_location_update();
-	}
+	// if (trigger_type == TRIGGER_DATA_SAMPLE) {
+	// 	LOG_DBG("Data sample trigger received, getting location");
+	// 	trigger_location_update();
+	// }
 }
 
 void handle_config_chan(const struct configuration *config)
