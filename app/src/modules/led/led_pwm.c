@@ -36,6 +36,10 @@ static const struct pwm_dt_spec led2 = PWM_DT_SPEC_GET(PWM_LED2_NODE);
 #error "Unsupported board: pwm-led 2 devicetree alias is not defined"
 #endif
 
+/* Define separate workqueue to offload led PWM handling */
+static K_THREAD_STACK_DEFINE(stack_area, CONFIG_APP_LED_PWM_WORKQUEUE_STACK_SIZE);
+static struct k_work_q led_pwm_queue;
+
 struct led {
 	size_t id;
 	struct led_color color;
@@ -143,7 +147,7 @@ static void work_handler(struct k_work *work)
 		int32_t next_delay =
 			leds.effect->steps[leds.effect_step].substep_time;
 
-		k_work_reschedule(&leds.work, K_MSEC(next_delay));
+		k_work_reschedule_for_queue(&led_pwm_queue, &leds.work, K_MSEC(next_delay));
 	}
 }
 
@@ -165,7 +169,7 @@ static void led_update(struct led *led)
 		int32_t next_delay =
 			led->effect->steps[led->effect_step].substep_time;
 
-		k_work_schedule(&led->work, K_MSEC(next_delay));
+		k_work_schedule_for_queue(&led_pwm_queue, &led->work, K_MSEC(next_delay));
 	} else {
 		LOG_DBG("LED effect with no effect");
 	}
@@ -268,6 +272,12 @@ int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 
 static int led_pwm_init(void)
 {
+	k_work_queue_init(&led_pwm_queue);
+	k_work_queue_start(&led_pwm_queue, stack_area,
+			   K_THREAD_STACK_SIZEOF(stack_area),
+			   K_LOWEST_APPLICATION_THREAD_PRIO,
+			   NULL);
+
 	k_work_init_delayable(&leds.work, work_handler);
 
 	return 0;

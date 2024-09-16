@@ -24,7 +24,7 @@ FULL_MFW_BUNDLEID = "MDM_FULL*bdd24c80*mfw_nrf91x1_full_2.0.1"
 
 WAIT_FOR_FOTA_AVAILABLE = 60 * 4
 APP_FOTA_TIMEOUT = 60 * 10
-FULL_MFW_FOTA_TIMEOUT = 60 * 20
+FULL_MFW_FOTA_TIMEOUT = 60 * 30
 
 
 def wait_for_fota_available(t91x_board):
