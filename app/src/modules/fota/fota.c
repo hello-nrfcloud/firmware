@@ -324,7 +324,6 @@ static void fota_status(enum nrf_cloud_fota_status status, const char *const sta
 	case NRF_CLOUD_FOTA_SUCCEEDED:
 		LOG_DBG("Firmware update succeeded");
 
-		/* Dont */
 		status_events_notify(FOTA_STATUS_STOP);
 		return;
 	default:

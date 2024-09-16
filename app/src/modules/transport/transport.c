@@ -227,7 +227,7 @@ static void state_running_entry(void *o)
 	k_work_queue_init(&transport_queue);
 	k_work_queue_start(&transport_queue, stack_area,
 			   K_THREAD_STACK_SIZEOF(stack_area),
-			   K_HIGHEST_APPLICATION_THREAD_PRIO,
+			   K_LOWEST_APPLICATION_THREAD_PRIO,
 			   NULL);
 
 	err = nrf_cloud_coap_init();
