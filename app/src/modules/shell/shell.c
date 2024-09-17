@@ -51,8 +51,15 @@ ZBUS_CHAN_DEFINE(ZBUS_TEST_CHAN,
 
 #define MAX_MSG_SIZE (sizeof(enum zbus_test_type))
 
+static bool uart_pm_enabled = true;
+
 static void uart_disable_handler(struct k_work *work)
 {
+	if (!uart_pm_enabled) {
+		// UART power management is disabled; do not disable UART
+		return;
+	}
+
 #ifdef CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_UART
 	int err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_OFF);
 	if (err) {
@@ -87,6 +94,26 @@ static void uart_enable_handler(struct k_work *work)
 #endif
 
 	LOG_DBG("UARTs enabled\n");
+}
+
+
+static int cmd_uart_pm_enable(const struct shell *sh, size_t argc,
+                         char **argv)
+{
+	uart_pm_enabled = true;
+	shell_print(sh, "UART power management enabled");
+	return 0;
+}
+
+static int cmd_uart_pm_disable(const struct shell *sh, size_t argc,
+                         char **argv)
+{
+	uart_pm_enabled = false;
+	shell_print(sh, "UART power management disabled");
+	// Ensure UARTs are enabled immediately for debugging
+	k_work_cancel_delayable(&uart_disable_work);
+	k_work_schedule(&uart_enable_work, K_NO_WAIT);
+	return 0;
 }
 
 static int cmd_uart_disable(const struct shell *sh, size_t argc,
@@ -194,6 +221,10 @@ static int handle_message(const struct zbus_channel *chan, uint8_t *msg_buf)
 		}
 	}
 	else if (&TRIGGER_MODE_CHAN == chan) {
+		if (!uart_pm_enabled) {
+			// UART power management is disabled; keep UARTs active for debugging
+			return 0;
+		}
 		enum pm_device_state shell_uart_power_state;
 
 		if (!device_is_ready(shell_uart_dev)) {
@@ -283,6 +314,8 @@ SHELL_CMD_REGISTER(zbus, &sub_zbus, "Zbus shell", NULL);
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_uart,
 				SHELL_CMD(disable, NULL, "<time in seconds>\nDisable UARTs for a given number of seconds. 0 means that "
 										"UARTs remain disabled indefinitely.", cmd_uart_disable),
+				SHELL_CMD(pm_enable, NULL, "Enable UART power management", cmd_uart_pm_enable),
+				SHELL_CMD(pm_disable, NULL, "Disable UART power management", cmd_uart_pm_disable),
 				SHELL_SUBCMD_SET_END
 		);
 
