@@ -27,6 +27,15 @@ jobs:
         west config build.sysbuild True
         west update -o=--depth=1 -n
 
+    - name: Check for valid sdk-nrf reference
+      run: |
+        if grep -r "revision: pull/" manifest.yml; then
+          echo "Error: Forbidden 'pull/' found in sdk-nrf revision!"
+          exit 1
+        else
+          echo "sdk-nrf revision is valid."
+        fi
+
     - name: Run Compliance Tests
       continue-on-error: true
       id: compliance
