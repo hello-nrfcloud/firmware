@@ -14,3 +14,11 @@ menuconfig APP_MEMFAULT
 	select MEMFAULT_NCS_LTE_METRICS
 	select MEMFAULT_NCS_STACK_METRICS
 	select MEMFAULT_NCS_INTERNAL_FLASH_BACKED_COREDUMP
+
+if APP_MEMFAULT
+
+module = APP_MEMFAULT
+module-str = Memfault
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # APP_MEMFAULT
