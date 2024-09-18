@@ -31,6 +31,10 @@ config APP_SHELL_EXEC_TIME_SECONDS_MAX
 	help
 	  Maximum time allowed for a single execution of the module thread loop.
 
+config APP_SHELL_UART_PM_ENABLE
+	bool "Enable UART power management feature"
+	default y
+
 module = APP_SHELL
 module-str = SHELL
 source "subsys/logging/Kconfig.template.log_config"

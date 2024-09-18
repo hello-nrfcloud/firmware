@@ -51,7 +51,7 @@ ZBUS_CHAN_DEFINE(ZBUS_TEST_CHAN,
 
 #define MAX_MSG_SIZE (sizeof(enum zbus_test_type))
 
-static bool uart_pm_enabled = true;
+static bool uart_pm_enabled = IS_ENABLED(CONFIG_APP_SHELL_UART_PM_ENABLE);
 
 static void uart_disable_handler(struct k_work *work)
 {
@@ -248,6 +248,7 @@ static int handle_message(const struct zbus_channel *chan, uint8_t *msg_buf)
 		else  if (mode == TRIGGER_MODE_NORMAL) {
 			// stop uart if not already off
 			if (shell_uart_power_state != PM_DEVICE_STATE_SUSPENDED) {
+				LOG_DBG("Disabling UARTs\n");
 				k_work_schedule(&uart_disable_work, K_SECONDS(5));
 			}
 		}
