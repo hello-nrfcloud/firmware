@@ -15,11 +15,11 @@ config APP_FOTA_THREAD_STACK_SIZE
 
 config APP_FOTA_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
-	default 120
+	default 210
 
 config APP_FOTA_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
-	default 90
+	default 180
 	help
 	  Watchdog timeout in seconds for a state machine run.
 
