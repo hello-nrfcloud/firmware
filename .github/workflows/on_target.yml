@@ -133,6 +133,7 @@ jobs:
             tests
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+          LOG_FILENAME: oob_uart_test_log
 
       - name: Run FOTA tests (standard)
         if: ${{ inputs.run_fota_tests }}
@@ -145,6 +146,7 @@ jobs:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
           IMEI: ${{ secrets.IMEI_DUT_1 }}
           FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
+          LOG_FILENAME: oob_fota_test_log
 
       - name: Run FOTA tests (FULLMFW)
         if: ${{ inputs.run_fullmfwfota_test }}
@@ -157,6 +159,7 @@ jobs:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
           IMEI: ${{ secrets.IMEI_DUT_1 }}
           FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
+          LOG_FILENAME: oob_fullmfw_fota_test_log
 
       - name: Run DFU tests
         if: ${{ inputs.run_dfu_tests }}
@@ -174,6 +177,7 @@ jobs:
           NRF91_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.hex
           NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
           NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
+          LOG_FILENAME: oob_dfu_test_log
 
       # - name: Check nRF53 connectivity bridge version
       #   if: ${{ inputs.run_connectivity_bridge_tests }}
@@ -189,3 +193,11 @@ jobs:
           summary: true
           fail-on-empty: true
           title: OOB FW Test Results
+
+      - name: Push log files to artifacts
+        uses: actions/upload-artifact@v4
+        id: artifact-upload-test-logs
+        with:
+          name: test-logs
+          path: |
+            thingy91x-oob/tests/on_target/outcomes/logs/*.txt

@@ -45,7 +45,7 @@ def get_logger(log_level = LOG_LEVEL):
 
     if LOG_FILENAME:
         os.makedirs(LOG_DIR, exist_ok=True)
-        for level in ["debug", "info"]:
+        for level in ["debug"]:
             file_handler = logging.FileHandler(f"{LOG_DIR}/{LOG_FILENAME}_{level}.txt")
             file_handler.setLevel(level.upper())
             logger.addHandler(file_handler)
