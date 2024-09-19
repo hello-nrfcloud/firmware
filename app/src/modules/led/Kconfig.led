@@ -7,7 +7,7 @@
 menuconfig APP_LED
 	bool "LED"
 	select LED
-	default y if !BOARD_NATIVE_POSIX
+	default y
 
 if APP_LED
 

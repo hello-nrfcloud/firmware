@@ -7,7 +7,7 @@
 menuconfig APP_ENVIRONMENTAL
 	bool "Environmental module"
 	depends on BME68X_IAQ
-	default y
+	default y if BOARD_THINGY91X_NRF9151_NS
 
 if APP_ENVIRONMENTAL
 

@@ -26,6 +26,7 @@ ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(BUTTON_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, trigger, 0);
 ZBUS_CHAN_ADD_OBS(FOTA_STATUS_CHAN, trigger, 0);
+ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, trigger, 0);
 
 /* Data sample trigger interval in the frequent poll state */
 #define FREQUENT_POLL_DATA_SAMPLE_TRIGGER_INTERVAL_SEC 60
@@ -103,6 +104,8 @@ struct s_object {
 	/* Cloud status */
 	enum cloud_status status;
 
+	enum network_status network_status;
+
 	/* FOTA download status */
 	enum fota_status fota_status;
 
@@ -151,7 +154,7 @@ static void trigger_work_fn(struct k_work *work)
 
 	LOG_DBG("Sending data sample trigger");
 
-	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
+	// trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
 
 	k_work_reschedule(&trigger_work, K_SECONDS(state_object.update_interval_used_sec));
 }
@@ -162,11 +165,11 @@ static void trigger_poll_work_fn(struct k_work *work)
 
 	LOG_DBG("Sending shadow/fota poll trigger");
 
-	trigger_send(TRIGGER_POLL, K_SECONDS(1));
+	// trigger_send(TRIGGER_POLL, K_SECONDS(1));
 	trigger_send(TRIGGER_FOTA_POLL, K_SECONDS(1));
 
-	k_work_reschedule(&trigger_poll_work,
-			  K_SECONDS(state_object.poll_interval_used_sec));
+	// k_work_reschedule(&trigger_poll_work,
+	// 		  K_SECONDS(state_object.poll_interval_used_sec));
 }
 
 static void frequent_poll_duration_timer_start(bool force_restart)
@@ -221,8 +224,8 @@ static void init_run(void *o)
 
 	LOG_DBG("init_run");
 
-	if ((user_object->chan == &CLOUD_CHAN) && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
-		LOG_DBG("Cloud connected, going into connected state");
+	if ((user_object->chan == &NETWORK_CHAN) && (user_object->network_status == NETWORK_CONNECTED)) {
+		LOG_DBG("network connected, going into connected state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
 		return;
 	}
@@ -574,6 +577,7 @@ void trigger_callback(const struct zbus_channel *chan)
 	    (chan != &LOCATION_CHAN) &&
 	    (chan != &BUTTON_CHAN) &&
 	    (chan != &FOTA_STATUS_CHAN) &&
+	    (chan != &NETWORK_CHAN) &&
 	    (chan != &PRIV_TRIGGER_CHAN)) {
 		LOG_ERR("Unknown channel");
 		return;
@@ -595,6 +599,10 @@ void trigger_callback(const struct zbus_channel *chan)
 		const enum cloud_status *status = zbus_chan_const_msg(chan);
 
 		state_object.status = *status;
+	} else if (&NETWORK_CHAN == chan) {
+		const enum network_status *network_status = zbus_chan_const_msg(chan);
+
+		state_object.network_status = *network_status;
 	} else if (&FOTA_STATUS_CHAN == chan) {
 		const enum fota_status *fota_status = zbus_chan_const_msg(chan);
 

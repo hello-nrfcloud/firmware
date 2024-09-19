@@ -371,12 +371,92 @@ static void fota_task(void)
 			return;
 		}
 
-		err = STATE_RUN();
-		if (err) {
-			LOG_ERR("handle_message, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
+		if (&TRIGGER_CHAN == s_obj.chan) {
+
+			LOG_ERR("Trigger received, shutdown modem");
+
+
+			k_sleep(K_SECONDS(10));
+
+			int err;
+
+			err = nrf_modem_lib_shutdown();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_shutdown() failed: %d", err);
+				return;
+			}
+
+			err = nrf_modem_lib_bootloader_init();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_bootloader_init() failed: %d", err);
+				return;
+			}
+
+			LOG_ERR("Modem put into bootloader mode");
+
+			err = nrf_modem_lib_shutdown();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_shutdown() failed: %d", err);
+				return;
+			}
+
+			err = nrf_modem_lib_bootloader_init();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_bootloader_init() failed: %d", err);
+				return;
+			}
+
+			LOG_ERR("Modem put into bootloader mode");
+
+			err = nrf_modem_lib_shutdown();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_shutdown() failed: %d", err);
+				return;
+			}
+
+			err = nrf_modem_lib_bootloader_init();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_bootloader_init() failed: %d", err);
+				return;
+			}
+
+			LOG_ERR("Modem put into bootloader mode");
+
+			err = nrf_modem_lib_shutdown();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_shutdown() failed: %d", err);
+				return;
+			}
+
+			err = nrf_modem_lib_bootloader_init();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_bootloader_init() failed: %d", err);
+				return;
+			}
+
+			LOG_ERR("Modem put into bootloader mode");
+
+			err = nrf_modem_lib_shutdown();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_shutdown() failed: %d", err);
+				return;
+			}
+
+			err = nrf_modem_lib_bootloader_init();
+			if (err != 0) {
+				LOG_ERR("nrf_modem_lib_bootloader_init() failed: %d", err);
+				return;
+			}
+
+			LOG_ERR("Modem put into bootloader mode");
 		}
+
+		// err = STATE_RUN();
+		// if (err) {
+		// 	LOG_ERR("handle_message, error: %d", err);
+		// 	SEND_FATAL_ERROR();
+		// 	return;
+		// }
 	}
 }
 

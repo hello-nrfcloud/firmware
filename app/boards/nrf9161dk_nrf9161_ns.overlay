@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2024 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/* Enable uart1 for tracing. */
+&uart1 {
+	status = "okay";
+	current-speed = < 1000000 >;
+	hw-flow-control;
+};
+
+/ {
+	chosen {
+		nordic,modem-trace-uart = &uart1;
+		nordic,pm-ext-flash = &gd25wb256;
+	};
+
+	pwmleds {
+		compatible = "pwm-leds";
+		pwm_led0: pwm_led_0 {
+			pwms = <&pwm0 0 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
+		};
+		pwm_led1: pwm_led_1 {
+			pwms = <&pwm0 1 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
+		};
+		pwm_led2: pwm_led_2 {
+			pwms = <&pwm0 2 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
+		};
+	};
+
+	aliases {
+		pwm-led0 = &pwm_led0;
+		pwm-led1 = &pwm_led1;
+		pwm-led2 = &pwm_led2;
+	};
+};
+
+&gd25wb256 {
+	status = "okay";
+};

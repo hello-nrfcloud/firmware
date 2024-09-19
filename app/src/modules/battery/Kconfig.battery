@@ -4,7 +4,11 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-menu "Sampler"
+menuconfig APP_BATTERY
+	bool "Battery module"
+	default y if BOARD_THINGY91X_NRF9151_NS
+
+if APP_BATTERY
 
 config APP_BATTERY_THREAD_STACK_SIZE
 	int "Thread stack size"
@@ -24,4 +28,4 @@ module = APP_BATTERY
 module-str = Battery
 source "subsys/logging/Kconfig.template.log_config"
 
-endmenu # Sampler
+endif # Battery
