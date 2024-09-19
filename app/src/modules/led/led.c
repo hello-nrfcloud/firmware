@@ -29,6 +29,7 @@ ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(TRIGGER_MODE_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, led, 0);
+ZBUS_CHAN_ADD_OBS(FOTA_STATUS_CHAN, led, 0);
 
 /* Zephyr SMF states */
 enum state {
@@ -42,6 +43,7 @@ enum state {
 	/* Sub-state to STATE_LED_NOT_SET */
 	STATE_NORMAL,
 	STATE_ERROR,
+	STATE_REBOOT_PENDING,
 };
 
 /* Forward declarations */
@@ -78,6 +80,9 @@ struct s_object {
 
 	/* Network status */
 	enum network_status status;
+
+	/* FOTA status */
+	enum fota_status fota_status;
 
 	/* Network status */
 	enum location_status location_status;
@@ -243,6 +248,11 @@ static void running_run(void *o)
 
 	if (&ERROR_CHAN == user_object->chan) {
 		smf_set_state(SMF_CTX(user_object), &states[STATE_ERROR]);
+		return;
+	}
+
+	if (&FOTA_STATUS_CHAN == user_object->chan && user_object->fota_status == FOTA_STATUS_REBOOT_PENDING) {
+		smf_set_state(SMF_CTX(user_object), &states[STATE_REBOOT_PENDING]);
 		return;
 	}
 
@@ -418,6 +428,17 @@ static void error_entry(void *o)
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 }
 
+/* STATE_REBOOT_PENDING */
+
+static void reboot_pending_entry(void *o)
+{
+	ARG_UNUSED(o);
+
+	transition_list_clear();
+	transition_list_append(LED_OFF, HOLD_FOREVER, 0, 0, 0);
+	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+}
+
 /* Construct state table */
 static const struct smf_state states[] = {
 	[STATE_RUNNING] = SMF_CREATE_STATE(
@@ -461,6 +482,13 @@ static const struct smf_state states[] = {
 		NULL,
 		NULL,
 		NULL
+	),
+	[STATE_REBOOT_PENDING] = SMF_CREATE_STATE(
+		reboot_pending_entry,
+		NULL,
+		NULL,
+		NULL,
+		NULL
 	)
 };
 
@@ -477,6 +505,12 @@ void led_callback(const struct zbus_channel *chan)
 		const enum trigger_mode *mode = zbus_chan_const_msg(chan);
 
 		state_object.mode = *mode;
+	}
+
+	if (&FOTA_STATUS_CHAN == chan) {
+		const enum fota_status *fota_status = zbus_chan_const_msg(chan);
+
+		state_object.fota_status = *fota_status;
 	}
 
 	if (&NETWORK_CHAN == chan) {

@@ -243,6 +243,15 @@ static void state_reboot_pending_entry(void *o)
 		SEND_FATAL_ERROR();
 	}
 
+	/* Do to a bug currently under investigation we apply the image again if the job
+	 * was for full modem FOTA.
+	 */
+	if (s_obj.fota_ctx.img_type == DFU_TARGET_IMAGE_TYPE_FULL_MODEM) {
+
+		k_sleep(K_SECONDS(5));
+		(void)nrf_cloud_fota_fmfu_apply();
+	}
+
 	/* Reboot the device */
 	LOG_DBG("Rebooting in %d seconds to complete FOTA process",
 		CONFIG_APP_FOTA_REBOOT_DELAY_SECONDS);
