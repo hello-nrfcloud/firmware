@@ -13,6 +13,8 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/dfu/mcuboot.h>
 #include <zephyr/task_wdt/task_wdt.h>
+#include <modem/nrf_modem_lib.h>
+#include <nrf_cloud_fota.h>
 #include <zephyr/smf.h>
 
 #include "message_channel.h"
@@ -235,12 +237,53 @@ static void state_reboot_pending_entry(void *o)
 
 	int err;
 	enum fota_status fota_status = FOTA_STATUS_REBOOT_PENDING;
+	struct nrf_cloud_settings_fota_job job = { .validate = NRF_CLOUD_FOTA_VALIDATE_NONE };
 
 	/* Notify the rest of the system that a reboot is pending */
 	err = zbus_chan_pub(&FOTA_STATUS_CHAN, &fota_status, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
+	}
+
+	/* Check if validation of full modem FOTA failed, if so, try again...
+	 * This is a workaround due to modem shutdown -> reinitialization in bootloader mode fails
+	 * quite frequently. (Needed to apply the full modem image)
+	 */
+	if (s_obj.fota_ctx.img_type == DFU_TARGET_IMAGE_TYPE_FULL_MODEM) {
+
+		err = nrf_cloud_fota_settings_load(&job);
+		if (err) {
+			LOG_ERR("Retrieving FOTA job failed: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
+		if (job.validate == NRF_CLOUD_FOTA_VALIDATE_FAIL) {
+			LOG_DBG("Full modem FOTA validation failed, re-applying image");
+
+			for (int i = 1; i < 5; i++) {
+				err = nrf_cloud_fota_fmfu_apply();
+				if (err == 0) {
+					/* Mark the job as validated */
+
+					job.validate = NRF_CLOUD_FOTA_VALIDATE_PASS;
+
+					err = nrf_cloud_fota_settings_save(&job);
+					if (err) {
+						LOG_ERR("Failed to save FOTA job: %d", err);
+						SEND_FATAL_ERROR();
+						return;
+					}
+
+					LOG_DBG("Image applied successfully");
+					break;
+				}
+
+				LOG_ERR("Failed to apply image, retrying in %d seconds", i);
+				k_sleep(K_SECONDS(i));
+			}
+		}
 	}
 
 	/* Reboot the device */
@@ -382,4 +425,4 @@ static void fota_task(void)
 
 K_THREAD_DEFINE(fota_task_id,
 		CONFIG_APP_FOTA_THREAD_STACK_SIZE,
-		fota_task, NULL, NULL, NULL, 3, 0, 0);
+		fota_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO - 1, 0, 0);
