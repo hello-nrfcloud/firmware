@@ -164,3 +164,23 @@ jobs:
           summary: true
           fail-on-empty: true
           title: OOB FW Test Results
+
+      # solution 2: Generate an HTML Report and Upload as an Artifact
+      - name: Generate HTML Report
+        working-directory: thingy91x-oob/tests/on_target
+        run: junit2html results/test-results-uart.xml results/test-report-uart.html
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: Test Report
+          path: thingy91x-oob/tests/on_target/results/test-report-uart.html
+
+      ## solution 3: Third-Party Action for Enhanced Reporting
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: thingy91x-oob/tests/on_target/results/test-results-*.xml
+          check_name: Test Results
+          comment_title: Test Results Summary

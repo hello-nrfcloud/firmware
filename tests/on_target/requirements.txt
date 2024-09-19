@@ -5,3 +5,4 @@ pyusb
 imgtool
 requests
 memfault-cli
+junit2html
