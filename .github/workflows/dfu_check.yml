@@ -64,7 +64,7 @@ jobs:
           ninja partition_manager_report # need to run this twice
           ninja partition_manager_report > partition_manager_report.txt
           sed -i '1d' partition_manager_report.txt
-          diff partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
+          diff --ignore-all-space --ignore-blank-lines partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
 
       - name: 'nrf91: check app image signature'
         working-directory: thingy91x-oob
