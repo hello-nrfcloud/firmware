@@ -13,10 +13,6 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-FOTADEVICE_IMEI = os.getenv('IMEI')
-FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
-DEVICE_ID = f"oob-{FOTADEVICE_IMEI}"
-
 MFW_201_FILEPATH = "artifacts/mfw_nrf91x1_2.0.1.zip"
 DELTA_MFW_BUNDLEID = "MODEM*ad48df2a*mfw_nrf91x1_2.0.1-FOTA-TEST"
 FULL_MFW_BUNDLEID = "MDM_FULL*bdd24c80*mfw_nrf91x1_full_2.0.1"
@@ -41,7 +37,7 @@ def wait_for_fota_available(t91x_board):
 
 
 def post_job(t91x_board, bundle_id, fota_type):
-    result = t91x_board.fota.post_fota_job(device_id=DEVICE_ID, type=fota_type, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
+    result = t91x_board.fota.post_fota_job(type=fota_type, bundle_id=bundle_id)
     if not result:
         pytest.skip("Failed to post FOTA job")
     t91x_board.uart.flush()
@@ -100,7 +96,7 @@ def run_fota_fixture(t91x_board, hex_file):
 @pytest.mark.fota
 def test_app_fota(t91x_board, hex_file, run_fota_fixture):
     # Get latest app fota bundle
-    results = t91x_board.fota.get_fota_bundles(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT)
+    results = t91x_board.fota.get_fota_bundles()
     if not results:
         pytest.fail("Failed to get APP FOTA bundles")
     available_bundles = results["bundles"]

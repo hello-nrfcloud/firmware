@@ -7,6 +7,7 @@ import os
 import re
 import pytest
 import types
+from utils.flash_tools import recover_device
 from utils.uart import Uart
 from utils.hellonrfcloud_fota import HelloNrfCloudFOTA
 import sys
@@ -19,6 +20,8 @@ UART_TIMEOUT = 60 * 15
 
 SEGGER = os.getenv('SEGGER')
 UART_ID = os.getenv('UART_ID', SEGGER)
+FOTADEVICE_IMEI = os.getenv('IMEI')
+FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
 
 def get_uarts():
     base_path = "/dev/serial/by-id"
@@ -39,6 +42,10 @@ def get_uarts():
             continue
     return uarts
 
+def scan_log_for_assertions(log):
+    assert_counts = log.count("ASSERT")
+    if assert_counts > 0:
+        pytest.fail(f"{assert_counts} ASSERT found in log: {log}")
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_logstart(nodeid, location):
@@ -56,15 +63,30 @@ def t91x_board():
     log_uart_string = all_uarts[0]
 
     uart = Uart(log_uart_string, timeout=UART_TIMEOUT)
-
-    fota = HelloNrfCloudFOTA()
+    fota = HelloNrfCloudFOTA(device_id=f"oob-{FOTADEVICE_IMEI}", \
+                                    fingerprint=FOTADEVICE_FINGERPRINT)
 
     yield types.SimpleNamespace(
 		uart=uart,
         fota=fota
 		)
 
+    # Cancel pending fota jobs, at fota test teardown
+    if FOTADEVICE_IMEI:
+        try:
+            pending_jobs = fota.check_pending_jobs()
+            if pending_jobs:
+                logger.warning(f"{len(pending_jobs)} pending fota jobs found for fota device")
+                logger.info("Canceling pending jobs")
+                fota.delete_jobs(pending_jobs)
+        except Exception as e:
+            logger.error(f"Error during teardown while canceling pending fota jobs: {e}")
+
+    uart_log = uart.whole_log
     uart.stop()
+    recover_device()
+
+    scan_log_for_assertions(uart_log)
 
 @pytest.fixture(scope="session")
 def hex_file():
