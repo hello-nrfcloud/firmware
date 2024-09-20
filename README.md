@@ -69,3 +69,15 @@ west flash --erase
 | Solid          | Configured | Device has received a LED configuration      | NA                                                  |
 | Blinking rapid | Red        | Fatal error, the device will reboot          | NA                                                  |
 | Blinking slow  | Red        | Irrecoverable Fatal error                    | NA                                                  |
+
+### Architecture
+
+# Module Overview
+
+```mermaid
+flowchart LR
+    P1[Placeholder 1] -->|zbus| P2[Placeholder 2]
+
+    click P1 "docs/transport.md" "Go to Transport module docs"
+    click P2 "docs/location.md" "Go to Location module docs"
+```
