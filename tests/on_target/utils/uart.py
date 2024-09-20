@@ -35,6 +35,7 @@ class Uart:
         self.name = name
         self.serial_timeout = serial_timeout
         self.log = ""
+        self.whole_log = ""
         self._evt = threading.Event()
         self._writeq = queue.Queue()
         self._t = threading.Thread(target=self._uart)
@@ -128,6 +129,7 @@ class Uart:
             line = line.strip()
             logger.debug(f"{self.name} {repr(line)}")
             self.log = self.log + "\n" + line
+            self.whole_log = self.whole_log + "\n" + line
             line = ""
         s.close()
 
