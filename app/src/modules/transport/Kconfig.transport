@@ -25,7 +25,7 @@ config APP_TRANSPORT_MESSAGE_QUEUE_SIZE
 
 config APP_TRANSPORT_WORKQUEUE_STACK_SIZE
 	int "Workqueue stack size"
-	default 4096
+	default 1536
 	help
 	  Stack size of the module's internal workqueue.
 
