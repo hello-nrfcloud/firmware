@@ -41,7 +41,7 @@ def wait_for_fota_available(t91x_board):
 
 
 def post_job(t91x_board, bundle_id, fota_type):
-    t91x_board.fota.post_fota_job(device_id=DEVICE_ID, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
+    t91x_board.fota.post_fota_job(device_id=DEVICE_ID, type=fota_type, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
     t91x_board.uart.flush()
     wait_for_fota_available(t91x_board)
 
