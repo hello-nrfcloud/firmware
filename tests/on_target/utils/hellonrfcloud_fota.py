@@ -23,19 +23,24 @@ class HelloNrfCloudFOTA():
         self.url = url
         self.timeout = timeout
 
-    def post_fota_job(self, device_id: str, fingerprint: str, bundle_id: str) -> Union[dict, None]:
+    def post_fota_job(self, device_id: str, type: str, fingerprint: str, bundle_id: str) -> Union[dict, None]:
         """
         Posts a new FOTA job to the specified device.
 
         :param device_id: The ID of the device to send the FOTA update to
+        :param type: The type of FOTA update to be sent
         :param fingerprint: The fingerprint to be used in the request
         :param bundle_id: The bundle ID to be sent in the payload
         :return: The JSON response from the API or None in case of error
         """
-        url = f"{self.url}/device/{device_id}/fota?fingerprint={fingerprint}"
+        if type in ["delta", "full"]:
+            type = "modem"
+        url = f"{self.url}/device/{device_id}/fota/{type}?fingerprint={fingerprint}"
 
         payload = {
-            "bundleId": bundle_id
+            "upgradePath": {
+                ">=0.0.0": bundle_id
+            }
         }
 
         try:
