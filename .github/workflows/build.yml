@@ -142,7 +142,7 @@ jobs:
         working-directory: nrf
         run: |
           git stash --include-untracked
-          git apply ../scripts/nrf53_bl_update.patch
+          git apply ../thingy91x-oob/scripts/nrf53_bl_update.patch
 
       - name: Build BL Update
         if: ${{ inputs.build_bl_update }}
