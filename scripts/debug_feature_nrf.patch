@@ -1,0 +1,137 @@
+diff --git a/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.conf b/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.conf
+index c59f3dc494..4b0f6234f2 100644
+--- a/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.conf
++++ b/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.conf
+@@ -34,3 +34,8 @@ CONFIG_REBOOT=y
+ CONFIG_GPIO=y
+
+ CONFIG_DK_LIBRARY=y
++CONFIG_DAP=y
++CONFIG_DP_DRIVER=y
++
++CONFIG_CMSIS_DAP_DEVICE_VENDOR="Nordic Semiconductor ASA"
++CONFIG_CMSIS_DAP_DEVICE_NAME="nrf91"
+diff --git a/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.overlay b/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.overlay
+index 79263b90b0..5efee746b0 100644
+--- a/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.overlay
++++ b/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp.overlay
+@@ -12,7 +12,7 @@
+ 		clk-gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+ 		dio-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+ 		reset-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+-		port-write-cycles = <2>;
++		port-write-cycles = <12>;
+ 	};
+
+ 	zephyr,user {
+diff --git a/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp_readme.txt b/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp_readme.txt
+index a3fa4e224f..e4458f6c91 100644
+--- a/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp_readme.txt
++++ b/applications/connectivity_bridge/boards/thingy91x_nrf5340_cpuapp_readme.txt
+@@ -5,6 +5,7 @@
+ This USB interface has the following functions:
+ * Disk drive containing this file and others
+ * COM ports for nRF91 debug, trace, and firmware update
++* CMSIS-DAP 2.1 compliant debug probe interface for accessing the nRF91 SiP
+
+ COM Ports
+ ====================
+diff --git a/applications/connectivity_bridge/src/modules/usb_bulk_commands.c b/applications/connectivity_bridge/src/modules/usb_bulk_commands.c
+index 55367dc403..63b84e1bbd 100644
+--- a/applications/connectivity_bridge/src/modules/usb_bulk_commands.c
++++ b/applications/connectivity_bridge/src/modules/usb_bulk_commands.c
+@@ -9,6 +9,8 @@
+ #include <zephyr/drivers/gpio.h>
+ #include <dk_buttons_and_leds.h>
+
++#include <cmsis_dap.h>
++
+ #include <zephyr/logging/log.h>
+ LOG_MODULE_REGISTER(bulk_commands, CONFIG_BRIDGE_BULK_LOG_LEVEL);
+
+@@ -93,12 +95,17 @@ static void nrf53_reset_work_handler(struct k_work *work)
+ /* This is a placeholder implementation until proper CMSIS-DAP support is available.
+  * Only custom vendor commands are supported.
+  */
+-size_t dap_execute_cmd(uint8_t *in, uint8_t *out)
++size_t dap_execute_vendor_cmd(uint8_t *in, uint8_t *out)
+ {
+ 	LOG_DBG("got command 0x%02X", in[0]);
+-	int ret;
++
++	if (in[0] < ID_DAP_VENDOR0) {
++		return dap_execute_cmd(in, out);
++	}
+
+ #if IS_ENABLED(CONFIG_RETENTION_BOOT_MODE)
++	int ret;
++
+ 	if (in[0] == ID_DAP_VENDOR_NRF53_BOOTLOADER) {
+ 		ret = bootmode_set(BOOT_MODE_TYPE_BOOTLOADER);
+ 		if (ret) {
+diff --git a/applications/connectivity_bridge/src/modules/usb_bulk_interface.c b/applications/connectivity_bridge/src/modules/usb_bulk_interface.c
+index cc2157e6b0..44c39436b9 100644
+--- a/applications/connectivity_bridge/src/modules/usb_bulk_interface.c
++++ b/applications/connectivity_bridge/src/modules/usb_bulk_interface.c
+@@ -23,6 +23,8 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_BRIDGE_BULK_LOG_LEVEL);
+ /* needs to be included after defining logging config */
+ #include "usb_bulk_msosv2.h"
+
++#include <cmsis_dap.h>
++
+ #define USB_BULK_PACKET_SIZE  64
+ #define USB_BULK_PACKET_COUNT 4
+
+@@ -41,7 +43,7 @@ static K_FIFO_DEFINE(dap_rx_queue);
+ NET_BUF_POOL_FIXED_DEFINE(dapusb_rx_pool, USB_BULK_PACKET_COUNT, USB_BULK_PACKET_SIZE, 0, NULL);
+
+ /* Execute CMSIS-DAP command and write reply into output buffer */
+-size_t dap_execute_cmd(uint8_t *in, uint8_t *out);
++size_t dap_execute_vendor_cmd(uint8_t *in, uint8_t *out);
+
+ /* string descriptor for the interface */
+ #define DAP_IFACE_STR_DESC "CMSIS-DAP v2"
+@@ -172,7 +174,7 @@ static int dap_usb_process(void)
+ 	struct net_buf *buf = k_fifo_get(&dap_rx_queue, K_FOREVER);
+ 	uint8_t ep = dapusb_config.endpoint[DAP_USB_EP_IN_IDX].ep_addr;
+
+-	len = dap_execute_cmd(buf->data, tx_buf);
++	len = dap_execute_vendor_cmd(buf->data, tx_buf);
+ 	LOG_DBG("response length %u, starting with [0x%02X, 0x%02X]", len, tx_buf[0], tx_buf[1]);
+ 	net_buf_unref(buf);
+
+@@ -196,6 +198,8 @@ static int dap_usb_thread_fn(const struct device *dev)
+ 	return 0;
+ }
+
++const struct device *const swd_dev = DEVICE_DT_GET_ONE(zephyr_swdp_gpio);
++
+ K_THREAD_DEFINE(dap_usb_thread,
+ 		CONFIG_BULK_USB_THREAD_STACK_SIZE, dap_usb_thread_fn, NULL, NULL, NULL, 5, 0, 0);
+
+@@ -210,6 +214,15 @@ static bool app_event_handler(const struct app_event_header *aeh)
+ 			/* Point interface index to string descriptor */
+ 			iface_string_desc_init(&dapusb_config);
+
++			if (!device_is_ready(swd_dev)) {
++				LOG_ERR("SWD device is not ready");
++			}
++
++			int ret = dap_setup(swd_dev);
++			if (ret) {
++				LOG_ERR("Failed to initialize DAP controller, %d", ret);
++			}
++
+ 			/* tell the usb_cdc_handler we are done */
+ 			module_set_state(MODULE_STATE_STANDBY);
+ 		}
+diff --git a/applications/connectivity_bridge/sysbuild/mcuboot/boards/thingy91x_nrf5340_cpuapp.conf b/applications/connectivity_bridge/sysbuild/mcuboot/boards/thingy91x_nrf5340_cpuapp.conf
+index 37c7e95b15..8bbd4ddf94 100644
+--- a/applications/connectivity_bridge/sysbuild/mcuboot/boards/thingy91x_nrf5340_cpuapp.conf
++++ b/applications/connectivity_bridge/sysbuild/mcuboot/boards/thingy91x_nrf5340_cpuapp.conf
+@@ -58,3 +58,5 @@ CONFIG_BOOT_SERIAL_IMG_GRP_IMAGE_STATE=y
+
+ # Skip checks on the secondary image to make it possible to update MCUBoot on S1/S0
+ CONFIG_MCUBOOT_VERIFY_IMG_ADDRESS=n
++
++CONFIG_BOOT_SERIAL_NO_APPLICATION=y
