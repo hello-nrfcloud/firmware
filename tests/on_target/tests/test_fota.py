@@ -41,10 +41,11 @@ def wait_for_fota_available(t91x_board):
 
 
 def post_job(t91x_board, bundle_id, fota_type):
-    t91x_board.fota.post_fota_job(device_id=DEVICE_ID, type=fota_type, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
+    result = t91x_board.fota.post_fota_job(device_id=DEVICE_ID, type=fota_type, fingerprint=FOTADEVICE_FINGERPRINT, bundle_id=bundle_id)
+    if not result:
+        pytest.skip("Failed to post FOTA job")
     t91x_board.uart.flush()
     wait_for_fota_available(t91x_board)
-
 
 def run_fota_resumption(t91x_board, fota_type):
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
