@@ -105,6 +105,11 @@ jobs:
             $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex \
             $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
 
+      - name: Apply Connectivity Bridge patch for debug feature
+        run: |
+          git apply thingy91x-oob/scripts/debug_feature_nrf.patch --directory=nrf
+          git apply thingy91x-oob/scripts/debug_feature_zephyr.patch --directory=zephyr
+
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
@@ -133,8 +138,11 @@ jobs:
           cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip \
             $(pwd)/thingy91x-oob/app/build/hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
 
-      - name: Apply Connectivity Bridge Patch
-        run: git apply thingy91x-oob/scripts/connectivity_bridge.patch --directory=nrf
+      - name: Apply Connectivity Bridge patch for bootloader update
+        working-directory: nrf
+        run: |
+          git stash --include-untracked
+          git apply ../scripts/nrf53_bl_update.patch
 
       - name: Build BL Update
         if: ${{ inputs.build_bl_update }}
