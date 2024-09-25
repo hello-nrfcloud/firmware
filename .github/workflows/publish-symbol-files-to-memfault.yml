@@ -38,4 +38,4 @@ jobs:
               upload-mcu-symbols \
               --software-type hello.nrfcloud.com \
               --software-version ${{ inputs.version }} \
-              hello.nrfcloud.com-${{ inputs.version }}-thingy91x-debug-app.elf
+              hello.nrfcloud.com-${{ inputs.version }}-thingy91x-nrf91.elf

@@ -98,7 +98,7 @@ jobs:
               upload-mcu-symbols \
               --software-type hello.nrfcloud.com-ci \
               --software-version ${{ inputs.artifact_fw_version }} \
-              hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-debug-app.elf
+              hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91.elf
 
       - name: Run UART tests
         working-directory: thingy91x-oob/tests/on_target
@@ -143,10 +143,10 @@ jobs:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
           UART_ID: ${{ secrets.UART_DUT_2 }}
-          NRF53_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-connectivity-bridge.hex
-          NRF53_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-connectivity-bridge-verbose.zip
-          NRF53_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
-          NRF91_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-bootloader.hex
+          NRF53_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-merged.hex
+          NRF53_APP_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-verbose.zip
+          NRF53_BL_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
+          NRF91_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.hex
           NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
           NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
 

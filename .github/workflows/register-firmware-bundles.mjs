@@ -10,7 +10,7 @@ const version = (process.argv[process.argv.length - 1] ?? "").trim();
 console.log(`Publishing release version`, version);
 
 const nameRegEx = new RegExp(
-  `^hello\.nrfcloud\.com-${version}-thingy91x-((?<configuration>.+)-)?app_update_signed\.bin$`
+  `^hello\.nrfcloud\.com-${version}-thingy91x-nrf91-((?<configuration>.+)-)?update-signed\.bin$`
 );
 
 const assets = fs
