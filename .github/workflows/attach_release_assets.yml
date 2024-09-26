@@ -18,7 +18,7 @@ jobs:
       memfault_sw_type: "hello.nrfcloud.com"
 
   attach-assets:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build]
     steps:
         - name: Checkout
