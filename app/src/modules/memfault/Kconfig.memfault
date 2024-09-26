@@ -17,6 +17,18 @@ menuconfig APP_MEMFAULT
 
 if APP_MEMFAULT
 
+config APP_MEMFAULT_THREAD_STACK_SIZE
+	int "Thread stack size"
+	default 2048
+
+config APP_MEMFAULT_WATCHDOG_TIMEOUT_SECONDS
+	int "Watchdog timeout seconds"
+	default 1200
+
+config APP_MEMFAULT_ZBUS_TIMEOUT_SECONDS
+	int "Wait for zbus timeout seconds"
+	default 60
+
 module = APP_MEMFAULT
 module-str = Memfault
 source "subsys/logging/Kconfig.template.log_config"

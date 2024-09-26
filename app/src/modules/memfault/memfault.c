@@ -6,6 +6,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/zbus/zbus.h>
 #include "memfault/components.h"
 #include <memfault/ports/zephyr/http.h>
@@ -18,6 +19,22 @@
 #include "message_channel.h"
 
 LOG_MODULE_REGISTER(memfault, CONFIG_APP_MEMFAULT_LOG_LEVEL);
+
+/* Define listener for this module */
+ZBUS_MSG_SUBSCRIBER_DEFINE(memfault);
+
+/* Observe channels */
+ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, memfault, 0);
+
+#define MAX_MSG_SIZE sizeof(enum cloud_status)
+
+static void task_wdt_callback(int channel_id, void *user_data)
+{
+	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
+		channel_id, k_thread_name_get((k_tid_t)user_data));
+
+	SEND_FATAL_ERROR_WATCHDOG_TIMEOUT();
+}
 
 #if defined(CONFIG_NRF_MODEM_LIB_TRACE)
 
@@ -64,7 +81,10 @@ static bool read_data_cb(uint32_t offset, void *buf, size_t buf_len)
 	ARG_UNUSED(offset);
 	int err = nrf_modem_lib_trace_read(buf, buf_len);
 
-	if (err < 0) {
+	if (err == -ENODATA) {
+		LOG_WRN("No more modem trace data to read");
+		return false;
+	} else if (err < 0) {
 		LOG_ERR("Failed to read modem trace data: %d", err);
 		return false;
 	}
@@ -146,16 +166,54 @@ static void on_connected(void)
 
 }
 
-void callback(const struct zbus_channel *chan)
-{
-	if (&CLOUD_CHAN == chan) {
-		const enum cloud_status *status = zbus_chan_const_msg(chan);
+void handle_cloud_chan(enum cloud_status status) {
+	if (status == CLOUD_CONNECTED_READY_TO_SEND) {
+		on_connected();
+	}
+}
 
-		if (*status == CLOUD_CONNECTED_READY_TO_SEND) {
-			on_connected();
+void memfault_task(void)
+{
+	int err;
+	const struct zbus_channel *chan;
+	int task_wdt_id;
+	const uint32_t wdt_timeout_ms = (CONFIG_APP_MEMFAULT_WATCHDOG_TIMEOUT_SECONDS * MSEC_PER_SEC);
+	const k_timeout_t zbus_timeout = K_SECONDS(CONFIG_APP_MEMFAULT_ZBUS_TIMEOUT_SECONDS);
+	uint8_t msg_buf[MAX_MSG_SIZE];
+
+	LOG_DBG("Memfault module task started");
+
+	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
+	if (task_wdt_id < 0) {
+		LOG_ERR("Failed to add task to watchdog: %d", task_wdt_id);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	while (true) {
+		err = task_wdt_feed(task_wdt_id);
+		if (err) {
+			LOG_ERR("Failed to feed the watchdog: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
+		err = zbus_sub_wait_msg(&memfault, &chan, &msg_buf, zbus_timeout);
+		if (err == -ENOMSG) {
+			continue;
+		} else if (err) {
+			LOG_ERR("zbus_sub_wait, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
+		if (&CLOUD_CHAN == chan) {
+			LOG_DBG("Cloud status received");
+			handle_cloud_chan(MSG_TO_CLOUD_STATUS(&msg_buf));
 		}
 	}
 }
 
-ZBUS_LISTENER_DEFINE(memfault, callback);
-ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, memfault, 0);
+K_THREAD_DEFINE(memfault_module_tid, CONFIG_APP_MEMFAULT_THREAD_STACK_SIZE,
+		memfault_task, NULL, NULL, NULL,
+		K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
