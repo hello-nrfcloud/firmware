@@ -78,7 +78,9 @@ static void status_send(enum location_status status)
 void trigger_location_update(void)
 {
 	int err;
-	struct location_config config = {0};
+	struct location_config config = {
+		.mode = LOCATION_REQ_MODE_ALL,
+	};
 
 	if (gnss_enabled) {
 		location_config_defaults_set(&config, location_methods_size, location_method_types);
