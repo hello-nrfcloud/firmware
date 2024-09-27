@@ -78,9 +78,7 @@ static void status_send(enum location_status status)
 void trigger_location_update(void)
 {
 	int err;
-	struct location_config config = {
-		.mode = LOCATION_REQ_MODE_ALL,
-	};
+	struct location_config config = { 0 };
 
 	if (gnss_enabled) {
 		location_config_defaults_set(&config, location_methods_size, location_method_types);
@@ -90,6 +88,8 @@ void trigger_location_update(void)
 		location_config_defaults_set(&config, location_methods_size - 1, location_method_types + 1);
 		LOG_DBG("GNSS disabled");
 	}
+
+	config.mode = LOCATION_REQ_MODE_ALL;
 
 	LOG_DBG("location library initialized");
 
