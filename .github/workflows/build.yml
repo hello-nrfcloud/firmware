@@ -161,9 +161,9 @@ jobs:
           west twister -T ../nrf/applications/connectivity_bridge \
             --test applications.connectivity_bridge.bootloader_update -v -p thingy91x/nrf5340/cpuapp --inline-logs
           cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_mcuboot.zip \
-            app/build/connectivity_bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
+            app/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
           cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_application.zip \
-            app/build/connectivity_bridge-${{ env.VERSION }}-thingy91x-nrf53-verbose.zip
+            app/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-verbose.zip
 
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
