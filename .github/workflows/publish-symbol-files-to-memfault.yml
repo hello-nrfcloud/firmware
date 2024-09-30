@@ -26,9 +26,9 @@ jobs:
       - run: npm i @octokit/rest
 
       - run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip3 install memfault-cli
+          python3 -m venv venv
+          source venv/bin/activate
+          pip3 install memfault-cli
 
       - run: node .github/workflows/fetch-release-assets.mjs ${{ inputs.version }}
 
