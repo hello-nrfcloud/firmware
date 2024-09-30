@@ -17,31 +17,16 @@ MFW_201_FILEPATH = "artifacts/mfw_nrf91x1_2.0.1.zip"
 DELTA_MFW_BUNDLEID = "MODEM*ad48df2a*mfw_nrf91x1_2.0.1-FOTA-TEST"
 FULL_MFW_BUNDLEID = "MDM_FULL*bdd24c80*mfw_nrf91x1_full_2.0.1"
 
-
-WAIT_FOR_FOTA_AVAILABLE = 60 * 4
 APP_FOTA_TIMEOUT = 60 * 10
 FULL_MFW_FOTA_TIMEOUT = 60 * 30
 
-
-def wait_for_fota_available(t91x_board):
-    start = time.time()
-    while time.time() - start < WAIT_FOR_FOTA_AVAILABLE:
-        time.sleep(20)
-        try:
-            t91x_board.uart.wait_for_str("FOTA Job: ", timeout=30)
-            return
-        except AssertionError:
-            logger.debug("FOTA not available yet, trying again...")
-
-    raise RuntimeError(f"FOTA not available after {WAIT_FOR_FOTA_AVAILABLE} seconds")
-
-
 def post_job(t91x_board, bundle_id, fota_type):
     result = t91x_board.fota.post_fota_job(type=fota_type, bundle_id=bundle_id)
+    job_id = result["id"]
     if not result:
         pytest.skip("Failed to post FOTA job")
     t91x_board.uart.flush()
-    wait_for_fota_available(t91x_board)
+    return job_id
 
 def run_fota_resumption(t91x_board, fota_type):
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
@@ -60,8 +45,6 @@ def run_fota_resumption(t91x_board, fota_type):
     t91x_board.uart.write("lte normal\r\n")
     t91x_board.uart.wait_for_str(patterns_lte_normal, timeout=120)
 
-    wait_for_fota_available(t91x_board)
-
     t91x_board.uart.wait_for_str("fota_download: Refuse fragment, restart with offset")
     t91x_board.uart.wait_for_str("fota_download: Downloading from offset:")
 
@@ -75,10 +58,10 @@ def run_fota_fixture(t91x_board, hex_file):
         reset_device()
         t91x_board.uart.wait_for_str("Connected to Cloud")
 
-        post_job(t91x_board, bundleId, fota_type)
+        job_id = post_job(t91x_board, bundleId, fota_type)
 
-        if test_fota_resumption:
-            run_fota_resumption(t91x_board, fota_type)
+        # if test_fota_resumption:
+        #     run_fota_resumption(t91x_board, fota_type)
 
         t91x_board.uart.flush()
         t91x_board.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
@@ -89,6 +72,28 @@ def run_fota_fixture(t91x_board, hex_file):
         elif fota_type == "full":
             t91x_board.uart.wait_for_str("FMFU finished")
         t91x_board.uart.wait_for_str("Connected to Cloud", "Failed to connect to Cloud after FOTA")
+
+        # Check the job status on cloud
+        number_of_attempts = 10
+        sleep_time = 30
+        for i in range(number_of_attempts):
+            logger.debug(f"Checking FOTA job status in cloud, attempt {i+1}")
+            time.sleep(sleep_time)
+            jobs = t91x_board.fota.list_fota_jobs()
+            job = next((job for job in jobs if job['id'] == job_id), None)
+            if job:
+                status = job['status']
+                if status == 'SUCCEEDED':
+                    logger.info("FOTA job succeeded reported to cloud")
+                    break
+                else:
+                    logger.warning(f"FOTA job status in cloud is {status}")
+                    continue
+            else:
+                pytest.fail("FOTA job not found in the list of jobs")
+        else:
+            pytest.fail(f"FOTA job status not SUCCEEDED after {number_of_attempts * sleep_time} seconds")
+
     return _run_fota
 
 

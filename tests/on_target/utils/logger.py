@@ -13,9 +13,11 @@ import inspect
 
 ON_JENKINS = os.getenv("ON_JENKINS")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG").upper()
-LOG_FILENAME = os.getenv("LOG_FILENAME")
+LOG_FILENAME = os.getenv("LOG_FILENAME", "oob_test_log")
 LOG_PREFIX = os.getenv("LOG_PREFIX")
 LOG_PREFIX_COLOR = os.getenv("LOG_PREFIX_COLOR")
+
+LOG_DIR = "outcomes/logs"
 
 def get_logger(log_level = LOG_LEVEL):
     caller = inspect.stack()[1]
@@ -42,8 +44,9 @@ def get_logger(log_level = LOG_LEVEL):
         console.setFormatter(formatter)
 
     if LOG_FILENAME:
+        os.makedirs(LOG_DIR, exist_ok=True)
         for level in ["debug", "info"]:
-            file_handler = logging.FileHandler(f"{os.getenv('TOP_LVL', '')}/outcomes/logs/{LOG_FILENAME}_{level}.txt")
+            file_handler = logging.FileHandler(f"{LOG_DIR}/{LOG_FILENAME}_{level}.txt")
             file_handler.setLevel(level.upper())
             logger.addHandler(file_handler)
             formatter = '%(asctime)s - %(filename)s - %(levelname)s - %(message)s'
