@@ -34,6 +34,7 @@ jobs:
 
       - name: Publish symbol files
         run: |
+          source venv/bin/activate
           memfault \
               --org-token ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }} \
               --org ${{ vars.MEMFAULT_ORGANIZATION_SLUG }} \
