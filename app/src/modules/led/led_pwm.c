@@ -40,6 +40,7 @@ static const struct pwm_dt_spec led2 = PWM_DT_SPEC_GET(PWM_LED2_NODE);
 static K_THREAD_STACK_DEFINE(stack_area, CONFIG_APP_LED_PWM_WORKQUEUE_STACK_SIZE);
 static struct k_work_q led_pwm_queue;
 
+static struct led_effect effect_on = LED_EFFECT_LED_ON(LED_NOCOLOR());
 struct led {
 	size_t id;
 	struct led_color color;
@@ -50,6 +51,8 @@ struct led {
 	struct k_work_delayable work;
 	struct k_work_sync work_sync;
 };
+
+static struct led leds;
 
 static const struct led_effect effect[] = {
 	[LED_LTE_CONNECTING]	 = LED_EFFECT_LED_BREATHE(
@@ -62,7 +65,7 @@ static const struct led_effect effect[] = {
 					LED_OFF_PERIOD_LONG,
 					LED_POLL_MODE_COLOR
 				   ),
-	[LED_LOCATION_SEARCHING]	 = LED_EFFECT_LED_BREATHE(
+	[LED_LOCATION_SEARCHING] = LED_EFFECT_LED_BREATHE(
 					LED_ON_PERIOD_NORMAL,
 					LED_OFF_PERIOD_NORMAL,
 					LED_LOCATION_SEARCHING_COLOR
@@ -84,9 +87,7 @@ static const struct led_effect effect[] = {
 				   ),
 };
 
-static struct led leds;
-
-static void pwm_out(const struct led_color *color)
+static int pwm_out(const struct led_color *color)
 {
 	int err;
 
@@ -94,27 +95,63 @@ static void pwm_out(const struct led_color *color)
 	err = pwm_set_dt(&led0, PWM_USEC(255), PWM_USEC(color->c[0]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
-		return;
+		return err;
 	}
 
 	/* GREEN */
 	err = pwm_set_dt(&led2, PWM_USEC(255), PWM_USEC(color->c[1]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
-		return;
+		return err;
 	}
 
 	/* BLUE */
 	err = pwm_set_dt(&led1, PWM_USEC(255), PWM_USEC(color->c[2]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
-		return;
+		return err;
 	}
+
+	return 0;
+}
+
+static int led_pwm_start(void)
+{
+	int err = pm_device_action_run(led0.dev, PM_DEVICE_ACTION_RESUME);
+
+	if (err) {
+		LOG_ERR("PWM enable failed, pm_device_action_run: %d.", err);
+		return err;
+	}
+
+	return 0;
+}
+
+static int led_pwm_stop(void)
+{
+	k_work_cancel_delayable_sync(&leds.work, &leds.work_sync);
+
+	int err = pm_device_action_run(led0.dev, PM_DEVICE_ACTION_SUSPEND);
+
+	if (err) {
+		LOG_ERR("PWM disable failed, pm_device_action_run: %d.", err);
+		return err;
+	}
+
+	return 0;
 }
 
 static void work_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
+	enum pm_device_state led0_pwm_power_state;
+
+	__ASSERT_NO_MSG(pm_device_state_get(led0.dev, &led0_pwm_power_state) == 0);
+
+	if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
+		LOG_DBG("PWM is suspended, skipping work_handler");
+		return;
+	}
 
 	const struct led_effect_step *effect_step =
 		&leds.effect->steps[leds.effect_step];
@@ -126,9 +163,10 @@ static void work_handler(struct k_work *work)
 		leds.color.c[i] += diff;
 	}
 
-	pwm_out(&leds.color);
+	__ASSERT_NO_MSG(pwm_out(&leds.color) == 0);
 
 	leds.effect_substep++;
+
 	if (leds.effect_substep == effect_step->substep_cnt) {
 		leds.effect_substep = 0;
 		leds.effect_step++;
@@ -138,100 +176,92 @@ static void work_handler(struct k_work *work)
 				leds.effect_step = 0;
 			}
 		} else {
-			__ASSERT_NO_MSG(leds.effect->steps[leds.effect_step]
-						.substep_cnt > 0);
+			__ASSERT_NO_MSG(leds.effect->steps[leds.effect_step].substep_cnt > 0);
 		}
 	}
 
 	if (leds.effect_step < leds.effect->step_cnt) {
-		int32_t next_delay =
-			leds.effect->steps[leds.effect_step].substep_time;
+		int32_t next_delay = leds.effect->steps[leds.effect_step].substep_time;
 
 		k_work_reschedule_for_queue(&led_pwm_queue, &leds.work, K_MSEC(next_delay));
 	}
 }
 
-static void led_update(struct led *led)
+static int led_update(struct led *led)
 {
 	k_work_cancel_delayable_sync(&led->work, &led->work_sync);
 
 	led->effect_step = 0;
 	led->effect_substep = 0;
 
+	if (led == NULL) {
+		LOG_ERR("Input variable is NULL");
+		return -EINVAL;
+	}
+
 	if (!led->effect) {
 		LOG_DBG("No effect set");
-		return;
+		return -EINVAL;
 	}
 
-	__ASSERT_NO_MSG(led->effect->steps);
-
-	if (led->effect->step_cnt > 0) {
-		int32_t next_delay =
-			led->effect->steps[led->effect_step].substep_time;
-
-		k_work_schedule_for_queue(&led_pwm_queue, &led->work, K_MSEC(next_delay));
-	} else {
-		LOG_DBG("LED effect with no effect");
+	if (led->effect->step_cnt == 0 || led->effect->steps == NULL) {
+		LOG_DBG("Effect steps or count is not set");
+		return -EINVAL;
 	}
+
+	int32_t next_delay = led->effect->steps[led->effect_step].substep_time;
+
+	k_work_schedule_for_queue(&led_pwm_queue, &led->work, K_MSEC(next_delay));
+
+	return 0;
 }
 
-void led_pwm_start(void)
-{
-	int err;
-
-	// this action starts also led1 and led2 pwm
-	err = pm_device_action_run(led0.dev, PM_DEVICE_ACTION_RESUME);
-	if (err) {
-		LOG_ERR("PWM enable failed");
-		return;
-	}
-}
-
-void led_pwm_stop(void)
-{
-	int err;
-	k_work_cancel_delayable_sync(&leds.work, &leds.work_sync);
-
-	// this action suspends also led1 and led2 pwm
-	err = pm_device_action_run(led0.dev, PM_DEVICE_ACTION_SUSPEND);
-	if (err) {
-		LOG_ERR("PWM disable failed");
-		return;
-	}
-}
-
-void led_pwm_set_effect(enum led_state state)
+int led_pwm_set_effect(enum led_state state)
 {
 	int err;
 	enum pm_device_state led0_pwm_power_state;
 
-	if (pwm_is_ready_dt(&led0)) {
-		err = pm_device_state_get(led0.dev, &led0_pwm_power_state);
+	if (!pwm_is_ready_dt(&led0)) {
+		LOG_ERR("PWM not ready");
+		return -ENODEV;
+	}
+
+	err = pm_device_state_get(led0.dev, &led0_pwm_power_state);
+	if (err) {
+		LOG_ERR("Failed to assess leds pwm power state, pm_device_state_get: %d.", err);
+		return err;
+	}
+
+	LOG_DBG("Power state: %d", led0_pwm_power_state);
+
+	if ((state == LED_OFF) && (led0_pwm_power_state == PM_DEVICE_STATE_ACTIVE)) {
+		err = led_pwm_stop();
 		if (err) {
-			LOG_ERR("Failed to assess leds pwm power state, pm_device_state_get: %d.",
-				err);
-			return;
+			LOG_ERR("Failed to stop leds pwm, led_pwm_stop: %d.", err);
+			return err;
 		}
 
-		if (state == LED_OFF) {
-			// stop leds pwm if on, and return
-			if (led0_pwm_power_state == PM_DEVICE_STATE_ACTIVE) {
-				led_pwm_stop();
-			}
-			return;
-		}
+		return 0;
+	}
 
-		if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
-			// start leds pwm if off
-			led_pwm_start();
+	if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
+		err = led_pwm_start();
+		if (err) {
+			LOG_ERR("Failed to start leds pwm, led_pwm_start: %d.", err);
+			return err;
 		}
 	}
 
 	leds.effect = &effect[state];
-	led_update(&leds);
-}
 
-static struct led_effect effect_on = LED_EFFECT_LED_ON(LED_NOCOLOR());
+	err = led_update(&leds);
+	if (err) {
+		LOG_ERR("Failed to update leds pwm, led_update: %d.", err);
+		return err;
+	}
+
+	return 0;
+}
 
 int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
@@ -239,24 +269,33 @@ int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 	enum pm_device_state led0_pwm_power_state;
 
 	if (pwm_is_ready_dt(&led0)) {
-		err = pm_device_state_get(led0.dev, &led0_pwm_power_state);
+		LOG_ERR("PWM not ready");
+		return -ENODEV;
+	}
+
+	err = pm_device_state_get(led0.dev, &led0_pwm_power_state);
+	if (err) {
+		LOG_ERR("Failed to assess leds pwm power state, pm_device_state_get: %d.", err);
+		return err;
+	}
+
+	LOG_DBG("Power state: %d", led0_pwm_power_state);
+
+	if ((!red && !green && !blue) && (led0_pwm_power_state == PM_DEVICE_STATE_ACTIVE)) {
+		err = led_pwm_stop();
 		if (err) {
-			LOG_ERR("Failed to assess leds pwm power state, pm_device_state_get: %d.",
-				err);
-			return 0;
+			LOG_ERR("Failed to stop leds pwm, led_pwm_stop: %d.", err);
+			return err;
 		}
 
-        if (red == 0 && green == 0 && blue == 0) {
-			// stop leds pwm if on, and return
-			if (led0_pwm_power_state == PM_DEVICE_STATE_ACTIVE) {
-				led_pwm_stop();
-			}
-			return 0;
-		}
+		return 0;
+	}
 
-		if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
-			// start leds pwm if off
-			led_pwm_start();
+	if (led0_pwm_power_state == PM_DEVICE_STATE_SUSPENDED) {
+		err = led_pwm_start();
+		if (err) {
+			LOG_ERR("Failed to start leds pwm, led_pwm_start: %d.", err);
+			return err;
 		}
 	}
 
@@ -265,7 +304,12 @@ int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 	effect_on.steps[0].color.c[2] = blue;
 
 	leds.effect = &effect_on;
-	led_update(&leds);
+
+	err = led_update(&leds);
+	if (err) {
+		LOG_ERR("Failed to update leds pwm, led_update: %d.", err);
+		return err;
+	}
 
 	return 0;
 }

@@ -164,6 +164,7 @@ static void led_pattern_update_work_fn(struct k_work *work)
 {
 	ARG_UNUSED(work);
 
+	int err;
 	struct led_pattern *next_pattern;
 	static enum led_state previous_led_state = LED_PATTERN_COUNT;
 	sys_snode_t *node = sys_slist_get(&pattern_transition_list);
@@ -186,12 +187,25 @@ static void led_pattern_update_work_fn(struct k_work *work)
 			LOG_DBG("Setting LED configuration: red: %d, green: %d, blue: %d",
 			next_pattern->red, next_pattern->green, next_pattern->blue);
 
-			led_pwm_set_rgb(next_pattern->red, next_pattern->green, next_pattern->blue);
+			err = led_pwm_set_rgb(next_pattern->red,
+					      next_pattern->green,
+					      next_pattern->blue);
+			if (err) {
+				LOG_ERR("Failed to set LED configuration");
+				SEND_FATAL_ERROR();
+				return;
+			}
+
 		} else {
 
 			LOG_DBG("Setting LED effect: %s", led_state_name(next_pattern->led_state));
 
-			led_pwm_set_effect(next_pattern->led_state);
+			err = led_pwm_set_effect(next_pattern->led_state);
+			if (err) {
+				LOG_ERR("Failed to set LED effect");
+				SEND_FATAL_ERROR();
+				return;
+			}
 		}
 
 		previous_led_state = next_pattern->led_state;
