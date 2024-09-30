@@ -19,14 +19,8 @@
 extern "C" {
 #endif
 
-/**@brief Starts the PWM and handling of LED effects. */
-void led_pwm_start(void);
-
-/**@brief Stops the LED effects. */
-void led_pwm_stop(void);
-
 /**@brief Sets LED effect based in UI LED state. */
-void led_pwm_set_effect(enum led_state state);
+int led_pwm_set_effect(enum led_state state);
 
 /**@brief Sets RGB and light intensity values, in 0 - 255 ranges. */
 int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue);
