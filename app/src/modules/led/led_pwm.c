@@ -268,7 +268,7 @@ int led_pwm_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 	int err;
 	enum pm_device_state led0_pwm_power_state;
 
-	if (pwm_is_ready_dt(&led0)) {
+	if (!pwm_is_ready_dt(&led0)) {
 		LOG_ERR("PWM not ready");
 		return -ENODEV;
 	}
