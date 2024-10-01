@@ -74,9 +74,9 @@ jobs:
       - name: 'nrf91: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 1
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 2
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf91.pem -a 0x0001c200 -v 2
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 2
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 3
+          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
 
       - name: Apply Connectivity Bridge patch for bootloader update
         run: git apply thingy91x-oob/scripts/nrf53_bl_update.patch --directory=nrf
