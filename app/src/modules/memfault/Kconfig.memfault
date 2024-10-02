@@ -29,6 +29,16 @@ config APP_MEMFAULT_ZBUS_TIMEOUT_SECONDS
 	int "Wait for zbus timeout seconds"
 	default 60
 
+config APP_MEMFAULT_UPLOAD_METRICS_ON_CLOUD_READY
+	bool "Update metrics on cloud ready events"
+	help
+	  Update and upload metrics to Memfault when the cloud connection is ready.
+	  Note that this means that metrics will be uploaded every time network connection is
+	  established and cloud is connected. In poor network conditions, this may happen
+	  frequently and may consume a excessive amount of data and power.
+	  Also note that this only applies to metrics, not coredumps, which are uploaded
+	  regardless of this setting.
+
 module = APP_MEMFAULT
 module-str = Memfault
 source "subsys/logging/Kconfig.template.log_config"

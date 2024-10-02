@@ -140,6 +140,13 @@ static void prepare_modem_trace_upload(void)
 
 static void on_connected(void)
 {
+	size_t core_dump_size = 0;
+
+	if (!memfault_coredump_has_valid_coredump(&core_dump_size) &&
+	    !IS_ENABLED(CONFIG_APP_MEMFAULT_UPLOAD_METRICS_ON_CLOUD_READY)) {
+		return;
+	}
+
 	/* Trigger collection of heartbeat data */
 	memfault_metrics_heartbeat_debug_trigger();
 
@@ -149,10 +156,8 @@ static void on_connected(void)
 	}
 
 #if defined(CONFIG_NRF_MODEM_LIB_TRACE)
-	size_t total_size = 0;
-
 	/* If there was a coredump, also send modem trace */
-	if (memfault_coredump_has_valid_coredump(&total_size)) {
+	if (memfault_coredump_has_valid_coredump(&core_dump_size)) {
 		prepare_modem_trace_upload();
 	}
 
