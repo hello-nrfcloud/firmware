@@ -24,17 +24,12 @@ BUILD_ASSERT(CONFIG_APP_TRANSPORT_WATCHDOG_TIMEOUT_SECONDS >
 			 CONFIG_APP_TRANSPORT_EXEC_TIME_SECONDS_MAX,
 			 "Watchdog timeout must be greater than maximum execution time");
 
-/* Forward declarations */
-static void transport_listener_cb(const struct zbus_channel *chan);
-
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(transport);
-ZBUS_LISTENER_DEFINE(transport_listener, transport_listener_cb);
 
 /* Observe channels */
 ZBUS_CHAN_ADD_OBS(PAYLOAD_CHAN, transport, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, transport, 0);
-ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, transport_listener, 0);
 
 #define MAX_MSG_SIZE (MAX(sizeof(struct payload), sizeof(enum network_status)))
 
@@ -505,19 +500,6 @@ static void transport_task(void)
 			SEND_FATAL_ERROR();
 
 			return;
-		}
-	}
-}
-
-static void transport_listener_cb(const struct zbus_channel *chan)
-{
-	const enum network_status *status;
-
-	if (&NETWORK_CHAN == chan) {
-		status = zbus_chan_const_msg(chan);
-
-		if (*status == NETWORK_DISCONNECTED) {
-			nrf_cloud_coap_disconnect();
 		}
 	}
 }
