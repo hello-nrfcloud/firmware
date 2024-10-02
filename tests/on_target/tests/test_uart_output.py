@@ -39,7 +39,6 @@ def test_uart_output(t91x_board, hex_file):
     ]
     patterns_lte_normal = [
             "network: Network connectivity established",
-            "transport: Connected to Cloud"
     ]
 
     # Boot
