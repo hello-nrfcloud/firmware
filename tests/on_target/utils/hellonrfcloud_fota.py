@@ -149,9 +149,9 @@ class HelloNrfCloudFOTA():
 
         for job in jobs:
             job_id = job["id"]
-            url = f"{url}/{job_id}"
+            job_url = f"{url}/{job_id}"
             try:
-                response = requests.delete(url, headers=headers, params=params, timeout=self.timeout)
+                response = requests.delete(job_url, headers=headers, params=params, timeout=self.timeout)
                 response.raise_for_status()
             except HTTPError as http_err:
                 logger.error(f"HTTP error occurred: {http_err}")

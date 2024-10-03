@@ -74,7 +74,7 @@ def run_fota_fixture(t91x_board, hex_file):
         t91x_board.uart.wait_for_str("Connected to Cloud", "Failed to connect to Cloud after FOTA")
 
         # Check the job status on cloud
-        number_of_attempts = 10
+        number_of_attempts = 30
         sleep_time = 30
         for i in range(number_of_attempts):
             logger.debug(f"Checking FOTA job status in cloud, attempt {i+1}")
@@ -87,7 +87,7 @@ def run_fota_fixture(t91x_board, hex_file):
                     logger.info("FOTA job succeeded reported to cloud")
                     break
                 else:
-                    logger.warning(f"FOTA job status in cloud is {status}")
+                    logger.warning(f"FOTA job status in cloud is {status}, retrying in {sleep_time} seconds")
                     continue
             else:
                 pytest.fail("FOTA job not found in the list of jobs")
