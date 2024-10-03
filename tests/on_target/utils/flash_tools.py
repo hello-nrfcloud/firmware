@@ -8,17 +8,21 @@ import os
 import sys
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
+from utils.thingy91x_dfu import Thingy91XDFU, detect_family_from_zip
 
 logger = get_logger()
 
 SEGGER = os.getenv('SEGGER')
 
-def reset_device(serial=SEGGER):
+def reset_device(serial=SEGGER, reset_kind="RESET_SYSTEM"):
     logger.info(f"Resetting device, segger: {serial}")
     try:
-        result = subprocess.run(['nrfutil', 'device', 'reset', '--serial-number', serial], check=True, text=True, capture_output=True)
-        logger.info("Command output:")
-        logger.info(result.stdout)
+        result = subprocess.run(
+            ['nrfutil', 'device', 'reset', '--serial-number', serial, '--reset-kind', reset_kind],
+            check=True,
+            text=True,
+            capture_output=True
+        )
         logger.info("Command completed successfully.")
     except subprocess.CalledProcessError as e:
         # Handle errors in the command execution
@@ -54,31 +58,61 @@ def recover_device(serial=SEGGER, core="Application"):
         logger.info(e.stderr)
         raise
 
-def dfu_device(zipfile, serial):
-    logger.info(f"Performing MCUBoot DFU, firmware: {zipfile}")
-    thingy91x_dfu = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'thingy91x_dfu.py')
-    # call thingy91x-dfu
+def dfu_device(zipfile, serial, reset_only=False):
+    chip, is_mcuboot = detect_family_from_zip(zipfile)
+    if chip is None:
+        logger.error("Could not determine chip family from image")
+        raise ValueError("Invalid image file")
+
+    dfu = Thingy91XDFU(0x1915, 0x910A, chip, serial)
+
+    if reset_only:
+        dfu.reset_device()
+        return
+
     try:
-        result = subprocess.run(['python3', thingy91x_dfu, '--serial', serial, '--debug', '--image', zipfile], check=True, text=True, capture_output=True)
-        logger.info("Command output:")
-        logger.info(result.stdout)
-        logger.info(result.stderr)
-        logger.info("Command completed successfully.")
-    except subprocess.CalledProcessError as e:
-        # Handle errors in the command execution
-        logger.info("An error occurred while flashing the device.")
-        logger.info("Error output:")
-        logger.info(e.stderr)
+        serial_number = dfu.enter_bootloader_mode()
+        if serial_number:
+            logger.info(f"{chip} on {serial_number} is in bootloader mode")
+        else:
+            raise RuntimeError("Failed to enter bootloader mode")
+
+        if is_mcuboot:
+            dfu.perform_bootloader_dfu(zipfile)
+        else:
+            dfu.perform_dfu(zipfile)
+
+        logger.info("DFU completed successfully.")
+    except Exception as e:
+        logger.error(f"An error occurred during DFU: {str(e)}")
         raise
 
-def setup_jlink(serial):
-    # run command and check if it was successful
+def setup_jlink(serial_number):
+    """
+    Flash Segger firmware to nRF53 on Thingy91x through external debugger.
+
+    Args:
+        serial_number (str): Serial number of the external debugger.
+
+    Raises:
+        subprocess.CalledProcessError: If the setup-jlink command fails.
+    """
+    logger.info("Flashing Segger firmware to nRF53 on Thingy91x through external debugger")
+
+    setup_jlink_command = ['/opt/setup-jlink/setup-jlink.bash', serial_number]
+
     try:
-        result = subprocess.run(['/opt/setup-jlink/setup-jlink.bash', serial], check=True, text=True, capture_output=False)
-        logger.info("Command completed successfully.")
+        subprocess.run(
+            setup_jlink_command,
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        logger.info("Segger firmware flashed successfully.")
     except subprocess.CalledProcessError as e:
-        # Handle errors in the command execution
-        logger.info("An error occurred while setting up JLink.")
-        logger.info("Error output:")
-        logger.info(e.stderr)
+        logger.error("Failed to flash Segger firmware.")
+        logger.error(f"Command: {' '.join(setup_jlink_command)}")
+        logger.error(f"Exit code: {e.returncode}")
+        logger.error(f"Standard output:\n{e.stdout}")
+        logger.error(f"Standard error:\n{e.stderr}")
         raise
