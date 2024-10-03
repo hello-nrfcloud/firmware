@@ -15,6 +15,7 @@ jobs:
     secrets: inherit
     with:
       build_bl_update: true
+      build_debug: true
       memfault_sw_type: "hello.nrfcloud.com"
 
   attach-assets:
@@ -27,7 +28,8 @@ jobs:
         - name: Download artifact
           uses: actions/download-artifact@v4
           with:
-           name: firmware
+           pattern: firmware-*
+           merge-multiple: true
 
         - name: Deploy release to github
           uses: softprops/action-gh-release@v2
