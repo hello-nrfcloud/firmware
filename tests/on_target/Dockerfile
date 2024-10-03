@@ -37,6 +37,8 @@ RUN <<EOT
     mv nrfutil /usr/local/bin
     chmod +x /usr/local/bin/nrfutil
     nrfutil install device
+    nrfutil self-upgrade
+    nrfutil upgrade
 EOT
 
 # Install Go
