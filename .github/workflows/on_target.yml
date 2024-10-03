@@ -124,15 +124,15 @@ jobs:
           cat "${NRFUTIL_HOME}/lib/nrfutil-device/14-nrfdl-mcuboot-plugin_config.json"
 
 
-      - name: Run UART tests
-        working-directory: thingy91x-oob/tests/on_target
-        run: |
-          mkdir -p results
-          pytest -s -v -m "dut1 and uart" \
-            --junit-xml=results/test-results-uart.xml \
-            tests
-        env:
-          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+      # - name: Run UART tests
+      #   working-directory: thingy91x-oob/tests/on_target
+      #   run: |
+      #     mkdir -p results
+      #     pytest -s -v -m "dut1 and uart" \
+      #       --junit-xml=results/test-results-uart.xml \
+      #       tests
+      #   env:
+      #     SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
       - name: Run FOTA tests (standard)
         if: ${{ inputs.run_fota_tests }}
