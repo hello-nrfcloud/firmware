@@ -230,7 +230,7 @@ def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
             sys.exit(1)
         found_ports.sort()
         try:
-            with serial.Serial(found_ports[0], 115200, timeout=1):
+            with serial.Serial(found_ports[0], 1000000, timeout=1):
                 logging.debug("Serial port opened")
         except serial.SerialException as e:
             logging.error(f"Failed to open serial port, do you have a serial terminal open? {e}")
@@ -345,24 +345,24 @@ def perform_bootloader_dfu(pid, vid, serial_number, image, chip, logging, slot=1
 
         # prime serial connection (nrf91 only)
         if chip == "nrf91":
-            os.system(f"mcumgr --conntype serial  --connstring {port} image list -t 1 || true")
+            os.system(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image list -t 1 || true")
         # list images (just to check if mcuboot is running)
-        ret = os.system(f"mcumgr --conntype serial  --connstring {port} image list")
+        ret = os.system(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image list")
         if ret != 0:
             logging.error("Failed to list mcuboot images")
             sys.exit(1)
         # upload image to secondary slot
-        ret = os.system(f"mcumgr --conntype serial  --connstring {port} image upload {imgfile} -n 2")
+        ret = os.system(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image upload {imgfile} -n 2")
         if ret != 0:
             logging.error("Failed to upload image")
             sys.exit(1)
         # confirm image
-        ret = os.system(f"mcumgr --conntype serial  --connstring {port} image confirm {digest}")
+        ret = os.system(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image confirm {digest}")
         if ret != 0:
             logging.error("Failed to confirm image")
             sys.exit(1)
         # reset device
-        ret = os.system(f"mcumgr --conntype serial  --connstring {port} reset")
+        ret = os.system(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 reset")
         if ret != 0:
             logging.error("Failed to reset device")
             sys.exit(1)
