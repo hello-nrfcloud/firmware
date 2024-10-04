@@ -1,0 +1,89 @@
+name: Check Main Branch Status
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request number"
+        required: true
+
+jobs:
+  check-main-status:
+    runs-on: ubuntu-24.04
+    env:
+      PR_NUMBER: ${{ github.event.number || github.event.inputs.pr_number }}
+    steps:
+      - name: Check if PR has 'fix-ci' label
+        id: has_fix_ci_label
+        uses: actions/github-script@v7
+        with:
+          retries: 3
+          script: |
+            const labels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: process.env.PR_NUMBER,
+            });
+
+            const hasFixCiLabel = labels.data.map(label => label.name).includes('fix-ci');
+            console.log(`Has 'fix-ci' label: ${hasFixCiLabel}`);
+
+            return hasFixCiLabel;
+
+      - name: Ensure Main Branch Check Runs Are Successful
+        if: ${{ steps.has_fix_ci_label.outputs.result == 'false' }}
+        uses: actions/github-script@v7
+        with:
+          retries: 3
+          script: |
+            function delay(ms) {
+              return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            const mainRef = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/main',
+            });
+
+            const mainSha = mainRef.data.object.sha;
+            console.log(`Main branch SHA: ${mainSha}`);
+
+            let retryPending = 12; // Retry for up to 1 hour (12 retries with 5 minutes interval)
+
+            while (retryPending > 0) {
+              let checkRuns = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: mainSha,
+              });
+
+              console.log(`Check runs (${checkRuns.data.total_count}):`);
+              for (let run of checkRuns.data.check_runs) {
+                console.log(`- ${run.name}:
+                console.log(`\tstatus: ${run.status}`);
+                console.log(`\tconclusion: ${run.conclusion}`);
+              }
+
+              const failedChecks = checkRuns.data.check_runs.filter(run => run.conclusion !== null && run.conclusion !== 'success');
+              const pendingChecks = checkRuns.data.check_runs.filter(run => run.status !== 'completed');
+
+              if (failedChecks.length > 0) {
+                core.setFailed('Cannot merge: The main branch has failing checks.');
+                break;
+              } else if (pendingChecks.length === 0) {
+                console.log('Main branch is healthy.');
+                break;
+              } else {
+                console.log('Checks are still pending.')
+
+                retryPending--;
+                if (retryPending === 0) {
+                  core.setFailed('Timeout waiting for pending checks on main branch.');
+                  break;
+                }
+
+                console.log('Waiting for 5 minutes before retrying...');
+                await delay(5 * 60 * 1000); // Wait for 5 minutes
+              }
+            }
