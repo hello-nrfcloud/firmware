@@ -80,7 +80,7 @@ def test_dfu(t91x_dfu):
 
     t91x_dfu.uart.start()
 
-    expected_lines = ["Firmware version 2", "Zephyr OS"]
+    expected_lines = ["Firmware version 3", "Zephyr OS"]
     t91x_dfu.uart.wait_for_str(expected_lines, timeout=60)
     logger.info("nRF91 DFU test passed successfully")
 
