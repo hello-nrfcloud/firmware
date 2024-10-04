@@ -73,7 +73,8 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: firmware
+          pattern: firmware-*
+          merge-multiple: true
           path: thingy91x-oob/tests/on_target/artifacts
           run-id: ${{ inputs.artifact_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
