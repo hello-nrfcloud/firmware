@@ -32,7 +32,7 @@ jobs:
 
       - run: node .github/workflows/fetch-release-assets.mjs ${{ inputs.version }}
 
-      - name: Publish symbol files
+      - name: Publish oob symbol files
         run: |
           source venv/bin/activate
           memfault \
@@ -43,3 +43,15 @@ jobs:
               --software-type hello.nrfcloud.com \
               --software-version ${{ inputs.version }} \
               hello.nrfcloud.com-${{ inputs.version }}-thingy91x-nrf91.elf
+
+      - name: Publish oob-debug symbol files
+        run: |
+          source venv/bin/activate
+          memfault \
+              --org-token ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }} \
+              --org ${{ vars.MEMFAULT_ORGANIZATION_SLUG }} \
+              --project ${{ vars.MEMFAULT_PROJECT_SLUG }} \
+              upload-mcu-symbols \
+              --software-type hello.nrfcloud.com \
+              --software-version ${{ inputs.version }} \
+              hello.nrfcloud.com-${{ inputs.version }}-debug-thingy91x-nrf91.elf
