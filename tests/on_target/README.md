@@ -19,8 +19,8 @@ docker run --rm -it \
 
 ### Verify nrfutil/jlink works
 ```shell
+JLinkExe -V
 nrfutil -V
-nrfutil device list
 ```
 
 ### Install requirements
@@ -53,7 +53,7 @@ pytest -s -v -m "dut1 and fota" tests
 
 Precondition: thingy91x with external debugger attached
 
-IMPORTANT: switch must be on nrf53 otherwise device will be bricked.
+IMPORTANT: switch must be on nrf53.
 
 Set all this bunch of env variables appropriately (see worflow for details):
 SEGGER_NRF53, SEGGER_NRF91, UART_ID, NRF53_HEX_FILE, NRF53_APP_UPDATE_ZIP,
@@ -65,4 +65,5 @@ pytest -s -v -m dut2 tests
 
 ## Test docker image version control
 
-JLINK_VERSION=V794e
+JLINK_VERSION=V794i
+GO_VERSION=1.20.5

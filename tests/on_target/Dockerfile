@@ -2,7 +2,7 @@ FROM python:3.12.5-slim-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ARG JLINK_VERSION=V794e
+ARG JLINK_VERSION=V794i
 ARG GO_VERSION=1.20.5
 
 WORKDIR /work
@@ -22,10 +22,11 @@ ENV LD_LIBRARY_PATH=/opt/SEGGER/JLink/JLink_Linux_${JLINK_VERSION}_x86_64
 RUN <<EOT
     wget -q --post-data 'accept_license_agreement=accepted' https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.tgz
     mkdir -p /opt/SEGGER/JLink
-    tar -xvf JLink_Linux_${JLINK_VERSION}_x86_64.tgz -C /opt/SEGGER/JLink
+    tar -xvf JLink_Linux_${JLINK_VERSION}_x86_64.tgz --strip-components=1 -C /opt/SEGGER/JLink
     rm JLink_Linux_${JLINK_VERSION}_x86_64.tgz
     ldconfig
 EOT
+ENV PATH=$PATH:/opt/SEGGER/JLink
 
 # Install nrfutil device
 # Make nrfutil install in a shared location, because when used with GitHub
