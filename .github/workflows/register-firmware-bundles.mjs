@@ -4,18 +4,16 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import yazl from "yazl";
+import { nameRegEx } from "./lib/nameRegEx.mjs";
 
 const version = (process.argv[process.argv.length - 1] ?? "").trim();
+const filenameRegEx = nameRegEx(version);
 
 console.log(`Publishing release version`, version);
 
-const nameRegEx = new RegExp(
-  `^hello\.nrfcloud\.com-${version}(\\+(?<configuration>[0-9A-Za-z.]+))?-thingy91x-nrf91-update-signed\.bin$`
-);
-
 const assets = fs
   .readdirSync(process.cwd())
-  .filter((name) => nameRegEx.test(name));
+  .filter((name) => filenameRegEx.test(name));
 
 if (assets.length === 0) {
   console.error(`No assets found for release ${version}!`);
@@ -25,7 +23,7 @@ if (assets.length === 0) {
 for (const asset of assets) {
   const {
     groups: { configuration },
-  } = nameRegEx.exec(asset);
+  } = filenameRegEx.exec(asset);
 
   const fwversion = `${version}${
     configuration !== undefined ? `+${configuration}` : ""
