@@ -53,5 +53,5 @@ jobs:
               --project ${{ vars.MEMFAULT_PROJECT_SLUG }} \
               upload-mcu-symbols \
               --software-type hello.nrfcloud.com \
-              --software-version ${{ inputs.version }} \
+              --software-version ${{ inputs.version }}+debug \
               hello.nrfcloud.com-${{ inputs.version }}-debug-thingy91x-nrf91.elf
