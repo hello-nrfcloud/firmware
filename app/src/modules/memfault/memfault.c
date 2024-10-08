@@ -15,6 +15,7 @@
 #include <memfault/core/trace_event.h>
 #include "memfault/panics/coredump.h"
 #include <modem/nrf_modem_lib_trace.h>
+#include <modem/nrf_modem_lib.h>
 
 #include "message_channel.h"
 
@@ -50,16 +51,36 @@ static sMemfaultCdrMetadata trace_recording_metadata = {
 	.collection_reason = "modem traces",
 };
 
-static bool enable_modem_traces(void)
+static int modem_trace_enable(void)
 {
-	int err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_FULL);
+	int err;
+
+	err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_LTE_AND_IP);
+	if (err) {
+		LOG_ERR("nrf_modem_lib_trace_level_set, error: %d", err);
+		return err;
+	}
+
+	return 0;
+}
+
+/* Enable modem traces as soon as the modem is initialized if there is no valid coredump.
+ * Modem traces are disabled by default via CONFIG_NRF_MODEM_LIB_TRACE_LEVEL_OFF.
+ */
+NRF_MODEM_LIB_ON_INIT(memfault_init_hook, on_modem_lib_init, NULL)
+
+static void on_modem_lib_init(int ret, void *ctx)
+{
+	if (memfault_coredump_has_valid_coredump(NULL)) {
+		return;
+	}
+
+	int err = modem_trace_enable();
 
 	if (err) {
 		LOG_ERR("Failed to enable modem traces: %d", err);
-		return false;
+		return;
 	}
-
-	return true;
 }
 
 static bool has_cdr_cb(sMemfaultCdrMetadata *metadata)
@@ -79,6 +100,7 @@ static void mark_cdr_read_cb(void)
 static bool read_data_cb(uint32_t offset, void *buf, size_t buf_len)
 {
 	ARG_UNUSED(offset);
+
 	int err = nrf_modem_lib_trace_read(buf, buf_len);
 
 	if (err == -ENODATA) {
@@ -100,7 +122,6 @@ static sMemfaultCdrSourceImpl s_my_custom_data_recording_source = {
 
 static void prepare_modem_trace_upload(void)
 {
-	int err;
 	size_t trace_size = 0;
 	static bool memfault_cdr_source_registered;
 
@@ -114,13 +135,6 @@ static void prepare_modem_trace_upload(void)
 		return;
 	} else if (trace_size == 0) {
 		LOG_DBG("No modem traces to send");
-		return;
-	}
-
-	/* Stop modem traces during upload */
-	err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_OFF);
-	if (err) {
-		LOG_ERR("Failed to turn off modem traces: %d", err);
 		return;
 	}
 
@@ -140,10 +154,9 @@ static void prepare_modem_trace_upload(void)
 
 static void on_connected(void)
 {
-	size_t core_dump_size = 0;
+	bool has_coredump = memfault_coredump_has_valid_coredump(NULL);
 
-	if (!memfault_coredump_has_valid_coredump(&core_dump_size) &&
-	    !IS_ENABLED(CONFIG_APP_MEMFAULT_UPLOAD_METRICS_ON_CLOUD_READY)) {
+	if (!has_coredump && !IS_ENABLED(CONFIG_APP_MEMFAULT_UPLOAD_METRICS_ON_CLOUD_READY)) {
 		return;
 	}
 
@@ -157,7 +170,8 @@ static void on_connected(void)
 
 #if defined(CONFIG_NRF_MODEM_LIB_TRACE)
 	/* If there was a coredump, also send modem trace */
-	if (memfault_coredump_has_valid_coredump(&core_dump_size)) {
+
+	if (has_coredump) {
 		prepare_modem_trace_upload();
 	}
 
@@ -166,9 +180,13 @@ static void on_connected(void)
 	memfault_zephyr_port_post_data();
 
 #if defined(CONFIG_NRF_MODEM_LIB_TRACE)
-	enable_modem_traces();
-#endif /* defined(CONFIG_NRF_MODEM_LIB_TRACE) */
+	int err	= modem_trace_enable();
 
+	if (err) {
+		LOG_ERR("Failed to enable modem traces: %d", err);
+		return;
+	}
+#endif /* defined(CONFIG_NRF_MODEM_LIB_TRACE) */
 }
 
 void handle_cloud_chan(enum cloud_status status) {
