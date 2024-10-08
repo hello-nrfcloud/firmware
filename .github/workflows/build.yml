@@ -164,13 +164,13 @@ jobs:
         if: ${{ inputs.build_debug }}
         working-directory: thingy91x-oob/app/build
         run: |
-          cp merged.hex hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91.hex
-          cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91.config
-          cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91-update-signed.bin
-          cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91-update-signed.hex
-          cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91.elf
-          cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91-bootloader.hex
-          cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-debug-thingy91x-nrf91-dfu.zip
+          cp merged.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.hex
+          cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.config
+          cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-update-signed.bin
+          cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-update-signed.hex
+          cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.elf
+          cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-bootloader.hex
+          cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-dfu.zip
 
       - name: Upload artifact
         if: ${{ inputs.build_debug }}
