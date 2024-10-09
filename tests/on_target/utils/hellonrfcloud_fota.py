@@ -16,7 +16,7 @@ logger = get_logger()
 HELLO_NRF_CLOUD_URL = "https://api.hello.nordicsemi.cloud/2024-04-17"
 
 class HelloNrfCloudFOTA():
-    def __init__(self, device_id: str, fingerprint: str, timeout: int=10) -> None:
+    def __init__(self, device_id: str, fingerprint: str, timeout: int=20) -> None:
         """Initializes the class.
 
         :param url: Default API URL
