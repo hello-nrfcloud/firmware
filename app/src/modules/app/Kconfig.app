@@ -20,6 +20,6 @@ config APP_MODULE_EXEC_TIME_SECONDS_MAX
 
 config APP_MODULE_RECV_BUFFER_SIZE
 	int "Receive buffer size"
-	default 512
+	default 1024
 
 endmenu
