@@ -37,7 +37,7 @@ static void task_wdt_callback(int channel_id, void *user_data)
 	SEND_FATAL_ERROR_WATCHDOG_TIMEOUT();
 }
 
-#if defined(CONFIG_NRF_MODEM_LIB_TRACE)
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE) && defined(CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_FLASH)
 
 static const char *mimetypes[] = { MEMFAULT_CDR_BINARY };
 
@@ -150,7 +150,7 @@ static void prepare_modem_trace_upload(void)
 	has_modem_traces = true;
 }
 
-#endif /* defined(CONFIG_NRF_MODEM_LIB_TRACE) */
+#endif /* CONFIG_NRF_MODEM_LIB_TRACE && CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_FLASH */
 
 static void on_connected(void)
 {
@@ -168,25 +168,25 @@ static void on_connected(void)
 		return;
 	}
 
-#if defined(CONFIG_NRF_MODEM_LIB_TRACE)
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE) && defined(CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_FLASH)
 	/* If there was a coredump, also send modem trace */
 
 	if (has_coredump) {
 		prepare_modem_trace_upload();
 	}
 
-#endif /* defined(CONFIG_NRF_MODEM_LIB_TRACE) */
+#endif /* CONFIG_NRF_MODEM_LIB_TRACE && CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_FLASH */
 
 	memfault_zephyr_port_post_data();
 
-#if defined(CONFIG_NRF_MODEM_LIB_TRACE)
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE) && defined(CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_FLASH)
 	int err	= modem_trace_enable();
 
 	if (err) {
 		LOG_ERR("Failed to enable modem traces: %d", err);
 		return;
 	}
-#endif /* defined(CONFIG_NRF_MODEM_LIB_TRACE) */
+#endif /* CONFIG_NRF_MODEM_LIB_TRACE && CONFIG_NRF_MODEM_LIB_TRACE_BACKEND_FLASH */
 }
 
 void handle_cloud_chan(enum cloud_status status) {
