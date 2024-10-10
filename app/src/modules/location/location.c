@@ -89,8 +89,6 @@ void trigger_location_update(void)
 		LOG_DBG("GNSS disabled");
 	}
 
-	config.mode = LOCATION_REQ_MODE_ALL;
-
 	LOG_DBG("location library initialized");
 
 	err = location_request(&config);
@@ -137,6 +135,31 @@ void handle_config_chan(const struct configuration *config)
 	} else {
 		LOG_DBG("Configuration not present");
 	}
+}
+
+static void location_print_data_details(enum location_method method,
+					const struct location_data_details *details)
+{
+	LOG_DBG("Elapsed method time: %d ms", details->elapsed_time_method);
+#if defined(CONFIG_LOCATION_METHOD_GNSS)
+	if (method == LOCATION_METHOD_GNSS) {
+		LOG_DBG("Satellites tracked: %d", details->gnss.satellites_tracked);
+		LOG_DBG("Satellites used: %d", details->gnss.satellites_used);
+		LOG_DBG("Elapsed GNSS time: %d ms", details->gnss.elapsed_time_gnss);
+		LOG_DBG("GNSS execution time: %d ms", details->gnss.pvt_data.execution_time);
+	}
+#endif
+#if defined(CONFIG_LOCATION_METHOD_CELLULAR)
+	if (method == LOCATION_METHOD_CELLULAR || method == LOCATION_METHOD_WIFI_CELLULAR) {
+		LOG_DBG("Neighbor cells: %d", details->cellular.ncells_count);
+		LOG_DBG("GCI cells: %d", details->cellular.gci_cells_count);
+	}
+#endif
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
+	if (method == LOCATION_METHOD_WIFI || method == LOCATION_METHOD_WIFI_CELLULAR) {
+		LOG_DBG("Wi-Fi APs: %d", details->wifi.ap_count);
+	}
+#endif
 }
 
 void location_task(void)
@@ -250,8 +273,27 @@ static void location_event_handler(const struct location_event_data *event_data)
 		status_send(LOCATION_SEARCH_DONE);
 		break;
 	case LOCATION_EVT_ERROR:
-		LOG_WRN("Getting location failed");
+		LOG_WRN("Location request failed:");
+		LOG_WRN("Used method: %s (%d)", location_method_str(event_data->method),
+								    event_data->method);
+
+		location_print_data_details(event_data->method, &event_data->error.details);
+
 		status_send(LOCATION_SEARCH_DONE);
+		break;
+	case LOCATION_EVT_FALLBACK:
+		LOG_DBG("Location request fallback has occurred:");
+		LOG_DBG("Failed method: %s (%d)", location_method_str(event_data->method),
+								      event_data->method);
+		LOG_DBG("New method: %s (%d)", location_method_str(
+							event_data->fallback.next_method),
+							event_data->fallback.next_method);
+		LOG_DBG("Cause: %s",
+			(event_data->fallback.cause == LOCATION_EVT_TIMEOUT) ? "timeout" :
+			(event_data->fallback.cause == LOCATION_EVT_ERROR) ? "error" :
+			"unknown");
+
+		location_print_data_details(event_data->method, &event_data->fallback.details);
 		break;
 	default:
 		LOG_DBG("Getting location: Unknown event %d", event_data->id);
