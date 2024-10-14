@@ -18,13 +18,11 @@ RUN <<EOT
 EOT
 
 # Install Segger J-Link software
-ENV LD_LIBRARY_PATH=/opt/SEGGER/JLink/JLink_Linux_${JLINK_VERSION}_x86_64
 RUN <<EOT
     wget -q --post-data 'accept_license_agreement=accepted' https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.tgz
     mkdir -p /opt/SEGGER/JLink
     tar -xvf JLink_Linux_${JLINK_VERSION}_x86_64.tgz --strip-components=1 -C /opt/SEGGER/JLink
     rm JLink_Linux_${JLINK_VERSION}_x86_64.tgz
-    ldconfig
 EOT
 ENV PATH=$PATH:/opt/SEGGER/JLink
 
@@ -38,8 +36,6 @@ RUN <<EOT
     mv nrfutil /usr/local/bin
     chmod +x /usr/local/bin/nrfutil
     nrfutil install device
-    nrfutil self-upgrade
-    nrfutil upgrade
 EOT
 
 # Install Go
