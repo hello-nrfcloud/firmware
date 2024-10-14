@@ -8,7 +8,7 @@ menu "Sampler"
 
 config APP_BATTERY_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 1280
+	default 1536
 
 config APP_BATTERY_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"

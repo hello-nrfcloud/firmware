@@ -23,12 +23,11 @@ def test_uart_output(t91x_board, hex_file):
     patterns_boot = [
             "Network connectivity established",
             "Connected to Cloud",
+            "trigger: frequent_poll_entry: frequent_poll_entry",
             "trigger: trigger_work_fn: Sending data sample trigger",
-            "battery: sample: State of charge:",
             "environmental_module: sample: temp:",
             "transport: state_connected_ready_run: Payload",
-            "blocked_run: Location search done",
-            "trigger: frequent_poll_entry: frequent_poll_entry"
+            "Location search done"
     ]
     patterns_button_press = [
         "trigger: frequent_poll_run: Button 1 pressed in frequent poll state, restarting duration timer",

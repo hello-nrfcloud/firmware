@@ -9,6 +9,10 @@ on:
       artifact_run_id:
         type: string
         required: true
+      run_log_check_tests:
+        type: boolean
+        required: false
+        default: true
       run_fota_tests:
         type: boolean
         required: false
@@ -35,6 +39,10 @@ on:
         description: The run ID of the workflow to fetch artifacts from
         type: string
         required: true
+      run_log_check_tests:
+        type: boolean
+        required: true
+        default: true
       run_fota_tests:
         type: boolean
         required: true
@@ -125,6 +133,7 @@ jobs:
 
 
       - name: Run UART tests
+        if: ${{ inputs.run_log_check_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
           mkdir -p results

@@ -35,6 +35,7 @@ jobs:
           west config manifest.group-filter +bsec
           west config build.sysbuild True
           west update -o=--depth=1 -n
+          west blobs fetch hal_nordic
 
       - name: Install dependencies
         run: |

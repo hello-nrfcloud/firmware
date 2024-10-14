@@ -93,9 +93,6 @@ jobs:
             echo "MEMFAULT_SW_TYPE=${{ inputs.memfault_sw_type }}" >> $GITHUB_ENV
           fi
 
-      - name: Apply nrf_wifi HAL patch
-        run: git apply thingy91x-oob/scripts/nrf_wifi_hal_memory_leak_fix.patch --directory=nrfxlib
-
       # Out-of-box firmware build
 
       - name: Build nrf91 firmware
@@ -189,7 +186,6 @@ jobs:
       - name: Apply Connectivity Bridge patch for debug feature
         run: |
           git apply thingy91x-oob/scripts/debug_feature_nrf.patch --directory=nrf
-          git apply thingy91x-oob/scripts/debug_feature_zephyr.patch --directory=zephyr
 
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
