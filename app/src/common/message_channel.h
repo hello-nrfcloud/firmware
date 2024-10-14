@@ -29,7 +29,7 @@ extern "C" {
 	if (is_watchdog_timeout) {						\
 		IF_ENABLED(CONFIG_MEMFAULT, (MEMFAULT_SOFTWARE_WATCHDOG()));	\
 	}									\
-	k_sleep(K_SECONDS(5));							\
+	k_sleep(K_SECONDS(10));							\
 	__ASSERT(false, "SEND_FATAL_ERROR() macro called");			\
 } while (0)
 
@@ -42,7 +42,7 @@ extern "C" {
 	enum error_type type = ERROR_IRRECOVERABLE;				\
 	(void)zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(10));			\
 	LOG_PANIC();								\
-	k_sleep(K_SECONDS(5));							\
+	k_sleep(K_SECONDS(10));							\
 } while (0)
 
 struct payload {

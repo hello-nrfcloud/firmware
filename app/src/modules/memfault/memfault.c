@@ -71,12 +71,19 @@ NRF_MODEM_LIB_ON_INIT(memfault_init_hook, on_modem_lib_init, NULL)
 
 static void on_modem_lib_init(int ret, void *ctx)
 {
+	int err;
+
 	if (memfault_coredump_has_valid_coredump(NULL)) {
 		return;
 	}
 
-	int err = modem_trace_enable();
+	err = nrf_modem_lib_trace_clear();
+	if (err) {
+		LOG_ERR("Failed to clear modem trace data: %d", err);
+		return;
+	}
 
+	err = modem_trace_enable();
 	if (err) {
 		LOG_ERR("Failed to enable modem traces: %d", err);
 		return;
