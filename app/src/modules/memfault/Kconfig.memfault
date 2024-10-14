@@ -19,7 +19,7 @@ if APP_MEMFAULT
 
 config APP_MEMFAULT_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 2048
+	default 1536
 
 config APP_MEMFAULT_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"

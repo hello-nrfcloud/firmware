@@ -262,8 +262,6 @@ static void blocked_run(void *o)
 	LOG_DBG("blocked_run");
 
 	if (user_object->chan == &LOCATION_CHAN && !user_object->location_search) {
-		LOG_DBG("Location search done");
-
 		if (user_object->trigger_mode == TRIGGER_MODE_NORMAL) {
 			LOG_DBG("Going into normal state");
 			smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
@@ -607,6 +605,8 @@ void trigger_callback(const struct zbus_channel *chan)
 		const enum location_status *location_status = zbus_chan_const_msg(chan);
 
 		state_object.location_search = (*location_status == LOCATION_SEARCH_STARTED);
+
+		LOG_DBG("Location search %s", state_object.location_search ? "started" : "done");
 	} else {
 		/* PRIV_TRIGGER_CHAN event. Frequent Poll Duration timer expired*/
 		LOG_DBG("Message received on PRIV_TRIGGER_CHAN channel.");

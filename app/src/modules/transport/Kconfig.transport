@@ -15,7 +15,7 @@ config APP_TRANSPORT_RECONNECTION_TIMEOUT_SECONDS
 
 config APP_TRANSPORT_THREAD_STACK_SIZE
 	int "Thread stack size"
-	default 2048
+	default 1536
 
 config APP_TRANSPORT_MESSAGE_QUEUE_SIZE
 	int "Message queue size"
@@ -25,7 +25,7 @@ config APP_TRANSPORT_MESSAGE_QUEUE_SIZE
 
 config APP_TRANSPORT_WORKQUEUE_STACK_SIZE
 	int "Workqueue stack size"
-	default 1536
+	default 1792
 	help
 	  Stack size of the module's internal workqueue.
 

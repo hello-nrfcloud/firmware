@@ -401,8 +401,6 @@ static void fota_task(void)
 			LOG_ERR("task_wdt_feed, error: %d", err);
 			SEND_FATAL_ERROR();
 			return;
-		} else {
-			LOG_DBG("Task WDT fed");
 		}
 
 		err = zbus_sub_wait_msg(&fota, &s_obj.chan, s_obj.msg_buf, zbus_wait_ms);
