@@ -85,6 +85,7 @@ def t91x_dfu():
 
 
 @pytest.mark.dut2
+@pytest.mark.dfu
 def test_dfu(t91x_dfu):
     SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
     CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
