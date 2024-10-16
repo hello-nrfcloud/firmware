@@ -174,7 +174,9 @@ jobs:
         if: ${{ inputs.run_dfu_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
-          pytest -s -v -m dut2 --junit-xml=results/test-results-dfu.xml tests
+          pytest -s -v -m "dut2 and dfu" \
+            --junit-xml=results/test-results-dfu.xml \
+            tests
         env:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
@@ -189,10 +191,25 @@ jobs:
           LOG_FILENAME: oob_dfu_test_log
 
       # - name: Check nRF53 connectivity bridge version
-      #   if: ${{ inputs.run_connectivity_bridge_tests }}
+      #   if: ${{ inputs.run_dfu_tests }}
       #   working-directory: thingy91x-oob
       #   run: |
       #     python3 ./tests/on_target/utils/thingy91x_dfu.py --check-nrf53-version --serial THINGY91X_${{ secrets.UART_DUT_2 }} 2>&1 >/dev/null | grep "S1: 1"
+
+      - name: Run Connectivity Bridge Test
+        if: ${{ inputs.run_connectivity_bridge_tests }}
+        working-directory: thingy91x-oob/tests/on_target
+        run: |
+          pytest -s -v -m "dut2 and conn_bridge" \
+            --junit-xml=results/test-results-connectivity-bridge.xml \
+            tests
+        env:
+          SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
+          UART_ID: ${{ secrets.UART_DUT_2 }}
+          NRF53_NET_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-net.hex
+          NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
+          NRF91_CUSTOM_APP_ZIP: artifacts/usb_uart_bridge_app.zip
+          LOG_FILENAME: oob_conn_bridge_test_log
 
       - name: Results
         if: always()
