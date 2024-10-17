@@ -16,7 +16,7 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-UART_TIMEOUT = 60 * 15
+UART_TIMEOUT = 60 * 30
 
 SEGGER = os.getenv('SEGGER')
 UART_ID = os.getenv('UART_ID', SEGGER)
