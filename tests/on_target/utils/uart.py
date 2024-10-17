@@ -11,6 +11,7 @@ import os
 import sys
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
+from typing import Union
 
 DEFAULT_UART_TIMEOUT = 60 * 15
 DEFAULT_WAIT_FOR_STR_TIMEOUT = 60 * 5
@@ -154,36 +155,40 @@ class Uart:
         self._selfdestruct = threading.Timer(timeout , self.selfdestruct)
         self._selfdestruct.start()
 
-    def wait_for_str(
+    def wait_for_str_ordered(
         self, msgs: list, error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT
     ) -> None:
+        start = time.time()
+
+        while True:
+            time.sleep(1)
+            pos = 0
+            missing_msg = None
+            for msg in msgs:
+                pos = self.log.find(msg, pos)
+                if pos == -1:
+                    missing_msg = msg
+                    break
+            if not missing_msg:
+                break
+            if start + timeout < time.time():
+                raise AssertionError(
+                    f"{missing_msg} missing in UART log in the expected order. {error_msg}\nUart log:\n{self.log}"
+                )
+            if self._evt.is_set():
+                raise RuntimeError(f"Uart thread stopped, log:\n{self.log}")
+
+    def wait_for_str(self, msgs: Union[str, list], error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT) -> None:
         start = time.time()
         msgs = msgs if isinstance(msgs, (list, tuple)) else [msgs]
 
         while True:
             time.sleep(1)
-
-            # Check if all msgs appear in the log in the correct order
-            log_str = ''.join(self.log)
-            pos = 0
-            all_found = True
-
-            for msg in msgs:
-                pos = log_str.find(msg, pos)
-                if pos == -1:
-                    all_found = False
-                    break
-                pos += len(msg)
-
-            if all_found:
+            missing_msgs = [x for x in msgs if x not in self.log]
+            if missing_msgs == []:
                 break
-
             if start + timeout < time.time():
-                not_found = [x for x in msgs if x not in self.log]
-                raise AssertionError(
-                    f"{not_found} missing in UART log in the expected order. {error_msg}\nUart log:\n{self.log}"
-                )
-
+                raise AssertionError(f"{missing_msgs} missing in UART log. {error_msg}\nUart log:\n{self.log}")
             if self._evt.is_set():
                 raise RuntimeError(f"Uart thread stopped, log:\n{self.log}")
 
