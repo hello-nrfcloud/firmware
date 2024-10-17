@@ -204,6 +204,7 @@ jobs:
           title: OOB FW Test Results
 
       - name: Push log files to artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         id: artifact-upload-test-logs
         with:
