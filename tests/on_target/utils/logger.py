@@ -5,13 +5,13 @@
 
 import copy
 import os
+import sys
 import termcolor
 import logging
 import subprocess
 
 import inspect
 
-ON_JENKINS = os.getenv("ON_JENKINS")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG").upper()
 LOG_FILENAME = os.getenv("LOG_FILENAME", "oob_test_log")
 LOG_PREFIX = os.getenv("LOG_PREFIX")
@@ -30,15 +30,11 @@ def get_logger(log_level = LOG_LEVEL):
     if not logger.handlers:
         # Prevent logging from propagating to the root logger
         logger.propagate = 0
-        console = logging.StreamHandler()
+        console = logging.StreamHandler(sys.stdout)
         console.setLevel(log_level)
         logger.addHandler(console)
 
-        if ON_JENKINS:
-            # Jenkins has timestamps built in already
-            formatter = '%(filename)s - %(levelname)s - %(message)s'
-        else:
-            formatter = '%(asctime)s - %(filename)s - %(levelname)s - %(message)s'
+        formatter = '%(asctime)s - %(filename)s - %(levelname)s - %(message)s'
 
         formatter = ColoredFormatter(formatter, datefmt='%H:%M:%S')
         console.setFormatter(formatter)

@@ -8,20 +8,20 @@ This module provides functionality for Device Firmware Update (DFU) operations
 on Thingy:91 X devices, supporting both nRF53 and nRF91 chips.
 """
 
-import sys
 import os
-import argparse
-import time
-from tempfile import TemporaryDirectory
-from zipfile import ZipFile
 import re
+import sys
+import time
 import json
-
+import subprocess
+import argparse
 import usb.core
 import usb.util
 import serial
 import serial.tools.list_ports
 import imgtool.image
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
@@ -41,8 +41,7 @@ class Thingy91XDFU:
     """
     A class to handle Device Firmware Update operations for Thingy:91 X devices.
     """
-
-    def __init__(self, vid, pid, chip, serial_number=None):
+    def __init__(self, vid, pid, chip, serial_number):
         self.vid = vid
         self.pid = pid
         self.chip = chip
@@ -51,21 +50,74 @@ class Thingy91XDFU:
         self.out_endpoint = None
         self.in_endpoint = None
 
+        match = re.search(r"(THINGY91X_)?([A-F0-9]+)", self.serial_number)
+        if match is None:
+            logger.error("Serial number doesn't match expected format")
+            sys.exit(1)
+        self.serial_number_digits = match.group(2)
+
+    def release_device(self):
+        if self.device:
+            usb.util.dispose_resources(self.device)
+            self.device = None
+            self.out_endpoint = None
+            self.in_endpoint = None
+
+    def find_usb_device_with_retry(self, max_attempts=5, delay=10):
+        for attempt in range(max_attempts):
+            device = self.find_usb_device()
+            if device:
+                return device
+            logger.debug(f"Device not found, retrying (attempt {attempt + 1}/{max_attempts})...")
+            time.sleep(delay)
+        raise Exception(f"Device not found after {max_attempts} attempts.")
+
     def find_usb_device(self):
         finder = self._find_usb_device_windows if sys.platform == "win32" else self._find_usb_device_posix
         return finder()
 
-    def _find_usb_device_posix(self):
-        devices = list(usb.core.find(find_all=True, idVendor=self.vid, idProduct=self.pid))
-        if self.serial_number:
-            device = next((d for d in devices if usb.util.get_string(d, d.iSerialNumber) == self.serial_number), None)
-            return (device, self.serial_number) if device else (None, None)
+    # def _find_usb_device_posix(self):
+    #     devices = list(usb.core.find(find_all=True, idVendor=self.vid, idProduct=self.pid))
+    #     if self.serial_number:
+    #         device = next((d for d in devices if usb.util.get_string(d, d.iSerialNumber) == self.serial_number), None)
+    #         return (device, self.serial_number) if device else (None, None)
 
+    #     if len(devices) == 1:
+    #         device = devices[0]
+    #         return device, usb.util.get_string(device, device.iSerialNumber)
+
+    #     self._log_device_status(devices)
+    #     return None, None
+
+    def _find_usb_device_posix(self):
+        # TODO: this function can be refactored a bit
+        if self.serial_number is not None:
+            device = usb.core.find(idVendor=self.vid, idProduct=self.pid, serial_number=self.serial_number)
+            if device is None:
+                logger.error(f"Device with serial number {self.serial_number} not found")
+                # devices = list(usb.core.find(find_all=True, idVendor=self.vid, idProduct=self.pid))
+                # logger.error(f"{len(devices)} available devices:")
+                # for device in devices:
+                #     snr = usb.util.get_string(device, device.iSerialNumber)
+                #     logger.error(f"Serial Number: {snr}")
+                return None
+            logger.info(f"Device with serial number {self.serial_number} found")
+            return device
+        devices = list(usb.core.find(find_all=True, idVendor=self.vid, idProduct=self.pid))
         if len(devices) == 1:
             device = devices[0]
-            return device, usb.util.get_string(device, device.iSerialNumber)
-
-        self._log_device_status(devices)
+            snr = usb.util.get_string(device, device.iSerialNumber)
+            return device, snr
+        if len(devices) == 0:
+            logger.error("No devices found.")
+        else:
+            logger.info("Multiple devices found.")
+            for device in devices:
+                snr = usb.util.get_string(device, device.iSerialNumber)
+                logger.info(f"Serial Number: {snr}")
+            logger.warning(
+                "Please specify the serial number with the --serial option."
+            )
         return None, None
 
     def _find_usb_device_windows(self):
@@ -90,7 +142,8 @@ class Thingy91XDFU:
                 logger.info(f"Serial Number: {usb.util.get_string(device, device.iSerialNumber)}")
 
     def prepare_bulk_endpoints(self):
-        self.device, self.serial_number = self.find_usb_device()
+        self.release_device()  # Ensure previous resources are released
+        self.device = self.find_usb_device_with_retry()
         if not self.device:
             return False
 
@@ -145,6 +198,8 @@ class Thingy91XDFU:
             logger.info(f"nRF53 version: {version_string}")
         except usb.core.USBError as e:
             logger.error(f"Failed to send data: {e}")
+        finally:
+            self.release_device()
 
     def reset_device(self):
         logger.info(f"Resetting {self.chip.upper()}...")
@@ -162,8 +217,9 @@ class Thingy91XDFU:
             logger.error(f"Failed to reset device: {e}")
             return None
         finally:
-            usb.util.dispose_resources(self.device)
+            self.release_device()
 
+        time.sleep(2)  # Add a short delay after reset
         return self.serial_number
 
     def enter_bootloader_mode(self):
@@ -185,7 +241,7 @@ class Thingy91XDFU:
             logger.error(f"Failed to enter bootloader mode: {e}")
             return None
         finally:
-            usb.util.dispose_resources(self.device)
+            self.release_device()
 
         return self.serial_number
 
@@ -205,18 +261,14 @@ class Thingy91XDFU:
             return False
 
     def wait_for_nrf53_recovery_mode(self, enter_mcuboot=True):
-        logger.info(f"Waiting for {self.chip.upper()} recovery mode, serial number: {self.serial_number}")
-        match = re.search(r"(THINGY91X_)?([A-F0-9]+)", self.serial_number)
-        if match is None:
-            logger.error("Serial number doesn't match expected format")
-            sys.exit(1)
-        serial_number_digits = match.group(2)
-        logger.debug(f"Serial number digits: {serial_number_digits}")
+        logger.info(f"Waiting for {self.chip.upper()} mcuboot recovery mode, enter_mcuboot: {enter_mcuboot}")
+        logger.debug(f"Serial number digits: {self.serial_number_digits}")
 
         port_info = None
         logger.debug("Waiting for device to enumerate...")
-        for _ in range(300):
-            time.sleep(0.1)
+        mcuboot_serial_number = None
+        for _ in range(30):
+            time.sleep(5)
             try:
                 com_ports = serial.tools.list_ports.comports()
             except TypeError:
@@ -225,37 +277,49 @@ class Thingy91XDFU:
                 if port_info.serial_number is None:
                     continue
                 logger.debug(f"Serial port: {port_info.device} has serial number: {port_info.serial_number}")
-                if serial_number_digits in port_info.serial_number:
+                if self.serial_number_digits in port_info.serial_number:
                     logger.debug(f"Serial port: {port_info.device}")
-                    self.serial_number = port_info.serial_number
+                    mcuboot_serial_number = port_info.serial_number
                     break
-            if port_info is None:
+            if mcuboot_serial_number is None:
                 continue
-            if enter_mcuboot and ("THINGY91X" not in self.serial_number):
+            if enter_mcuboot and ("THINGY91X" not in mcuboot_serial_number):
+                logger.info(f"nrf53 has entered mcuboot mode")
                 break
-            if not enter_mcuboot and ("THINGY91X" in self.serial_number):
+            if not enter_mcuboot and ("THINGY91X" in mcuboot_serial_number):
+                logger.info(f"nrf53 has exited mcuboot mode")
                 break
-        if port_info is None:
-            logger.error("MCUBoot serial port not found")
+        if mcuboot_serial_number is None:
+            logger.error("Serial port not found, unable to detrmine nrf53 recovery mode")
             sys.exit(1)
-        return self.serial_number, port_info.device
+        return mcuboot_serial_number, port_info.device
 
     def perform_dfu(self, image):
         logger.info(f"Performing DFU on {self.chip.upper()} with firmware: {image}")
         if self.chip == "nrf53":
-            self.serial_number, port = self.wait_for_nrf53_recovery_mode()
+            mcuboot_serial_number, port = self.wait_for_nrf53_recovery_mode()
+            serial_number = mcuboot_serial_number
+        else:
+            serial_number = self.serial_number
 
-        command = f"nrfutil device program --serial-number {self.serial_number} --firmware {image}"
-        logger.debug(f"Executing command: {command}")
-        os.system(command)
+        command = f"nrfutil device program --serial-number {serial_number} --firmware {image}"
+        logger.info(f"Executing command: {command}")
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        logger.info(f"Command output: {result.stdout}")
+        if result.stderr:
+            logger.error(f"Command error: {result.stderr}")
 
-        self.reset_device()
+        if self.chip == "nrf53":
+            mcuboot_serial_number, port = self.wait_for_nrf53_recovery_mode(enter_mcuboot=False)
+
+        if self.chip == "nrf91":
+            self.reset_device()
 
     def perform_bootloader_dfu(self, image, slot=1):
         logger.info(f"Performing MCUBoot DFU on {self.chip.upper()} with firmware: {image}")
         port = None
         if self.chip == "nrf53":
-            self.serial_number, port = self.wait_for_nrf53_recovery_mode()
+            _ , port = self.wait_for_nrf53_recovery_mode()
         else:
             ports = [port_info.device for port_info in serial.tools.list_ports.comports()
                      if port_info.serial_number == self.serial_number]
@@ -292,11 +356,12 @@ class Thingy91XDFU:
                     sys.exit(1)
 
             if self.chip == "nrf53":
-                self.serial_number, port = self.wait_for_nrf53_recovery_mode(enter_mcuboot=False)
+                _ , port = self.wait_for_nrf53_recovery_mode(enter_mcuboot=False)
             if self.chip == "nrf91":
                 time.sleep(5)
 
-            self.reset_device()
+            if self.chip == "nrf91":
+                self.reset_device()
 
 def detect_family_from_zip(zip_file):
     is_mcuboot = False
@@ -317,6 +382,7 @@ def detect_family_from_zip(zip_file):
         return "nrf91", is_mcuboot
     return None, is_mcuboot
 
+
 def main():
     parser = argparse.ArgumentParser(description="Thingy91X DFU", allow_abbrev=False)
     parser.add_argument("--image", type=str, help="application update file")
@@ -334,38 +400,32 @@ def main():
         chip, is_mcuboot = detect_family_from_zip(args.image)
         if chip is None:
             logger.error("Could not determine chip family from image")
-            sys.exit(1)
+            return
     if args.chip and args.chip != chip:
         logger.error("Chip family does not match image")
-        sys.exit(1)
+        return
     if chip not in ["nrf53", "nrf91"]:
         logger.error("Invalid chip")
-        sys.exit(1)
+        return
 
     dfu = Thingy91XDFU(args.vid, args.pid, chip, args.serial)
 
-    if args.check_nrf53_version:
-        dfu.read_nrf53_version()
-        sys.exit(0)
-
-    if args.reset_only:
-        serial_number = dfu.reset_device()
-        if serial_number:
+    try:
+        if args.check_nrf53_version:
+            dfu.read_nrf53_version()
+        elif args.reset_only:
+            serial_number = dfu.reset_device()
             logger.info(f"{chip} on {serial_number} has been reset")
         else:
-            sys.exit(1)
-    else:
-        serial_number = dfu.enter_bootloader_mode()
-        if serial_number:
+            serial_number = dfu.enter_bootloader_mode()
             logger.info(f"{chip} on {serial_number} is in bootloader mode")
-        else:
-            sys.exit(1)
-
-        if args.image:
             if is_mcuboot:
                 dfu.perform_bootloader_dfu(args.image, args.bootloader_slot)
             else:
                 dfu.perform_dfu(args.image)
+    finally:
+        dfu.release_device()
+
 
 if __name__ == "__main__":
     main()

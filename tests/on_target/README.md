@@ -13,6 +13,7 @@ docker run --rm -it \
   -v /dev:/dev:rw \
   -v /run/udev:/run/udev \
   -v .:/work/thingy91x-oob \
+  -v /opt/setup-jlink:/opt/setup-jlink \
   ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview55 \
   /bin/bash
 ```

@@ -86,6 +86,7 @@ def t91x_dfu():
 
 @pytest.mark.dut2
 def test_dfu(t91x_dfu):
+    SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
     CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
 
     NRF91_APP_UPDATE_ZIP = os.getenv('NRF91_APP_UPDATE_ZIP')
@@ -97,19 +98,56 @@ def test_dfu(t91x_dfu):
     logger.info("Starting DFU, stopping UART")
     t91x_dfu.uart.stop()
 
-
+    # nRF91 APP DFU
     logger.info("Starting nRF91 APP DFU")
     dfu_device(NRF91_APP_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
-    # TODO: Fix the CI issue with nRF91 BL DFU
-    # logger.info("Starting nRF91 BL DFU")
-    # dfu_device(NRF91_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
 
+    # nRF91 BL DFU
+    for _ in range(3):
+        try:
+            logger.info("Starting nRF91 BL DFU")
+            dfu_device(NRF91_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
+            break
+        except Exception as e:
+            logger.error(f"An error occurred: {e}, retrying...")
+            time.sleep(5)
+    else:
+        raise Exception("Failed to perform nRF91 BL DFU after 3 attempts.")
 
-    # TODO: To be fixed, reset fails after DFU
-    # dfu_device(NRF53_APP_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
-    # wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
-    # TODO: Fix the CI issue with nRF53 BL DFU
-    # dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
-    # wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
+    logger.info("nRF91 DFU successful")
 
-    # logger.info("nRF53 DFU successful, checking version")
+    # TODO: Add uart check here??
+
+    # nRF53 APP DFU
+    for _ in range(3):
+        try:
+            logger.info("Starting nRF53 APP DFU")
+            dfu_device(NRF53_APP_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
+            wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
+            break
+        except Exception as e:
+            logger.error(f"An error occurred: {e}, retrying...")
+            reset_device(serial=SEGGER_NRF53)
+            wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
+            time.sleep(5)
+    else:
+        raise Exception("Failed to perform nRF53 APP DFU after 3 attempts.")
+
+    # nRF53 BL DFU
+    for _ in range(3):
+        try:
+            logger.info("Starting nRF53 BL DFU")
+            dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
+            wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
+            break
+        except Exception as e:
+            logger.error(f"An error occurred: {e}, retrying...")
+            reset_device(serial=SEGGER_NRF53)
+            wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
+            time.sleep(5)
+    else:
+        raise Exception("Failed to perform nRF53 BL DFU after 3 attempts.")
+
+    # TODO: Add check on conn bridge version
+
+    logger.info("nRF53 DFU successful")
