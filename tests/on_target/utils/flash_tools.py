@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
-from utils.thingy91x_dfu import Thingy91XDFU, detect_family_from_zip
+from utils.thingy91x_dfu import detect_family_from_zip
 
 logger = get_logger()
 
@@ -58,34 +58,32 @@ def recover_device(serial=SEGGER, core="Application"):
         logger.info(e.stderr)
         raise
 
-def dfu_device(zipfile, serial, reset_only=False):
+def dfu_device(zipfile, serial=None, reset_only=False):
     chip, is_mcuboot = detect_family_from_zip(zipfile)
     if chip is None:
         logger.error("Could not determine chip family from image")
         raise ValueError("Invalid image file")
+    command = [
+        'python3',
+        'utils/thingy91x_dfu.py',
+        '--image', zipfile,
+        '--chip', chip,
+    ]
 
-    dfu = Thingy91XDFU(0x1915, 0x910A, chip, serial)
-
+    if serial:
+        command.append('--serial')
+        command.append(serial)
     if reset_only:
-        dfu.reset_device()
-        return
+        command.append('--reset-only')
 
     try:
-        serial_number = dfu.enter_bootloader_mode()
-        if serial_number:
-            logger.info(f"{chip} on {serial_number} is in bootloader mode")
-        else:
-            raise RuntimeError("Failed to enter bootloader mode")
-
-        if is_mcuboot:
-            dfu.perform_bootloader_dfu(zipfile)
-        else:
-            dfu.perform_dfu(zipfile)
-
-        logger.info("DFU completed successfully.")
-    except Exception as e:
-        logger.error(f"An error occurred during DFU: {str(e)}")
-        raise
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+        logger.info("Output from dfu script:")
+        logger.info(result.stdout)
+    except subprocess.CalledProcessError as e:
+        logger.error("Error from dfu script:")
+        logger.error(e.stderr)
+        raise e
 
 def setup_jlink(serial_number):
     """
