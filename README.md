@@ -19,6 +19,12 @@ environment. Follow the official
 
 ### Initialization
 
+Before initializing start the toolchain environment:
+
+```shell
+nrfutil toolchain-manager launch --shell
+```
+
 The first step is to initialize the workspace folder (`thingy91x-oob`) where the
 `firmware` project and all nRF Connect SDK modules will be cloned. Run the
 following command:
@@ -40,6 +46,12 @@ west config build.sysbuild True
 ```
 
 ### Building and running
+
+First change folder:
+
+```shell
+cd project
+```
 
 To build the application, run the following command:
 
