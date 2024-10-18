@@ -17,6 +17,8 @@ docker run --rm -it \
   /bin/bash
 ```
 
+NOTE: The tests have been tested on Ubuntu 22.04. For details on how to install Docker please refer to the Docker documentation https://docs.docker.com/engine/install/ubuntu/
+
 ### Verify nrfutil/jlink works
 ```shell
 JLinkExe -V
@@ -27,6 +29,11 @@ nrfutil -V
 ```shell
 cd thingy91x-oob/tests/on_target
 pip install -r requirements.txt --break-system-packages
+```
+
+### Get SEGGER ID
+```shell
+nrfutil device list
 ```
 
 ### Run UART tests
