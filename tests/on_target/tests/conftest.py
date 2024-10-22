@@ -34,9 +34,7 @@ def get_uarts():
     uarts = []
 
     for path in sorted(serial_paths):
-        if 'SEGGER_J-Link' and UART_ID in path:
-            uarts.append(path)
-        if 'Nordic_Semiconductor_Thingy' and UART_ID in path:
+        if UART_ID in path:
             uarts.append(path)
         else:
             continue
