@@ -246,10 +246,11 @@ static void location_event_handler(const struct location_event_data *event_data)
 {
 	switch (event_data->id) {
 	case LOCATION_EVT_LOCATION:
-		LOG_DBG("Got location: lat: %f, lon: %f, acc: %f",
+		LOG_DBG("Got location: lat: %f, lon: %f, acc: %f, method: %d",
 			(double) event_data->location.latitude,
 			(double) event_data->location.longitude,
-			(double) event_data->location.accuracy);
+			(double) event_data->location.accuracy,
+			(int) event_data->method);
 
 		if (event_data->method == LOCATION_METHOD_GNSS) {
 			struct nrf_modem_gnss_pvt_data_frame pvt_data =
