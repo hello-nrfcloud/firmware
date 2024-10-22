@@ -211,6 +211,16 @@ jobs:
           NRF91_CUSTOM_APP_ZIP: artifacts/usb_uart_bridge_app.zip
           LOG_FILENAME: oob_conn_bridge_test_log
 
+      - name: Run Wi-Fi location tests
+        working-directory: thingy91x-oob/tests/on_target
+        run: |
+          mkdir -p results
+          pytest -s -v -m "dut1 and wifi" \
+            --junit-xml=results/test-results-wifi-location.xml \
+            tests
+        env:
+          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+
       - name: Results
         if: always()
         uses: pmeier/pytest-results-action@v0.7.1
