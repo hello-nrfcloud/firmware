@@ -13,11 +13,11 @@ config APP_NETWORK_THREAD_STACK_SIZE
 
 config APP_NETWORK_WATCHDOG_TIMEOUT_SECONDS
 	int "Watchdog timeout seconds"
-	default 120
+	default 600
 
 config APP_NETWORK_EXEC_TIME_SECONDS_MAX
 	int "Maximum execution time seconds"
-	default 30
+	default 570
 	help
 	  Maximum time allowed for a single execution of the module's thread loop.
 
