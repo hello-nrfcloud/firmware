@@ -109,29 +109,6 @@ jobs:
               --software-version ${{ inputs.artifact_fw_version }} \
               hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91.elf
 
-      - name: Patch nrfutil for dfu (temporary)
-        run: |
-          echo ${NRFUTIL_HOME}
-          cat > ${NRFUTIL_HOME}/lib/nrfutil-device/14-nrfdl-mcuboot-plugin_config.json << EOF
-          {
-                "description": "Thingy:91 X",
-                "key": {
-                  "product_id": "0x910A",
-                  "vendor_id": "0x1915"
-                },
-                "traits": ["mcuBoot"],
-                "mcuboot_baudrate": 1000000
-          }
-          EOF
-
-      - name: Verify nrfutil configuration
-        env:
-          NRFUTIL_HOME: /usr/local/share/nrfutil
-        shell: bash
-        run: |
-          cat "${NRFUTIL_HOME}/lib/nrfutil-device/14-nrfdl-mcuboot-plugin_config.json"
-
-
       - name: Run UART tests
         if: ${{ inputs.run_log_check_tests }}
         working-directory: thingy91x-oob/tests/on_target
