@@ -186,7 +186,7 @@ jobs:
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=2 -DCONFIG_BUILD_S1_VARIANT=y
 
       - name: Create nrf53 merged_domains HEX file
         run: |
@@ -232,7 +232,6 @@ jobs:
         working-directory: nrf
         run: |
           git stash --include-untracked
-          git apply ../thingy91x-oob/scripts/nrf53_bl_update.patch
 
       - name: Build BL Update
         if: ${{ inputs.build_bl_update }}
@@ -242,11 +241,10 @@ jobs:
           cp twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/dfu_mcuboot.zip \
             hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
           rm -rf twister-out
-          west twister -T ../nrf/applications/connectivity_bridge \
-            --test applications.connectivity_bridge.bootloader_update -v -p thingy91x/nrf5340/cpuapp --inline-logs
-          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_mcuboot.zip \
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d ../nrf/applications/connectivity_bridge/build-bl-update ../nrf/applications/connectivity_bridge -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
+          cp ../nrf/applications/connectivity_bridge/build-bl-update/dfu_mcuboot.zip \
             connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
-          cp twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/dfu_application.zip \
+          cp ../nrf/applications/connectivity_bridge/build-bl-update/dfu_application.zip \
             connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-verbose.zip
 
       - name: Upload artifact
