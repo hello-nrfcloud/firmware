@@ -183,10 +183,6 @@ jobs:
 
       # Connectivity Bridge firmware build
 
-      - name: Apply Connectivity Bridge patch for debug feature
-        run: |
-          git apply thingy91x-oob/scripts/debug_feature_nrf.patch --directory=nrf
-
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
