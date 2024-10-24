@@ -4,7 +4,7 @@
 
 ### Setup docker
 ```shell
-docker pull ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview55
+docker pull ghcr.io/hello-nrfcloud/firmware:docker-v1.0.0
 cd <path_to_oob_dir>
 west build -p -b thingy91x/nrf9151/ns app
 cp build/merged.hex tests/on_target/artifacts/hello.nrfcloud.com-aaa000-thingy91x-nrf91.hex
@@ -14,7 +14,7 @@ docker run --rm -it \
   -v /run/udev:/run/udev \
   -v .:/work/thingy91x-oob \
   -v /opt/setup-jlink:/opt/setup-jlink \
-  ghcr.io/hello-nrfcloud/firmware:v2.0.0-preview55 \
+  ghcr.io/hello-nrfcloud/firmware:docker-v1.0.0 \
   /bin/bash
 ```
 
