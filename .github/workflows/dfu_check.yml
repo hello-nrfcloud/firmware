@@ -57,7 +57,7 @@ jobs:
       - name: Build OOB FW
         working-directory: thingy91x-oob
         run: |
-          west twister -T . -v -p thingy91x/nrf9151/ns --inline-logs
+          west twister -T . -v -p thingy91x/nrf9151/ns --inline-logs --test app.build --test app.build.bootloader_update
 
       - name: 'nrf91: check partition layout'
         working-directory: thingy91x-oob/twister-out/thingy91x_nrf9151_ns/app/app.build/
@@ -79,16 +79,14 @@ jobs:
           python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 3
           python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
 
-      - name: Apply Connectivity Bridge patch for bootloader update
-        run: git apply thingy91x-oob/scripts/nrf53_bl_update.patch --directory=nrf
-
       - name: Build Connectivity Bridge
-        working-directory: thingy91x-oob
+        working-directory: nrf/applications/connectivity_bridge
         run: |
-          west twister -T ${CI_NRF_DIR}/applications/connectivity_bridge -v -p thingy91x/nrf5340/cpuapp --inline-logs
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=2 -DCONFIG_BUILD_S1_VARIANT=y
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d build-bl-update -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
 
       - name: 'nrf53: check partition layout'
-        working-directory: thingy91x-oob/twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/
+        working-directory: nrf/applications/connectivity_bridge/build/
         run: |
           ninja partition_manager_report # need to run this twice
           ninja partition_manager_report > partition_manager_report.txt
@@ -98,11 +96,11 @@ jobs:
       - name: 'nrf53: check app image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/connectivity_bridge/zephyr/zephyr.signed.bin
+          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem ../nrf/applications/connectivity_bridge/build/connectivity_bridge/zephyr/zephyr.signed.bin
 
       - name: 'nrf53: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 1
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 2
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf5340_cpuapp/applications.connectivity_bridge.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 2
+          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 2
+          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
+          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 3
