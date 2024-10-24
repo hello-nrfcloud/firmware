@@ -58,7 +58,7 @@ def recover_device(serial=SEGGER, core="Application"):
         logger.info(e.stderr)
         raise
 
-def dfu_device(zipfile, serial=None, reset_only=False):
+def dfu_device(zipfile, serial=None, reset_only=False, check_53_version=False):
     chip, is_mcuboot = detect_family_from_zip(zipfile)
     if chip is None:
         logger.error("Could not determine chip family from image")
@@ -75,11 +75,14 @@ def dfu_device(zipfile, serial=None, reset_only=False):
         command.append(serial)
     if reset_only:
         command.append('--reset-only')
+    if check_53_version:
+        command.append('--check-nrf53-version')
 
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
         logger.info("Output from dfu script:")
         logger.info(result.stdout)
+        return result.stdout
     except subprocess.CalledProcessError as e:
         logger.error("Error from dfu script:")
         logger.error(e.stderr)

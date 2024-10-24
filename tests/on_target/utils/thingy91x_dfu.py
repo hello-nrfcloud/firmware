@@ -186,18 +186,20 @@ class Thingy91XDFU:
     def read_nrf53_version(self):
         logger.info(f"Reading nRF53 version...")
         if not self.prepare_bulk_endpoints():
-            return
+            return None
 
         try:
             self.out_endpoint.write(DFU_COMMANDS['READ_NRF53_VERSION'])
             data = bytes(self.in_endpoint.read(self.in_endpoint.wMaxPacketSize))
             if len(data) < 2 or data[0] != DFU_COMMANDS['READ_NRF53_VERSION'][0] or data[1] == 0xFF:
                 logger.error("Failed to read nRF53 version")
-                return
+                return None
             version_string = data[2:data[2]+2].decode("ascii")
             logger.info(f"nRF53 version: {version_string}")
+            return version_string
         except usb.core.USBError as e:
             logger.error(f"Failed to send data: {e}")
+            return None
         finally:
             self.release_device()
 
