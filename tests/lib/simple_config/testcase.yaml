@@ -1,7 +1,0 @@
-tests:
-  net.lib.simple_config:
-    platform_allow:
-      - native_sim
-      - native_sim/native/64
-    integration_platforms:
-      - native_sim
