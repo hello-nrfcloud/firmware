@@ -79,17 +79,20 @@ def run_fota_fixture(t91x_board, hex_file):
 @pytest.mark.dut1
 @pytest.mark.fota
 def test_app_fota(t91x_board, hex_file, run_fota_fixture):
-    # Get latest app fota bundle
+    # Get latest APP fota bundle
     results = t91x_board.fota.get_fota_bundles()
     if not results:
         pytest.fail("Failed to get APP FOTA bundles")
     available_bundles = results["bundles"]
     logger.debug(f"Number of available bundles: {len(available_bundles)}")
-    latest_bundle = available_bundles[0]
+    app_bundles = [bundle for bundle in available_bundles if "APP" in bundle["bundleId"]]
+    if not app_bundles:
+        pytest.fail("No APP FOTA bundles found")
+    latest_app_bundle = app_bundles[0]
 
-    logger.debug(f"Latest bundle: {latest_bundle}")
+    logger.debug(f"Latest APP bundle: {latest_app_bundle}")
 
-    run_fota_fixture(bundleId=latest_bundle["bundleId"], fota_type="app", test_fota_resumption=True)
+    run_fota_fixture(bundleId=latest_app_bundle["bundleId"], fota_type="app", test_fota_resumption=True)
 
 
 @pytest.mark.dut1
