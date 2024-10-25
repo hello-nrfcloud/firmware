@@ -124,8 +124,8 @@ def test_dfu(t91x_dfu):
 
     t91x_dfu.uart.start()
 
-    # Look for correct mcuboot firmware version
-    expected_lines = ["Firmware version 3", "Zephyr OS"]
+    # Look for correct firmware version
+    expected_lines = ["Attempting to boot slot 1", "Firmware version 3", "*** Booting Hello, nRF Cloud"]
     for _ in range(3):
         try:
             # reset nrf91
@@ -171,7 +171,7 @@ def test_dfu(t91x_dfu):
         raise Exception("Failed to perform nRF53 BL DFU after 3 attempts.")
 
     results = dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART, check_53_version=True)
-    # assert mcuboot slot 1 has correct version number 2
-    assert "S1: 2" in results
+    # assert mcuboot slot 1 has correct version number 3
+    assert "S1: 3" in results
 
     logger.info("nRF53 DFU successful")
