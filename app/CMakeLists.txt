@@ -31,7 +31,7 @@ add_subdirectory_ifdef(CONFIG_APP_SHELL src/modules/shell)
 # Include Memfault configuration folder
 zephyr_include_directories(config)
 
-if (CONFIG_NRF_CLOUD_COAP_SEC_TAG >= 2147483648) && (CONFIG_NRF_CLOUD_COAP_SEC_TAG <= 2147483667)
+if (CONFIG_NRF_CLOUD_COAP_SEC_TAG GREATER_EQUAL 2147483648 AND CONFIG_NRF_CLOUD_COAP_SEC_TAG LESS_EQUAL 2147483667)
 	message(WARNING "CONFIG_NRF_CLOUD_COAP_SEC_TAG is set to a developer security tag. "
 			"TLS traffic can now be decrypted with Nordic tools. "
 			"This should only be used during development and testing.")
