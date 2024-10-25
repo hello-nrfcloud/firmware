@@ -55,7 +55,7 @@ static int modem_trace_enable(void)
 {
 	int err;
 
-	err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_LTE_AND_IP);
+	err = nrf_modem_lib_trace_level_set(NRF_MODEM_LIB_TRACE_LEVEL_IP_ONLY);
 	if (err) {
 		LOG_ERR("nrf_modem_lib_trace_level_set, error: %d", err);
 		return err;

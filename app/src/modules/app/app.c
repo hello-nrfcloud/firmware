@@ -56,8 +56,7 @@ static void shadow_get(bool delta_only)
 	} else if (err > 0) {
 		LOG_WRN("Cloud error: %d", err);
 
-		IF_ENABLED(CONFIG_MEMFAULT,
-			(MEMFAULT_TRACE_EVENT_WITH_STATUS(nrf_cloud_coap_shadow_get, err)));
+		__ASSERT_NO_MSG(false);
 
 		return;
 	} else if (err) {
@@ -88,9 +87,7 @@ static void shadow_get(bool delta_only)
 		LOG_ERR("Ignoring incoming configuration change due to decoding error: %d", err);
 		LOG_HEXDUMP_ERR(buf_cbor, buf_cbor_len, "CBOR data");
 
-		IF_ENABLED(CONFIG_MEMFAULT,
-			(MEMFAULT_TRACE_EVENT_WITH_STATUS(cbor_decode_app_object, err)));
-
+		__ASSERT_NO_MSG(false);
 		return;
 	}
 
