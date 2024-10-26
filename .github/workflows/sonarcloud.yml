@@ -15,7 +15,7 @@ jobs:
   build:
     name: Build and analyze
     runs-on: ubuntu-latest
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.14
+    container: ghcr.io/zephyrproject-rtos/ci:v0.27.4
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
       CMAKE_PREFIX_PATH: /opt/toolchains
