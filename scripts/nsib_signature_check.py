@@ -49,9 +49,8 @@ def get_fw_info_version(image):
         else:
             print(f"Invalid firmware info structure at offset 0x{offset:08x}, valid: 0x{valid:08x}")
 
-def check_signature(hex_file, public_key, start_address, version_expected):
+def check_signature(image, public_key, start_address, version_expected):
     public_key_bytes_expected = public_key.to_string()
-    image = IntelHex(hex_file)
 
     version = get_fw_info_version(image)
     if version_expected is not None and version != version_expected:
@@ -91,6 +90,16 @@ def check_signature(hex_file, public_key, start_address, version_expected):
         return
     raise Exception("No matching signature found in the image.")
 
+def get_image_hex(file_name):
+    file_name = str(file_name.name)
+    if file_name.endswith('.hex'):
+        return IntelHex(file_name)
+    elif file_name.endswith('.bin'):
+        with open(file_name, 'rb') as f:
+            raw_bytes = f.read()
+            image = IntelHex()
+            image.frombytes(raw_bytes)
+            return image
 
 def main():
 
@@ -102,7 +111,7 @@ def main():
     else:
         start_address = None
 
-    check_signature(args.input, public_key, start_address, args.version)
+    check_signature(get_image_hex(args.input), public_key, start_address, args.version)
 
 if __name__ == '__main__':
     main()
