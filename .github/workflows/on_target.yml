@@ -162,7 +162,7 @@ jobs:
           NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
           NRF53_APP_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-verbose.zip
           NRF53_BL_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
-          NRF91_HEX_FILE: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.hex
+          NRF91_HEX_FILE: artifacts/nrf91-bl-v2.hex
           NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
           NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
           LOG_FILENAME: oob_dfu_test_log
