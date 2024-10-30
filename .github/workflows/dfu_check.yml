@@ -79,6 +79,12 @@ jobs:
           python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 3
           python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
 
+      - name: 'nrf91: check manifest slot indices'
+        working-directory: thingy91x-oob
+        run: |
+          grep '"slot_index_primary": "1"' twister-out/thingy91x_nrf9151_ns/app/app.build/dfu_application.zip_manifest.json
+          grep '"slot_index_secondary": "2"' twister-out/thingy91x_nrf9151_ns/app/app.build/dfu_application.zip_manifest.json
+
       - name: Build Connectivity Bridge
         working-directory: nrf/applications/connectivity_bridge
         run: |
@@ -104,3 +110,13 @@ jobs:
           python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 2
           python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
           python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 3
+
+      - name: 'nrf53: check manifest slot indices'
+        working-directory: thingy91x-oob
+        run: |
+          grep '"slot_index_primary": "1"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
+          grep '"slot_index_secondary": "2"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
+          # check that there is also a second image for the network core
+          grep '"image_index": "1"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
+          grep '"slot_index_primary": "3"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
+          grep '"slot_index_secondary": "4"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
