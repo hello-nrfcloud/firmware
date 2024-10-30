@@ -38,6 +38,8 @@ jobs:
             files: |
               hello.nrfcloud.com-*.*
               connectivity-bridge*.*
+              nrf91-bl-*.hex
+              nrf53-bl-*.hex
 
         - name: Trigger workflow that publishes firmware bundles to nRF Cloud
           working-directory: .github/workflows

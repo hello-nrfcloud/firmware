@@ -118,10 +118,12 @@ jobs:
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
         run: |
+          cp ../../../nrf91-bl-*.hex .
+          # Overwrite the bootloader part with the frozen version
           python3 ../../../zephyr/scripts/build/mergehex.py -o \
             hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.hex \
             merged.hex \
-            ../../../nrf91-bl-v*.hex \
+            nrf91-bl-*.hex \
             --overlap replace
           cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.config
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-update-signed.bin
@@ -137,6 +139,7 @@ jobs:
           if-no-files-found: error
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
+            thingy91x-oob/app/build/nrf91-bl-*.hex
 
       # Out-of-box debug firmware build
 
@@ -156,7 +159,13 @@ jobs:
         if: ${{ inputs.build_debug }}
         working-directory: thingy91x-oob/app/build
         run: |
-          cp merged.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.hex
+          cp ../../../nrf91-bl-*.hex .
+          # Overwrite the bootloader part with the frozen version
+          python3 ../../../zephyr/scripts/build/mergehex.py -o \
+            hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.hex \
+            merged.hex \
+            nrf91-bl-*.hex \
+            --overlap replace
           cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.config
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-update-signed.bin
           cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-update-signed.hex
@@ -173,7 +182,6 @@ jobs:
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
 
-
       # Connectivity Bridge firmware build
 
       - name: Build nrf53 firmware
@@ -183,6 +191,9 @@ jobs:
 
       - name: Create nrf53 merged_domains HEX file
         run: |
+          # check that bootloader hex files are present
+          ls $(pwd)/nrf53-bl-v*-net.hex $(pwd)/nrf53-bl-v*-app.hex
+          # merge hex files to app, net and merged variants, enforcing the frozen bootloader
           python3 zephyr/scripts/build/mergehex.py -o \
             $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex \
             $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex \
@@ -202,6 +213,7 @@ jobs:
         run: |
           cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip \
             $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
+          cp nrf53-bl-*.hex $(pwd)/nrf/applications/connectivity_bridge/build/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -211,6 +223,7 @@ jobs:
           if-no-files-found: error
           path: |
             nrf/applications/connectivity_bridge/build/connectivity-bridge-*.*
+            nrf/applications/connectivity_bridge/build/nrf53-bl-*.hex
 
       # Bootloader update build
 
@@ -238,8 +251,6 @@ jobs:
           path: |
             thingy91x-oob/hello.nrfcloud.com-*.*
             thingy91x-oob/connectivity-bridge-*.*
-            nrf53-bl-*.hex
-            nrf91-bl-*.hex
 
       - name: Print run-id and fw version
         run: |
