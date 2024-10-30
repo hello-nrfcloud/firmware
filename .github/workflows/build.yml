@@ -65,6 +65,16 @@ jobs:
           west update -o=--depth=1 -n
           west blobs fetch hal_nordic
 
+      - uses: robinraju/release-downloader@v1
+        with:
+          tag: 'v2.0.0-preview58'
+          fileName: 'nrf53-bl-v2-*.hex'
+
+      - uses: robinraju/release-downloader@v1
+        with:
+          tag: 'v2.0.0-preview58'
+          fileName: 'nrf91-bl-v2.hex'
+
       - name: Install dependencies
         run: |
           pip install -r nrf/scripts/requirements-build.txt
@@ -105,24 +115,18 @@ jobs:
           echo CONFIG_MEMFAULT_NCS_FW_TYPE=\"${{ env.MEMFAULT_SW_TYPE }}\" >> overlay-memfault-oob.conf
           west build -b thingy91x/nrf9151/ns -p --sysbuild -- -DEXTRA_CONF_FILE="overlay-memfault-oob.conf"
 
-      - name: Create nrf91 Bootloader HEX file
-        run: |
-          python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/thingy91x-oob/app/build/b0_s0_s1_merged.hex \
-            $(pwd)/thingy91x-oob/app/build/b0_container.hex \
-            $(pwd)/thingy91x-oob/app/build/app_provision.hex \
-            $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex \
-            $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
-
       - name: Rename artifacts
         working-directory: thingy91x-oob/app/build
         run: |
-          cp merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.hex
+          python3 ../../../zephyr/scripts/build/mergehex.py -o \
+            hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.hex \
+            merged.hex \
+            ../../../nrf91-bl-v*.hex \
+            --overlap replace
           cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.config
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-update-signed.bin
           cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-update-signed.hex
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.elf
-          cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.hex
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
       - name: Upload artifact
@@ -148,16 +152,6 @@ jobs:
           echo CONFIG_APP_MEMFAULT_UPLOAD_METRICS_ON_CLOUD_READY=y >> overlay-memfault-debug.conf
           west build -p -b thingy91x/nrf9151/ns -p --sysbuild -- -DEXTRA_CONF_FILE="overlay-memfault-debug.conf;overlay-modemtrace.conf;overlay-etb.conf"
 
-      - name: Create nrf91 debug bootloader HEX file
-        if: ${{ inputs.build_debug }}
-        run: |
-          python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/thingy91x-oob/app/build/b0_s0_s1_merged.hex \
-            $(pwd)/thingy91x-oob/app/build/b0_container.hex \
-            $(pwd)/thingy91x-oob/app/build/app_provision.hex \
-            $(pwd)/thingy91x-oob/app/build/signed_by_b0_mcuboot.hex \
-            $(pwd)/thingy91x-oob/app/build/signed_by_b0_s1_image.hex
-
       - name: Rename debug artifacts
         if: ${{ inputs.build_debug }}
         working-directory: thingy91x-oob/app/build
@@ -167,7 +161,6 @@ jobs:
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-update-signed.bin
           cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-update-signed.hex
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.elf
-          cp b0_s0_s1_merged.hex hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-bootloader.hex
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-dfu.zip
 
       - name: Upload artifact
@@ -191,26 +184,19 @@ jobs:
       - name: Create nrf53 merged_domains HEX file
         run: |
           python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-merged.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex \
             $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex
-          cp $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex \
+            $(pwd)/nrf53-bl-v*-net.hex \
+            --overlap replace
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex \
+            $(pwd)/nrf53-bl-v*-app.hex \
+            --overlap replace
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-merged.hex \
+            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
             $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex
-          cp $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex
-
-      - name: Create nrf53 Bootloader HEX file
-        run: |
-          python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app-bootloader.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/b0_container.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_mcuboot.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/signed_by_b0_s1_image.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/app_provision.hex
-          python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net-bootloader.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/b0n_container.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/net_provision.hex
 
       - name: Copy nrf53 DFU file
         run: |
@@ -227,11 +213,6 @@ jobs:
             nrf/applications/connectivity_bridge/build/connectivity-bridge-*.*
 
       # Bootloader update build
-
-      - name: Apply Connectivity Bridge patch for bootloader update
-        working-directory: nrf
-        run: |
-          git stash --include-untracked
 
       - name: Build BL Update
         if: ${{ inputs.build_bl_update }}
@@ -257,6 +238,8 @@ jobs:
           path: |
             thingy91x-oob/hello.nrfcloud.com-*.*
             thingy91x-oob/connectivity-bridge-*.*
+            nrf53-bl-*.hex
+            nrf91-bl-*.hex
 
       - name: Print run-id and fw version
         run: |
