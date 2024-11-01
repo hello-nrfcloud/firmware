@@ -17,6 +17,12 @@ menuconfig APP_MEMFAULT
 
 if APP_MEMFAULT
 
+config APP_MEMFAULT_INCLUDE_MODEM_TRACES
+	bool "Modem traces to memfault"
+	select MEMFAULT_CDR_ENABLE
+	help
+	  Include modem traces with Memfault coredumps.
+
 config APP_MEMFAULT_THREAD_STACK_SIZE
 	int "Thread stack size"
 	default 1536
