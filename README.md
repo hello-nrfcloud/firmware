@@ -112,3 +112,24 @@ python3 scripts/nrf91_flasher.py -m mfw_nrf91x1_2.0.1.zip
 | Solid          | Configured | Device has received a LED configuration      | NA                                                  |
 | Blinking rapid | Red        | Fatal error, the device will reboot          | NA                                                  |
 | Blinking slow  | Red        | Irrecoverable Fatal error                    | NA                                                  |
+
+### Modem Traces
+
+Modem traces are enabled by default on the Thingy:91 device. These traces can be output to UART for analysis using the **nRF Connect for Desktop Cellular Monitor** application.
+
+#### Steps to Capture and Dump Modem Traces:
+
+1. **Connect to a Serial Terminal**
+   - Connect your Thingy:91 device to a serial terminal on **UART 0**. This will allow you to interact with the device's shell commands. You might need to push **Button 1** to wake the UART up.
+
+2. **Set Up Cellular Monitor Application**
+   - Open the [Cellular Monitor Application](https://docs.nordicsemi.com/bundle/nrf-connect-cellularmonitor/page/index.html).
+   - Connect the Thingy:91 to the application, select **UART 1** as the trace output, and click **Start Traces** to begin capturing modem activity.
+
+3. **Dump Traces via UART**
+   - Use the following shell commands in the connected serial terminal to manage and dump the modem traces on **UART 1**:
+
+   ```shell
+   modem_trace stop         # Stop modem tracing if running
+   modem_trace size         # Check the size of stored traces
+   modem_trace dump_uart    # Dump traces to UART 1 for analysis
