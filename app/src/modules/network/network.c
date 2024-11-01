@@ -238,7 +238,10 @@ static void state_sampling_run(void *obj)
 
 		if (trigger_type == TRIGGER_DATA_SAMPLE) {
 			LOG_DBG("Data sample trigger received, getting network quality data");
-			sample_network_quality();
+
+			if (IS_ENABLED(CONFIG_APP_NETWORK_SAMPLE_NETWORK_QUALITY)) {
+				sample_network_quality();
+			}
 		}
 	}
 }
