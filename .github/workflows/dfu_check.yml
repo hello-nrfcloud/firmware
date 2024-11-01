@@ -89,8 +89,8 @@ jobs:
       - name: Build Connectivity Bridge
         working-directory: nrf/applications/connectivity_bridge
         run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=2 -DCONFIG_BUILD_S1_VARIANT=y
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d build-bl-update -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d build-bl-update -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4 -DCONFIG_BUILD_S1_VARIANT=y
 
       - name: 'nrf53: check partition layout'
         working-directory: nrf/applications/connectivity_bridge/build/
@@ -108,9 +108,9 @@ jobs:
       - name: 'nrf53: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 2
-          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
-          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 3
+          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
+          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 4
+          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 4
 
       - name: 'nrf53: check manifest slot indices'
         working-directory: thingy91x-oob
