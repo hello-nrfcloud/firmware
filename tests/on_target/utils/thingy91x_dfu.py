@@ -394,7 +394,7 @@ def main():
     parser.add_argument("--vid", type=int, help="vendor id", default=0x1915)
     parser.add_argument("--pid", type=int, help="product id", default=0x910A)
     parser.add_argument("--serial", type=str, help="serial number", default=None)
-    parser.add_argument("--bootloader_slot", type=int, help="bootloader slot", default=1)
+    parser.add_argument("--bootloader-slot", type=int, help="bootloader slot", default=1)
     args = parser.parse_args()
 
     chip = args.chip

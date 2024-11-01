@@ -159,7 +159,7 @@ def test_dfu(t91x_dfu):
     for _ in range(3):
         try:
             logger.info("Starting nRF53 BL DFU")
-            dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
+            dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART, bootloader_slot=0)
             wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
             break
         except Exception as e:
@@ -171,7 +171,7 @@ def test_dfu(t91x_dfu):
         raise Exception("Failed to perform nRF53 BL DFU after 3 attempts.")
 
     results = dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART, check_53_version=True)
-    # assert mcuboot slot 1 has correct version number 3
-    assert "S1: 3" in results
+    # assert mcuboot slot 0 has correct version number 4
+    assert "S0: 4" in results
 
     logger.info("nRF53 DFU successful")

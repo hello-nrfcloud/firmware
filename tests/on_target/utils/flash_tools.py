@@ -58,7 +58,7 @@ def recover_device(serial=SEGGER, core="Application"):
         logger.info(e.stderr)
         raise
 
-def dfu_device(zipfile, serial=None, reset_only=False, check_53_version=False):
+def dfu_device(zipfile, serial=None, reset_only=False, check_53_version=False, bootloader_slot=1):
     chip, is_mcuboot = detect_family_from_zip(zipfile)
     if chip is None:
         logger.error("Could not determine chip family from image")
@@ -68,6 +68,7 @@ def dfu_device(zipfile, serial=None, reset_only=False, check_53_version=False):
         'utils/thingy91x_dfu.py',
         '--image', zipfile,
         '--chip', chip,
+        '--bootloader-slot', str(bootloader_slot)
     ]
 
     if serial:
