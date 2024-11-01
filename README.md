@@ -71,6 +71,37 @@ When using an external debugger, you can flash using this command:
 west flash --erase
 ```
 
+Experimental: You can also use [pyOCD](https://github.com/pyocd/pyOCD) to flash the nRF9151 using the CMSIS-DAP interface provided by the Connectivity Bridge firmware.
+
+Note: **Don't use pyOCD with JLink probes**, use [nrfutil-device](https://docs.nordicsemi.com/bundle/nrfutil/page/README.html) or the west runner in that case. pyOCD seems to be unmaintained at the moment, so this might not be fixed.
+
+Another note: Sometimes, the nRF9151 is detected as protected and is mass-erased automatically. In that case, simply flash the bootloader as well.
+
+To flash just the app:
+
+```
+pyocd flash build/app/zephyr/zephyr.signed.hex
+```
+
+To flash the bootloader (included in releases):
+
+```
+pyocd flash nrf91-bl-v2.hex
+```
+
+To erase the chip including UICR:
+
+```
+pyocd erase --mass
+```
+
+Experimental: You can update the modem firmware using pyOCD. A simple way to do this is to use the included `nrf91_flasher` script:
+
+```
+python3 scripts/nrf91_flasher.py -m mfw_nrf91x1_2.0.1.zip
+```
+
+
 ### LED pattern
 
 | LED effect     | Color      | Meaning                                      | Duration (seconds)                                  |
