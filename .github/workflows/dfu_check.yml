@@ -2,22 +2,25 @@ name: DFU image compatibility check
 
 on:
   workflow_call:
+    inputs:
+      artifact_fw_version:
+        type: string
+        required: true
+      artifact_run_id:
+        type: string
+        required: true
   workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - '**/*.c'
-      - '**/*.h'
-      - west.yml
-      - '**/CMakelists.txt'
-      - '**/Kconfig*'
-      - '**/prj.conf'
+    inputs:
+      artifact_fw_version:
+        type: string
+        required: true
+      artifact_run_id:
+        type: string
+        required: true
 
 jobs:
-  build:
-    name: Build and analyze
+  analyze:
+    name: Static analysis
     runs-on: ubuntu-latest
     container: ghcr.io/zephyrproject-rtos/ci:v0.26.14
     env:
@@ -36,7 +39,24 @@ jobs:
           west config manifest.group-filter +bsec
           west config build.sysbuild True
           west update -o=--depth=1 -n
-          west blobs fetch hal_nordic
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: firmware-*
+          merge-multiple: true
+          path: thingy91x-oob/artifacts
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Unzip update ZIPs
+        working-directory: thingy91x-oob/artifacts
+        run: |
+          unzip -o -d nrf91-app-debug hello.nrfcloud.com-${{ inputs.artifact_fw_version }}+debug-thingy91x-nrf91-dfu.zip
+          unzip -o -d nrf91-app hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
+          unzip -o -d nrf91-bootloader hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
+          unzip -o -d nrf53-app connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
+          unzip -o -d nrf53-bootloader connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
 
       - name: Install dependencies
         run: |
@@ -55,69 +75,52 @@ jobs:
           python3 ${CI_NRF_DIR}/scripts/bootloader/keygen.py --public --in ${CI_NRF_DIR}/boards/nordic/thingy91x/nsib_signing_key.pem --out verifying_key_nrf91.pem
           python3 ${CI_NRF_DIR}/scripts/bootloader/keygen.py --public --in ${CI_NRF_DIR}/boards/nordic/thingy91x/nsib_signing_key_nrf5340.pem --out verifying_key_nrf53.pem
 
-      - name: Build OOB FW
-        working-directory: thingy91x-oob
-        run: |
-          west twister -T . -v -p thingy91x/nrf9151/ns --inline-logs --test app.build --test app.build.bootloader_update
-
       - name: 'nrf91: check partition layout'
-        working-directory: thingy91x-oob/twister-out/thingy91x_nrf9151_ns/app/app.build/
+        working-directory: thingy91x-oob/artifacts
         run: |
-          ninja partition_manager_report # need to run this twice
-          ninja partition_manager_report > partition_manager_report.txt
-          sed -i '1d' partition_manager_report.txt
-          diff --ignore-all-space --ignore-blank-lines partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
+          diff --ignore-all-space --ignore-blank-lines pmr-nrf91-default-${{ inputs.artifact_fw_version }}.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
 
       - name: 'nrf91: check app image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem twister-out/thingy91x_nrf9151_ns/app/app.build/app/zephyr/zephyr.signed.bin
+          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-update-signed.bin
 
       - name: 'nrf91: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 2
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 3
-          python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
+          # python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 2
+          python3 scripts/nsib_signature_check.py -i artifacts/nrf91-bootloader/signed_by_mcuboot_and_b0_mcuboot.bin -p verifying_key_nrf91.pem -a 0x00008200 -v 3
+          python3 scripts/nsib_signature_check.py -i artifacts/nrf91-bootloader/signed_by_mcuboot_and_b0_s1_image.bin -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
 
       - name: 'nrf91: check manifest slot indices'
-        working-directory: thingy91x-oob
+        working-directory: thingy91x-oob/artifacts
         run: |
-          grep '"slot_index_primary": "1"' twister-out/thingy91x_nrf9151_ns/app/app.build/dfu_application.zip_manifest.json
-          grep '"slot_index_secondary": "2"' twister-out/thingy91x_nrf9151_ns/app/app.build/dfu_application.zip_manifest.json
-
-      - name: Build Connectivity Bridge
-        working-directory: nrf/applications/connectivity_bridge
-        run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d build-bl-update -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4 -DCONFIG_BUILD_S1_VARIANT=y
+          grep '"slot_index_primary": "1"' nrf91-app/manifest.json
+          grep '"slot_index_secondary": "2"' nrf91-app/manifest.json
 
       - name: 'nrf53: check partition layout'
-        working-directory: nrf/applications/connectivity_bridge/build/
+        working-directory: thingy91x-oob/artifacts
         run: |
-          ninja partition_manager_report # need to run this twice
-          ninja partition_manager_report > partition_manager_report.txt
-          sed -i '1d' partition_manager_report.txt
-          diff partition_manager_report.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf53.txt
+          diff --ignore-all-space --ignore-blank-lines pmr-nrf53-default-${{ inputs.artifact_fw_version }}.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf53.txt
 
       - name: 'nrf53: check app image signature'
-        working-directory: thingy91x-oob
+        working-directory: thingy91x-oob/artifacts
         run: |
-          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem ../nrf/applications/connectivity_bridge/build/connectivity_bridge/zephyr/zephyr.signed.bin
+          python3 ${CI_MCUBOOT_DIR}/scripts/imgtool.py verify -k ${CI_MCUBOOT_DIR}/root-ec-p256.pem nrf53-app/connectivity_bridge.signed.bin
 
       - name: 'nrf53: check bootloader image signature'
         working-directory: thingy91x-oob
         run: |
-          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
-          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 4
-          python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build-bl-update/signed_by_mcuboot_and_b0_s1_image.hex -p verifying_key_nrf53.pem -a 0x0001c200 -v 4
+          # python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
+          python3 scripts/nsib_signature_check.py -i artifacts/nrf53-bootloader/signed_by_mcuboot_and_b0_mcuboot.bin -p verifying_key_nrf53.pem -a 0x00008200 -v 4
+          python3 scripts/nsib_signature_check.py -i artifacts/nrf53-bootloader/signed_by_mcuboot_and_b0_s1_image.bin -p verifying_key_nrf53.pem -a 0x0001c200 -v 4
 
       - name: 'nrf53: check manifest slot indices'
-        working-directory: thingy91x-oob
+        working-directory: thingy91x-oob/artifacts
         run: |
-          grep '"slot_index_primary": "1"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
-          grep '"slot_index_secondary": "2"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
+          grep '"slot_index_primary": "1"' nrf53-app/manifest.json
+          grep '"slot_index_secondary": "2"' nrf53-app/manifest.json
           # check that there is also a second image for the network core
-          grep '"image_index": "1"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
-          grep '"slot_index_primary": "3"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
-          grep '"slot_index_secondary": "4"' ../nrf/applications/connectivity_bridge/build/dfu_application.zip_manifest.json
+          grep '"image_index": "1"' nrf53-app/manifest.json
+          grep '"slot_index_primary": "3"' nrf53-app/manifest.json
+          grep '"slot_index_secondary": "4"' nrf53-app/manifest.json

@@ -25,7 +25,9 @@
 +---0x30200: mcuboot_primary_app (0xcfe00 - 831kB)-+
 | 0x30200: tfm (0x7e00 - 31kB)                     |
 +---0x38000: tfm_nonsecure (0xc8000 - 800kB)-------+
-| 0x38000: app (0xc8000 - 800kB)                   |
+| 0x38000: app (0xb8000 - 736kB)                   |
++---0xf0000: nonsecure_storage (0x10000 - 64kB)----+
+| 0xf0000: memfault_storage (0x10000 - 64kB)       |
 +--------------------------------------------------+
 
   otp (0x2f4 - 756B):
