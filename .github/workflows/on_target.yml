@@ -62,7 +62,7 @@ on:
 
 jobs:
   target_test:
-    name: Test on target
+    name: Target Test
     runs-on: self-hosted
     environment: production
     container:
