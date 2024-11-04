@@ -131,6 +131,13 @@ jobs:
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.elf
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
+      - name: Create partition manager report for nRF91 firmware
+        working-directory: thingy91x-oob/app/build
+        run: |
+          ninja partition_manager_report
+          ninja partition_manager_report > pmr-nrf91-default-${{ env.VERSION }}.txt
+          sed -i '1d' pmr-nrf91-default-${{ env.VERSION }}.txt
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         id: artifact-upload-oob
@@ -140,6 +147,7 @@ jobs:
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
             thingy91x-oob/app/build/nrf91-bl-*.hex
+            thingy91x-oob/app/build/pmr-nrf91-*.txt
 
       # Out-of-box debug firmware build
 
@@ -172,6 +180,14 @@ jobs:
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.elf
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-dfu.zip
 
+      - name: Create partition manager report for nRF91 debug firmware
+        if: ${{ inputs.build_debug }}
+        working-directory: thingy91x-oob/app/build
+        run: |
+          ninja partition_manager_report
+          ninja partition_manager_report > pmr-nrf91-debug-${{ env.VERSION }}.txt
+          sed -i '1d' pmr-nrf91-debug-${{ env.VERSION }}.txt
+
       - name: Upload artifact
         if: ${{ inputs.build_debug }}
         uses: actions/upload-artifact@v4
@@ -181,6 +197,7 @@ jobs:
           if-no-files-found: error
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
+            thingy91x-oob/app/build/pmr-nrf91-*.txt
 
       # Connectivity Bridge firmware build
 
@@ -188,6 +205,13 @@ jobs:
         working-directory: nrf/applications/connectivity_bridge
         run: |
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
+
+      - name: Create partition manager report for nRF53 firmware
+        working-directory: nrf/applications/connectivity_bridge/build
+        run: |
+          ninja partition_manager_report
+          ninja partition_manager_report > pmr-nrf53-default-${{ env.VERSION }}.txt
+          sed -i '1d' pmr-nrf53-default-${{ env.VERSION }}.txt
 
       - name: Create nrf53 merged_domains HEX file
         run: |
@@ -224,6 +248,7 @@ jobs:
           path: |
             nrf/applications/connectivity_bridge/build/connectivity-bridge-*.*
             nrf/applications/connectivity_bridge/build/nrf53-bl-*.hex
+            nrf/applications/connectivity_bridge/build/pmr-nrf53-*.txt
 
       # Bootloader update build
 
@@ -238,8 +263,6 @@ jobs:
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d ../nrf/applications/connectivity_bridge/build-bl-update ../nrf/applications/connectivity_bridge -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4 -DCONFIG_BUILD_S1_VARIANT=y
           cp ../nrf/applications/connectivity_bridge/build-bl-update/dfu_mcuboot.zip \
             connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
-          cp ../nrf/applications/connectivity_bridge/build-bl-update/dfu_application.zip \
-            connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-verbose.zip
 
       - name: Upload artifact
         if: ${{ inputs.build_bl_update }}
