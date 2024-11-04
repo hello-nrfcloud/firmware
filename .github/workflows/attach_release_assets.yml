@@ -10,46 +10,26 @@ on:
     types: [created]
 
 jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      build_bl_update: true
+      build_debug: true
+      memfault_sw_type: "hello.nrfcloud.com"
+
   attach-assets:
     runs-on: ubuntu-24.04
+    needs: [build]
     steps:
         - name: Checkout
           uses: actions/checkout@v4
 
-        - name: Set up the GitHub CLI
-          uses: actions/gh-cli@v1
-
-        - name: Find Workflow Run ID for Build
-          id: find_run_id
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: |
-            tag_name="${{ github.event.release.tag_name }}"
-            workflow_id="test.yml"
-
-            # Get workflow runs for the specified workflow ID and tag name
-            response=$(gh api repos/${{ github.repository }}/actions/workflows/$workflow_id/runs \
-                        -F event=push \
-                        -F branch="$tag_name")
-
-            # Extract the run ID of the latest workflow run on the specified tag
-            run_id=$(echo "$response" | jq -r '.workflow_runs[] | select(.head_branch == env.tag_name) | .id' | head -n 1)
-
-            if [ -z "$run_id" ]; then
-              echo "No run ID found for tag: $tag_name in workflow: $workflow_id"
-              exit 1
-            else
-              echo "Found run ID: $run_id"
-              echo "::set-output name=run_id::$run_id"
-            fi
-
-        - name: Download artifacts
+        - name: Download artifact
           uses: actions/download-artifact@v4
           with:
-            pattern: firmware-*
-            merge-multiple: true
-            run-id: ${{ steps.find_run_id.outputs.run_id }}
-            github-token: ${{ secrets.GITHUB_TOKEN }}
+           pattern: firmware-*
+           merge-multiple: true
 
         - name: Deploy release to github
           uses: softprops/action-gh-release@v2
