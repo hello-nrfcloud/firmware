@@ -173,5 +173,6 @@ def test_dfu(t91x_dfu):
     results = dfu_device(NRF53_BL_UPDATE_ZIP, serial=CONNECTIVITY_BRIDGE_UART, check_53_version=True)
     # assert mcuboot slot 0 has correct version number 4
     assert "S0: 4" in results
+    assert "[testing] app" in results
 
     logger.info("nRF53 DFU successful")

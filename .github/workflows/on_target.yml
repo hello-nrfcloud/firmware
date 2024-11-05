@@ -160,7 +160,8 @@ jobs:
           UART_ID: ${{ secrets.UART_DUT_2 }}
           NRF53_NET_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-net.hex
           NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
-          NRF53_APP_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
+          NRF53_APP_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu-testing.zip
+          NRF53_APP_UPDATE_ZIP2: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
           NRF53_BL_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
           NRF91_HEX_FILE: artifacts/nrf91-bl-v2.hex
           NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip

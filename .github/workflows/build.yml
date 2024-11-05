@@ -239,6 +239,18 @@ jobs:
             $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
           cp nrf53-bl-*.hex $(pwd)/nrf/applications/connectivity_bridge/build/
 
+      - name: apply nrf patch for special testing version of connectivity bridge
+        working-directory: nrf
+        run: |
+          git apply ../thingy91x-oob/scripts/nrf-connbr-testing.patch
+
+      - name: Create testing version connectivity bridge with different string output
+        working-directory: nrf/applications/connectivity_bridge
+        run: |
+          west build
+          cp build/dfu_application.zip \
+            build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-dfu-testing.zip
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         id: artifact-upload-connectivity-bridge

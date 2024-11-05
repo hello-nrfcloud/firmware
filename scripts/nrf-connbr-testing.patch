@@ -1,0 +1,13 @@
+diff --git a/applications/connectivity_bridge/src/modules/usb_bulk_commands.c b/applications/connectivity_bridge/src/modules/usb_bulk_commands.c
+index 74091c2cd0..a658b8e3ac 100644
+--- a/applications/connectivity_bridge/src/modules/usb_bulk_commands.c
++++ b/applications/connectivity_bridge/src/modules/usb_bulk_commands.c
+@@ -147,7 +147,7 @@ size_t dap_execute_vendor_cmd(uint8_t *in, uint8_t *out)
+ 		__ASSERT_NO_MSG(s0_info != NULL);
+ 		__ASSERT_NO_MSG(s1_info != NULL);
+ 		int len = snprintf(out + 2, VERSION_STRING_LEN,
+-				   "S0: %u, S1: %u, app: " NCS_COMMIT_STRING,
++				   "S0: %u, S1: %u, [testing] app: " NCS_COMMIT_STRING,
+ 				   s0_info->version, s1_info->version);
+ 		if (len < 0 || len >= VERSION_STRING_LEN) {
+ 			LOG_ERR("Failed to format version string");
