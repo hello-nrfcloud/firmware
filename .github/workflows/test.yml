@@ -30,8 +30,6 @@ jobs:
     secrets: inherit
     with:
       build_bl_update: true
-      build_debug: true
-      memfault_sw_type: "hello.nrfcloud.com"
   dfu_check:
     uses: ./.github/workflows/dfu_check.yml
     needs: build
