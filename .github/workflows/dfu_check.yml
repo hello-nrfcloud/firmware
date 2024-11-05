@@ -52,7 +52,6 @@ jobs:
       - name: Unzip update ZIPs
         working-directory: thingy91x-oob/artifacts
         run: |
-          unzip -o -d nrf91-app-debug hello.nrfcloud.com-${{ inputs.artifact_fw_version }}+debug-thingy91x-nrf91-dfu.zip
           unzip -o -d nrf91-app hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
           unzip -o -d nrf91-bootloader hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
           unzip -o -d nrf53-app connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
