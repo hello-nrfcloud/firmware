@@ -89,7 +89,7 @@ def t91x_conn_bridge():
 
 @pytest.mark.dut2
 @pytest.mark.conn_bridge
-def test_dfu(t91x_conn_bridge):
+def test_conn_bridge(t91x_conn_bridge):
     t91x_conn_bridge.uart0.wait_for_str(
             "UART0 running at baudrate 115200", timeout=UART_TIMEOUT
         )
@@ -97,11 +97,11 @@ def test_dfu(t91x_conn_bridge):
             "UART1 running at baudrate 1000000", timeout=UART_TIMEOUT
         )
     for i in range(BLE_CONTROL_MESSAGE_RETRIES):
-        logger.debug(f"Requesting BLE control message try: {i + 1}")
-        t91x_conn_bridge.uart0.write(b"CHECK_BLE\r\n")
+        logger.debug(f"Requesting UART0 control message try: {i + 1}")
+        t91x_conn_bridge.uart0.write(b"CHECK_UART0_SMOKE\r\n")
         try:
             t91x_conn_bridge.uart0.wait_for_str(
-                "This message should be seen on UART0 and BLE!",
+                "This message should be seen on UART0!",
                 timeout=UART_TIMEOUT,
             )
             break
@@ -109,13 +109,31 @@ def test_dfu(t91x_conn_bridge):
             continue
     else:
         raise AssertionError(
-            f"Control message not seen on UART1 after {BLE_CONTROL_MESSAGE_RETRIES} retries"
+            f"Control message not seen on UART0 after {BLE_CONTROL_MESSAGE_RETRIES} retries"
         )
 
+
+    # Test large data tx on uart0 from usb to nrf9160
+    # Emulates 4k of certificates writing to modem
+    logger.info("Testing 4k of certificates writing to modem")
+    t91x_conn_bridge.uart0.flush()
+    ctrl_str = generate_control_str()
+    ctrl_str = ctrl_str + '\n'
+    ctrl_str_in_bytes = ctrl_str.encode("utf-8")
+
+    logger.debug(f"Sending {len(ctrl_str_in_bytes)} bytes of data from usb over UART0")
+    t91x_conn_bridge.uart0.write(ctrl_str_in_bytes)
+
+    t91x_conn_bridge.uart0.wait_for_str('Control string received from usb via bridge to nrf9160!', timeout=10)
+    logger.debug(f"{len(ctrl_str_in_bytes)} bytes of data sent from usb and received to nrf9160")
+
+
     # Test large data tx on uart1 from nrf9160 to usb
+    # Emulates 4k of uart1 modem traces
+    logger.info("Testing 4k of uart1 modem traces")
     ctrl_str = generate_control_str()
     t91x_conn_bridge.uart1.flush()
-    t91x_conn_bridge.uart0.write(b"CHECK_UART1\r\n")
+    t91x_conn_bridge.uart0.write(b"CHECK_UART1_4k_TRACES\r\n")
     try:
         t91x_conn_bridge.uart1.wait_for_str(ctrl_str, timeout=UART_TIMEOUT)
     except Exception as e:
@@ -134,16 +152,36 @@ def test_dfu(t91x_conn_bridge):
             assert line in log[count], line + " not in " + log[count]
             count = count + 1
 
-    # Test large data tx on uart0 from usb to nrf9160
-    t91x_conn_bridge.uart0.flush()
-    ctrl_str = ctrl_str + '\n'
-    ctrl_str_in_bytes = ctrl_str.encode("utf-8")
+    # Test beefy tx on uart1 from nrf9160 to usb
+    # Emulates 40k of uart1 modem traces (10 times the 4k control string)
+    logger.info("Testing 40k of uart1 modem traces")
+    beefy_ctrl_str = ''.join([generate_control_str() for _ in range(10)])  # Generate 10 times the control string
+    t91x_conn_bridge.uart1.flush()
+    t91x_conn_bridge.uart0.write(b"CHECK_UART1_40k_TRACES\r\n")
+    t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)
 
-    logger.debug(f"Sending {len(ctrl_str_in_bytes)} bytes of data from usb over UART0")
-    t91x_conn_bridge.uart0.write(ctrl_str_in_bytes)
+    # TODO: refine assertion handling, see below for inspiration
+    # try:
+    #     t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)  # Wait for the null-terminated string
+    # except Exception as e:
+    #     logger.error(f"wait_for_str failed, exception: {e}")
 
-    t91x_conn_bridge.uart0.wait_for_str('Control string received from usb via bridge to nrf9160!', timeout=10)
-    logger.debug(f"{len(ctrl_str_in_bytes)} bytes of data sent from usb and received to nrf9160")
+    #     log = t91x_conn_bridge.uart1.log.split()
+    #     beefy_ctrl_str = beefy_ctrl_str.split('\x00')  # Split the control string by null-terminator
+
+    #     missing_strings = []  # List to keep track of missing control strings
+    #     missing_strings_counter = 0
+    #     for ctrl in beefy_ctrl_str:
+    #         if ctrl not in log:
+    #             missing_strings.append(ctrl)  # Add missing control string to the list
+    #             missing_strings_counter = missing_strings_counter + 1
+
+    #     if missing_strings:
+    #         logger.error("LOG")
+    #         logger.error(log)
+    #         raise AssertionError(
+    #             f"The following {missing_strings_counter} control strings were not found in the log:\n" + "\n".join(missing_strings)
+    #         ) from AssertionError
 
 def generate_control_str():
     control_str = ""
