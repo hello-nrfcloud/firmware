@@ -18,10 +18,9 @@ logger = get_logger()
 
 UART_TIMEOUT = 60 * 30
 
-SEGGER = os.getenv('SEGGER')
-UART_ID = os.getenv('UART_ID', SEGGER)
-FOTADEVICE_IMEI = os.getenv('IMEI')
-FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
+T91X_SERIAL_NUMBER = os.getenv('T91X_SERIAL_NUMBER')
+T91X_IMEI = os.getenv('T91X_IMEI')
+T91X_FINGERPRINT = os.getenv('T91X_FINGERPRINT')
 
 def get_uarts():
     base_path = "/dev/serial/by-id"
@@ -34,7 +33,7 @@ def get_uarts():
     uarts = []
 
     for path in sorted(serial_paths):
-        if UART_ID in path:
+        if T91X_SERIAL_NUMBER in path:
             uarts.append(path)
         else:
             continue
@@ -59,17 +58,20 @@ def t91x_board():
     if not all_uarts:
         pytest.fail("No UARTs found")
     log_uart_string = all_uarts[0]
+
+    serial_number = T91X_SERIAL_NUMBER
     uart = Uart(log_uart_string, timeout=UART_TIMEOUT)
-    fota = HelloNrfCloudFOTA(device_id=f"oob-{FOTADEVICE_IMEI}", \
-                                    fingerprint=FOTADEVICE_FINGERPRINT)
+    fota = HelloNrfCloudFOTA(device_id=f"oob-{T91X_IMEI}", \
+                                    fingerprint=T91X_FINGERPRINT)
 
     yield types.SimpleNamespace(
-		uart=uart,
+        serial_number=serial_number,
+        uart=uart,
         fota=fota
 		)
 
     # Cancel pending fota jobs, at fota test teardown
-    if FOTADEVICE_IMEI:
+    if T91X_IMEI:
         try:
             pending_jobs = fota.check_pending_jobs()
             if pending_jobs:
@@ -102,7 +104,7 @@ def t91x_traces(t91x_board):
 def hex_file():
     # Search for the firmware hex file in the artifacts folder
     artifacts_dir = "artifacts"
-    hex_pattern = r"hello\.nrfcloud\.com-[0-9a-z\.]+-thingy91x-nrf91\.hex"
+    hex_pattern = r"hello\.nrfcloud\.com-[0-9a-z\.]+-thingy91x-nrf91-dfu\.zip"
 
     for file in os.listdir(artifacts_dir):
         if re.match(hex_pattern, file):

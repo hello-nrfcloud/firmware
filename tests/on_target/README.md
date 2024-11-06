@@ -42,7 +42,7 @@ nrfutil device list
 Precondition: thingy91x with segger fw on 53
 
 ```shell
-export SEGGER=<your_segger>
+export T91X_SERIAL_NUMBER=<your_t91x_serial_number>
 pytest -s -v -m "dut1 and uart" tests
 ```
 
@@ -51,9 +51,9 @@ pytest -s -v -m "dut1 and uart" tests
 Precondition: thingy91x with segger fw on 53
 
 ```shell
-export SEGGER=<your_segger>
-export IMEI=<your_imei>
-export FINGERPRINT=<your_fingerprint>
+export T91X_SERIAL_NUMBER=<your_t91x_serial_number>
+export T91X_IMEI=<your_t91x_imei>
+export T91X_FINGERPRINT=<your_t91x_fingerprint>
 pytest -s -v -m "dut1 and fota" tests
 ```
 

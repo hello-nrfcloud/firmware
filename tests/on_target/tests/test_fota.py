@@ -51,10 +51,11 @@ def run_fota_resumption(t91x_board, fota_type):
 @pytest.fixture
 def run_fota_fixture(t91x_board, hex_file):
     def _run_fota(bundleId, fota_type, fotatimeout=APP_FOTA_TIMEOUT, test_fota_resumption=False):
-        flash_device(os.path.abspath(hex_file))
+        flash_device(serial=t91x_board.serial_number, hexfile=os.path.abspath(hex_file))
+        time.sleep(10)
         t91x_board.uart.xfactoryreset()
         t91x_board.uart.flush()
-        reset_device()
+        reset_device(serial=t91x_board.serial_number)
         t91x_board.uart.wait_for_str("Connected to Cloud")
 
         job_id = post_job(t91x_board, bundleId, fota_type)
@@ -77,7 +78,7 @@ def run_fota_fixture(t91x_board, hex_file):
 
 @pytest.mark.dut1
 @pytest.mark.fota
-def test_app_fota(t91x_board, hex_file, run_fota_fixture):
+def test_app_fota(t91x_board, run_fota_fixture):
     # Get latest APP fota bundle
     results = t91x_board.fota.get_fota_bundles()
     if not results:
@@ -96,18 +97,17 @@ def test_app_fota(t91x_board, hex_file, run_fota_fixture):
 
 @pytest.mark.dut1
 @pytest.mark.fota
-def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+def test_delta_mfw_fota(t91x_board, run_fota_fixture):
     # Flash with mfw201
-    flash_device(os.path.abspath(MFW_201_FILEPATH))
+    flash_device(serial=t91x_board.serial_number, hexfile=os.path.abspath(MFW_201_FILEPATH))
 
-    # run_fota(DELTA_MFW_BUNDLEID, hex_file)
     run_fota_fixture(DELTA_MFW_BUNDLEID, "delta")
 
     # Restore mfw201
-    flash_device(os.path.abspath(MFW_201_FILEPATH))
+    flash_device(serial=t91x_board.serial_number, hexfile=os.path.abspath(MFW_201_FILEPATH))
 
 
 @pytest.mark.dut1
 @pytest.mark.fullmfw_fota
-def test_full_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+def test_full_mfw_fota(run_fota_fixture):
     run_fota_fixture(FULL_MFW_BUNDLEID, "full", FULL_MFW_FOTA_TIMEOUT)

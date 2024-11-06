@@ -12,9 +12,8 @@ from utils.thingy91x_dfu import detect_family_from_zip
 
 logger = get_logger()
 
-SEGGER = os.getenv('SEGGER')
 
-def reset_device(serial=SEGGER, reset_kind="RESET_SYSTEM"):
+def reset_device(serial=None, reset_kind="RESET_SYSTEM"):
     logger.info(f"Resetting device, segger: {serial}")
     try:
         result = subprocess.run(
@@ -31,7 +30,7 @@ def reset_device(serial=SEGGER, reset_kind="RESET_SYSTEM"):
         logger.info(e.stderr)
         raise
 
-def flash_device(hexfile, serial=SEGGER, extra_args=[]):
+def flash_device(serial=None, hexfile=None, extra_args=[]):
     # hexfile (str): Full path to file (hex or zip) to be programmed
     logger.info(f"Flashing device, segger: {serial}, firmware: {hexfile}")
     try:
@@ -46,7 +45,7 @@ def flash_device(hexfile, serial=SEGGER, extra_args=[]):
 
     reset_device(serial)
 
-def recover_device(serial=SEGGER, core="Application"):
+def recover_device(serial=None, core="Application"):
     logger.info(f"Recovering device, segger: {serial}")
     try:
         result = subprocess.run(['nrfutil', 'device', 'recover', '--serial-number', serial, '--core', core], check=True, text=True, capture_output=True)
@@ -58,7 +57,7 @@ def recover_device(serial=SEGGER, core="Application"):
         logger.info(e.stderr)
         raise
 
-def dfu_device(zipfile, serial=None, reset_only=False, check_53_version=False, bootloader_slot=1):
+def dfu_device(serial=None, zipfile=None, reset_only=False, check_53_version=False, bootloader_slot=1):
     chip, is_mcuboot = detect_family_from_zip(zipfile)
     if chip is None:
         logger.error("Could not determine chip family from image")

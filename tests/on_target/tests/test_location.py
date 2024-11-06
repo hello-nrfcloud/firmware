@@ -23,7 +23,8 @@ def test_gnss_location(t91x_board, hex_file):
     run_location(t91x_board, hex_file, location_method="GNSS")
 
 def run_location(t91x_board, hex_file, location_method):
-    flash_device(os.path.abspath(hex_file))
+    flash_device(serial=t91x_board.serial_number, hexfile=os.path.abspath(hex_file))
+    time.sleep(5)
     t91x_board.uart.xfactoryreset()
     patterns_cloud_connection = [
             "Network connectivity established",
@@ -37,7 +38,7 @@ def run_location(t91x_board, hex_file, location_method):
 
     # Cloud connection
     t91x_board.uart.flush()
-    reset_device()
+    reset_device(serial=t91x_board.serial_number)
     t91x_board.uart.wait_for_str(patterns_cloud_connection, timeout=60)
 
     # Location
