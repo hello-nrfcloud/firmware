@@ -278,3 +278,19 @@ class UartBinary(Uart):
 
     def get_size(self) -> int:
         return len(self.data)
+
+def wait_until_uart_available(name, timeout_seconds=60):
+    base_path = "/dev/serial/by-id"
+    while timeout_seconds > 0:
+        try:
+            serial_paths = [os.path.join(base_path, entry) for entry in os.listdir(base_path)]
+            for path in sorted(serial_paths):
+                if name in path:
+                    logger.info(f"UART found: {path}")
+                    return path
+        except (FileNotFoundError, PermissionError) as e:
+            logger.info(f"Uart not available yet (error: {e}), retrying...")
+        time.sleep(1)
+        timeout_seconds -= 1
+    logger.error(f"UART '{name}' not found within {timeout_seconds} seconds")
+    return None
