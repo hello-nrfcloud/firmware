@@ -7,8 +7,8 @@ import pytest
 import time
 import os
 import types
-from utils.flash_tools import flash_device, reset_device, recover_device, setup_jlink, dfu_device
-from utils.uart import Uart
+from utils.flash_tools import flash_device, reset_device, recover_device, setup_jlink, dfu_device, get_first_artifact_match
+from utils.uart import Uart, wait_until_uart_available
 from tests.conftest import get_uarts
 import sys
 sys.path.append(os.getcwd())
@@ -16,21 +16,17 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-def wait_until_uart_available(name, timeout_seconds=60):
-    base_path = "/dev/serial/by-id"
-    while timeout_seconds > 0:
-        try:
-            serial_paths = [os.path.join(base_path, entry) for entry in os.listdir(base_path)]
-            for path in sorted(serial_paths):
-                if name in path:
-                    logger.info(f"UART found: {path}")
-                    return path
-        except (FileNotFoundError, PermissionError) as e:
-            logger.info(f"Uart not available yet (error: {e}), retrying...")
-        time.sleep(1)
-        timeout_seconds -= 1
-    logger.error(f"UART '{name}' not found within {timeout_seconds} seconds")
-    return None
+NRF53_NET_HEX_FILE = get_first_artifact_match("artifacts/connectivity-bridge-*-thingy91x-nrf53-net.hex")
+NRF53_APP_HEX_FILE = get_first_artifact_match("artifacts/connectivity-bridge-*-thingy91x-nrf53-app.hex")
+NRF53_APP_UPDATE_ZIP = get_first_artifact_match("artifacts/connectivity-bridge-*-thingy91x-nrf53-dfu.zip")
+NRF53_BL_UPDATE_ZIP = get_first_artifact_match("artifacts/connectivity-bridge-*-thingy91x-nrf53-bootloader.zip")
+NRF91_APP_UPDATE_ZIP = get_first_artifact_match("artifacts/hello.nrfcloud.com-*-thingy91x-nrf91-dfu.zip")
+NRF91_BL_UPDATE_ZIP = get_first_artifact_match("artifacts/hello.nrfcloud.com-*-thingy91x-nrf91-bootloader.zip")
+NRF91_HEX_FILE = "artifacts/nrf91-bl-v2.hex"
+
+SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
+SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
+CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
 
 @pytest.fixture(scope="function")
 def t91x_dfu():
@@ -39,13 +35,6 @@ def t91x_dfu():
     First nRF91 is flashed with oob bootloader fw through segger fw on nRF53.
     Then nRF53 is flashed with connectivity bridge fw.
     '''
-    SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
-    SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
-    CONNECTIVITY_BRIDGE_UART = os.getenv('UART_ID')
-    NRF53_NET_HEX_FILE = os.getenv('NRF53_NET_HEX_FILE')
-    NRF53_APP_HEX_FILE = os.getenv('NRF53_APP_HEX_FILE')
-    NRF91_HEX_FILE = os.getenv('NRF91_HEX_FILE')
-
     logger.info(("Flashing nRF53 with Segger firmware"))
     setup_jlink(SEGGER_NRF53)
 
@@ -87,15 +76,6 @@ def t91x_dfu():
 @pytest.mark.dut2
 @pytest.mark.dfu
 def test_dfu(t91x_dfu):
-    SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
-    CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
-
-    NRF91_APP_UPDATE_ZIP = os.getenv('NRF91_APP_UPDATE_ZIP')
-    NRF91_BL_UPDATE_ZIP = os.getenv('NRF91_BL_UPDATE_ZIP')
-
-    NRF53_APP_UPDATE_ZIP = os.getenv('NRF53_APP_UPDATE_ZIP')
-    NRF53_BL_UPDATE_ZIP = os.getenv('NRF53_BL_UPDATE_ZIP')
-
     logger.info("Starting DFU, stopping UART")
     t91x_dfu.uart.stop()
 

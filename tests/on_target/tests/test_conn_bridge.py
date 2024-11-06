@@ -7,12 +7,18 @@ import pytest
 import time
 import os
 import types
-from utils.flash_tools import flash_device, reset_device, recover_device, setup_jlink, dfu_device
-from utils.uart import Uart
+from utils.flash_tools import flash_device, recover_device, dfu_device, get_first_artifact_match
+from utils.uart import Uart, wait_until_uart_available
 from tests.conftest import get_uarts
 import sys
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
+
+logger = get_logger()
+
+NRF53_NET_HEX_FILE = get_first_artifact_match("artifacts/connectivity-bridge-*-thingy91x-nrf53-net.hex")
+NRF53_APP_HEX_FILE = get_first_artifact_match("artifacts/connectivity-bridge-*-thingy91x-nrf53-app.hex")
+NRF91_CUSTOM_APP_ZIP = "artifacts/usb_uart_bridge_app.zip"
 
 UART_TIMEOUT = 60
 CB_TIMEOUT = 60
@@ -21,23 +27,11 @@ LINE_COUNT = 64
 BLE_CONTROL_MESSAGE_RETRIES = 3
 MAC_ADDR_FLASH_LOCATION = 0x7A000
 
-logger = get_logger()
+SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
+SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
+CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
 
-def wait_until_uart_available(name, timeout_seconds=60):
-    base_path = "/dev/serial/by-id"
-    while timeout_seconds > 0:
-        try:
-            serial_paths = [os.path.join(base_path, entry) for entry in os.listdir(base_path)]
-            for path in sorted(serial_paths):
-                if name in path:
-                    logger.info(f"UART found: {path}")
-                    return path
-        except (FileNotFoundError, PermissionError) as e:
-            logger.info(f"Uart not available yet (error: {e}), retrying...")
-        time.sleep(1)
-        timeout_seconds -= 1
-    logger.error(f"UART '{name}' not found within {timeout_seconds} seconds")
-    return None
+
 
 @pytest.fixture(scope="function")
 def t91x_conn_bridge():
@@ -46,12 +40,6 @@ def t91x_conn_bridge():
     First the nRF53 is flashed with connectivity bridge fw.
     Then dfu is performed on nrf91 with custom test app.
     '''
-    SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
-    CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
-    NRF53_NET_HEX_FILE = os.getenv('NRF53_NET_HEX_FILE')
-    NRF53_APP_HEX_FILE = os.getenv('NRF53_APP_HEX_FILE')
-    NRF91_CUSTOM_APP_ZIP = os.getenv('NRF91_CUSTOM_APP_ZIP')
-
     logger.info("Recovering nRF53 network core")
     recover_device(serial=SEGGER_NRF53, core='Network')
     logger.info("Recovering nRF53 application core")

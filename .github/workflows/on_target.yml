@@ -184,13 +184,7 @@ jobs:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
           UART_ID: ${{ secrets.UART_DUT_2 }}
-          NRF53_NET_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-net.hex
-          NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
-          NRF53_APP_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
-          NRF53_BL_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
-          NRF91_HEX_FILE: artifacts/nrf91-bl-v2.hex
-          NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
-          NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
+
           LOG_FILENAME: oob_dfu_test_log
 
       - name: Run Connectivity Bridge Test
@@ -203,9 +197,6 @@ jobs:
         env:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           UART_ID: ${{ secrets.UART_DUT_2 }}
-          NRF53_NET_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-net.hex
-          NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
-          NRF91_CUSTOM_APP_ZIP: artifacts/usb_uart_bridge_app.zip
           LOG_FILENAME: oob_conn_bridge_test_log
 
       - name: Run Wi-Fi location tests
