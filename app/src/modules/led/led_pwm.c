@@ -92,21 +92,21 @@ static int pwm_out(const struct led_color *color)
 	int err;
 
 	/* RED */
-	err = pwm_set_dt(&led0, PWM_USEC(255), PWM_USEC(color->c[0]));
+	err = pwm_set_dt(&led0, PWM_USEC(LED_MAX), PWM_USEC(color->c[0]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return err;
 	}
 
 	/* GREEN */
-	err = pwm_set_dt(&led2, PWM_USEC(255), PWM_USEC(color->c[1]));
+	err = pwm_set_dt(&led2, PWM_USEC(LED_MAX), PWM_USEC(color->c[1]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return err;
 	}
 
 	/* BLUE */
-	err = pwm_set_dt(&led1, PWM_USEC(255), PWM_USEC(color->c[2]));
+	err = pwm_set_dt(&led1, PWM_USEC(LED_MAX), PWM_USEC(color->c[2]));
 	if (err) {
 		LOG_ERR("pwm_set_dt, error:%d", err);
 		return err;
