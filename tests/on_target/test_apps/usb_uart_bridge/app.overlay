@@ -1,0 +1,4 @@
+/* Enable UART1 */
+&uart1 {
+    status = "okay";
+};
