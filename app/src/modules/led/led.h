@@ -42,7 +42,7 @@ extern "C" {
 #define LED_OFF_PERIOD_STROBE	50
 #define LED_OFF_PERIOD_LONG	4000
 
-#define LED_MAX 50
+#define LED_MAX UINT8_MAX
 
 #define LED_COLOR_OFF		LED_COLOR(0, 0, 0)
 #define LED_COLOR_RED		LED_COLOR(LED_MAX, 0, 0)
