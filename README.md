@@ -25,15 +25,15 @@ Before initializing start the toolchain environment:
 nrfutil toolchain-manager launch --shell
 ```
 
-The first step is to initialize the workspace folder (`thingy91x-oob`) where the
+The first step is to initialize the workspace folder (`hello-nrfcloud`) where the
 `firmware` project and all nRF Connect SDK modules will be cloned. Run the
 following command:
 
 ```shell
-# initialize thingy91x-oob workspace
-west init -m https://github.com/hello-nrfcloud/firmware --mr main thingy91x-oob
+# initialize hello-nrfcloud workspace
+west init -m https://github.com/hello-nrfcloud/firmware --mr main hello-nrfcloud
 
-cd thingy91x-oob
+cd hello-nrfcloud
 
 # enable Bosch environmental sensor driver
 west config manifest.group-filter +bsec
