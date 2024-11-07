@@ -105,3 +105,54 @@ def test_wait_ordered_7_none(time_sleep, time_time):
     with pytest.raises(AssertionError) as ex_info:
         u.wait_for_str_ordered(["abc", "def", "ghi", "jkl"], timeout=2)
     assert "abc missing" in str(ex_info.value)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_8_get_current_size(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\n"
+    current_log_size = u.wait_for_str(["bar"], timeout=3)
+    assert current_log_size == len(u.log)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_8_get_current_size(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\n"
+    current_log_size = u.wait_for_str(["bar"], timeout=3)
+    assert current_log_size == len(u.log)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_9_start_position(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\n"
+    bar_pos = u.log.find("bar")
+    with pytest.raises(AssertionError) as ex_info:
+        u.wait_for_str(["baz", "foo", "bar"], timeout=3, start_pos=bar_pos)
+    assert "foo" in str(ex_info.value)
+    u.wait_for_str(["bar", "baz"], timeout=3, start_pos=bar_pos)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_10_extract_one_value(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo: 123.45\n bar: 23.45 \n  baz: 0.1234\n"
+    assert float(u.extract_value(r"bar: (\d.+)")[0]) == 23.45
+
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_10_extract_three_values(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo: 123.45 bar: 23.45  baz: 0.1234"
+    extrated_values = u.extract_value(r"foo: (\d.+) bar: (\d.+) baz: (\d.+)")
+    assert [float(x) for x in extrated_values] == [123.45, 23.45, 0.1234]
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_11_extract_missing_values(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo: 123.45 baz: 23.45  bar: 0.1234"
+    extrated_values = u.extract_value(r"foo: (\d.+) foo: (\d.+) foo: (\d.+)")
+    assert extrated_values is None

@@ -9,6 +9,7 @@ import time
 import queue
 import os
 import sys
+import re
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
 from typing import Union
@@ -155,12 +156,15 @@ class Uart:
         self._selfdestruct = threading.Timer(timeout , self.selfdestruct)
         self._selfdestruct.start()
 
+    def get_size(self) -> int:
+        # Return the current size of the log
+        return len(self.log)
+
     def wait_for_str_ordered(
         self, msgs: list, error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT
     ) -> None:
-        start = time.time()
+        start_t = time.time()
         while True:
-            time.sleep(1)
             missing = None
             pos = 0
             for msg in msgs:
@@ -172,26 +176,34 @@ class Uart:
                 pos += 1
             else:
                 break
-            if start + timeout < time.time():
+            if start_t + timeout < time.time():
                 raise AssertionError(
                     f"{missing if missing else msgs} missing in UART log in the expected order. {error_msg}\nUart log:\n{self.log}"
                 )
             if self._evt.is_set():
                 raise RuntimeError(f"Uart thread stopped, log:\n{self.log}")
+            time.sleep(1)
 
-    def wait_for_str(self, msgs: Union[str, list], error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT) -> None:
-        start = time.time()
+    def wait_for_str(self, msgs: Union[str, list], error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT, start_pos: int = 0) -> None:
+        start_t = time.time()
         msgs = msgs if isinstance(msgs, (list, tuple)) else [msgs]
 
         while True:
-            time.sleep(1)
-            missing_msgs = [x for x in msgs if x not in self.log]
+            missing_msgs = [x for x in msgs if x not in self.log[start_pos:]]
             if missing_msgs == []:
-                break
-            if start + timeout < time.time():
+                return self.get_size()
+            if start_t + timeout < time.time():
                 raise AssertionError(f"{missing_msgs} missing in UART log. {error_msg}\nUart log:\n{self.log}")
             if self._evt.is_set():
                 raise RuntimeError(f"Uart thread stopped, log:\n{self.log}")
+            time.sleep(1)
+
+    def extract_value(self, pattern: str, start_pos: int = 0):
+        pattern = re.compile(pattern)
+        match = pattern.search(self.log[start_pos:])
+        if match:
+            return match.groups()
+        return None
 
 class UartBinary(Uart):
     def __init__(
@@ -246,3 +258,6 @@ class UartBinary(Uart):
             return
         with open(filename, "wb" ) as f:
             f.write(self.data)
+
+    def get_size(self) -> int:
+        return len(self.data)
