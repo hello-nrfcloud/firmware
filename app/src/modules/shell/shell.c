@@ -67,6 +67,12 @@ static void uart_disable_handler(struct k_work *work)
 	}
 #endif
 
+	/* Wait for UART buffers to be emptied before suspending.
+	 * If a transfer is ongoing, the driver will cause an assertion to fail.
+	 * 100 ms is an arbitrary value that should be enough for the buffers to empty.
+	 */
+	k_busy_wait(100 * USEC_PER_MSEC);
+
 	if (device_is_ready(uart1_dev)) {
 		pm_device_action_run(uart1_dev, PM_DEVICE_ACTION_SUSPEND);
 	}
