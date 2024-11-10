@@ -2,9 +2,13 @@ name: Publish Firmware Bundles Tests
 
 on:
   push:
+    paths:
+      - "**/*.mjs"
     branches:
       - main
   pull_request:
+    paths:
+      - "**/*.mjs"
 
 jobs:
   test:
