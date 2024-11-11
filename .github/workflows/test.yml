@@ -19,6 +19,18 @@ on:
         type: boolean
         required: true
         default: true
+      run_wifi_location_tests:
+        type: boolean
+        required: true
+        default: true
+      run_modem_trace_tests:
+        type: boolean
+        required: true
+        default: true
+      run_ppk_tests:
+        type: boolean
+        required: true
+        default: false
   schedule:
     - cron: "0 0 * * *"
   push:
@@ -66,4 +78,21 @@ jobs:
           github.event_name == 'schedule' ||
           github.event_name == 'push' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.run_connectivity_bridge_tests == 'true')
+        }}
+      run_wifi_location_tests: >-
+        ${{
+            github.event_name == 'schedule' ||
+            github.event_name == 'push' ||
+            (github.event_name == 'workflow_dispatch' && github.event.inputs.run_wifi_location_tests == 'true')
+        }}
+      run_modem_trace_tests: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.run_modem_trace_tests == 'true')
+        }}
+      run_ppk_tests: >-
+        ${{
+            github.event_name == 'schedule' ||
+            (github.event_name == 'workflow_dispatch' && github.event.inputs.run_ppk_tests == 'true')
         }}

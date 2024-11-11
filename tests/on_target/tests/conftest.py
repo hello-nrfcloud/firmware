@@ -102,7 +102,7 @@ def t91x_traces(t91x_board):
 def hex_file():
     # Search for the firmware hex file in the artifacts folder
     artifacts_dir = "artifacts"
-    hex_pattern = r"hello\.nrfcloud\.com-[a-f0-9]+-thingy91x-nrf91\.hex"
+    hex_pattern = r"hello\.nrfcloud\.com-[0-9a-z\.]+-thingy91x-nrf91\.hex"
 
     for file in os.listdir(artifacts_dir):
         if re.match(hex_pattern, file):
