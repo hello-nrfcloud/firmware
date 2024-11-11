@@ -61,13 +61,47 @@ def test_wait_ordered_2_missing(time_sleep, time_time):
     u.log = "foo123\nbar123\nbaz123\n"
     with pytest.raises(AssertionError) as ex_info:
         u.wait_for_str_ordered(["foo", "bar", "baz", "1234"], timeout=3)
-    assert "1234" in str(ex_info.value)
+    assert "1234 missing" in str(ex_info.value)
 
 @patch("time.time", side_effect=counter())
 @patch("time.sleep")
-def test_wait_ordered_2_out_of_order(time_sleep, time_time):
+def test_wait_ordered_3_out_of_order(time_sleep, time_time):
     u = mocked_uart()
     u.log = "foo123\nbar123\nbaz123\n"
     with pytest.raises(AssertionError) as ex_info:
         u.wait_for_str_ordered(["foo", "baz", "bar"], timeout=3)
     assert "bar missing" in str(ex_info.value)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_ordered_4_multiple(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\nfoo123\nfoo123\nbar123\n"
+    u.wait_for_str_ordered(["foo", "foo", "foo"], timeout=3)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_ordered_5_overflow(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\nfoo123\nfoo123\nbar123\n"
+    with pytest.raises(AssertionError) as ex_info:
+        u.wait_for_str_ordered(["foo", "foo", "foo", "foo"], timeout=3)
+    assert "foo missing" in str(ex_info.value)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_ordered_6_out_of_order(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\nfoo123\nfoo123\nbar123\n"
+    with pytest.raises(AssertionError) as ex_info:
+        u.wait_for_str_ordered(["foo", "bar", "foo", "baz"], timeout=3)
+    assert "baz missing" in str(ex_info.value)
+
+@patch("time.time", side_effect=counter())
+@patch("time.sleep")
+def test_wait_ordered_7_none(time_sleep, time_time):
+    u = mocked_uart()
+    u.log = "foo123\nbar123\nbaz123\nfoo123\nfoo123\nbar123\n"
+    with pytest.raises(AssertionError) as ex_info:
+        u.wait_for_str_ordered(["abc", "def", "ghi", "jkl"], timeout=2)
+    assert "abc missing" in str(ex_info.value)
