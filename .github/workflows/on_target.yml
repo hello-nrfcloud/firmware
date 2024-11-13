@@ -192,14 +192,22 @@ jobs:
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
-      - name: Results
-        if: always()
-        uses: pmeier/pytest-results-action@v0.7.1
+      # - name: Results
+      #   if: always()
+      #   uses: pmeier/pytest-results-action@v0.7.1
+      #   with:
+      #     path: thingy91x-oob/tests/on_target/results/*.xml
+      #     summary: true
+      #     fail-on-empty: true
+      #     title: OOB FW Test Results
+      
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()    # run this step even if previous step failed
         with:
-          path: thingy91x-oob/tests/on_target/results/*.xml
-          summary: true
-          fail-on-empty: true
-          title: OOB FW Test Results
+          name: Target Tests            # Name of the check run which will be created
+          path: thingy91x-oob/tests/on_target/results/*.xml    # Path to test results
+          reporter: java-junit        # Format of test results
 
       - name: Push log files to artifacts
         if: always()
