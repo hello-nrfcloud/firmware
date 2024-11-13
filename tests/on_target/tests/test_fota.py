@@ -52,7 +52,6 @@ def run_fota_resumption(t91x_board, fota_type):
 def run_fota_fixture(t91x_board, hex_file):
     def _run_fota(bundleId, fota_type, fotatimeout=APP_FOTA_TIMEOUT, test_fota_resumption=False):
         flash_device(os.path.abspath(hex_file))
-        time.sleep(10)
         t91x_board.uart.xfactoryreset()
         t91x_board.uart.flush()
         reset_device()

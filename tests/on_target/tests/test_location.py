@@ -25,7 +25,6 @@ def test_gnss_location(t91x_board, hex_file):
 
 def run_location(t91x_board, hex_file, location_method):
     flash_device(os.path.abspath(hex_file))
-    time.sleep(5)
     t91x_board.uart.xfactoryreset()
     patterns_cloud_connection = [
             "Network connectivity established",

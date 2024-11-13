@@ -18,7 +18,6 @@ logger = get_logger()
 @pytest.mark.uart
 def test_uart_output(t91x_board, hex_file):
     flash_device(os.path.abspath(hex_file))
-    time.sleep(5)
     t91x_board.uart.xfactoryreset()
     patterns_boot = [
             "Network connectivity established",
