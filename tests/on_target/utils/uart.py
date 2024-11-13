@@ -54,11 +54,28 @@ class Uart:
         chunked = True
         self._writeq.put((data, chunked))
 
+    def at_cmd_write(self, cmd: str) -> None:
+        start = time.time()
+        log_index = len(self.log)
+        count = 0
+        while not self._evt.is_set():
+            if count % 10 == 0:
+                self.write(cmd.encode("utf-8") + b"\r\n")
+                log_index = len(self.log)
+            count += 1
+            time.sleep(0.2)
+            if "OK" in self.log[log_index:]:
+                break
+            if start + 10 < time.time():
+                raise UartLogTimeout(f"AT command \"{cmd}\" timed out")
+
     def xfactoryreset(self) -> None:
-        self.write(b"at AT+CFUN=4\r\n")
-        time.sleep(1)
-        self.write(b"at AT%XFACTORYRESET=0\r\n")
-        time.sleep(1)
+        try:
+            self.at_cmd_write("at AT")
+            self.at_cmd_write("at AT+CFUN=4")
+            self.at_cmd_write("at AT%XFACTORYRESET=0")
+        except UartLogTimeout:
+            logger.error("AT FACTORYRESET failed, continuing")
 
     def _uart(self) -> None:
         data = None
