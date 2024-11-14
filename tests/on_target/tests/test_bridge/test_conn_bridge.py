@@ -29,7 +29,7 @@ MAC_ADDR_FLASH_LOCATION = 0x7A000
 
 SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
 SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
-CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID', "")
+CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID_DUT_2', "")
 
 
 
@@ -57,7 +57,7 @@ def t91x_conn_bridge():
     logger.info("Flashing nrf91 with custom app through dfu")
     dfu_device(NRF91_CUSTOM_APP_ZIP, serial=CONNECTIVITY_BRIDGE_UART)
 
-    all_uarts = get_uarts()
+    all_uarts = get_uarts(CONNECTIVITY_BRIDGE_UART)
     if not all_uarts:
         pytest.fail("No UARTs found")
     logger.info(f"All uarts discovered: {all_uarts}")
@@ -74,10 +74,17 @@ def t91x_conn_bridge():
     uart0.stop()
     uart1.stop()
 
-
-@pytest.mark.dut2
-@pytest.mark.conn_bridge
+@pytest.mark.slow
 def test_conn_bridge(t91x_conn_bridge):
+    '''
+    Test the connectivity bridge between nRF53 and nRF91
+
+    Test steps:
+    1. Wait for UART0 and UART1 to be available
+    2. Send 4k of data from USB to UART0
+    3. Send 4k of data from UART1 to USB
+    4. Send 40k of data from UART1 to USB
+    '''
     t91x_conn_bridge.uart0.wait_for_str(
             "UART0 running at baudrate 115200", timeout=UART_TIMEOUT
         )
