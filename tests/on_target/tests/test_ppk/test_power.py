@@ -27,6 +27,7 @@ MAX_CURRENT_PSM_UA = 10
 SAMPLING_INTERVAL = 0.01
 CSV_FILE = "power_measurements.csv"
 HMTL_PLOT_FILE = "power_measurements_plot.html"
+SEGGER_PPK = os.getenv('SEGGER_PPK')
 
 
 def save_badge_data(average):
@@ -136,7 +137,7 @@ def thingy91x_ppk2():
     time.sleep(10)
     for i in range(10):
         try:
-            all_uarts = get_uarts()
+            all_uarts = get_uarts(SEGGER_PPK)
             if not all_uarts:
                 logger.error("No UARTs found")
             log_uart_string = all_uarts[0]
@@ -155,14 +156,18 @@ def thingy91x_ppk2():
     yield types.SimpleNamespace(ppk2_dev=ppk2_dev, t91x_uart=t91x_uart)
 
     t91x_uart.stop()
-    recover_device()
+    recover_device(serial=SEGGER_PPK)
     ppk2_dev.stop_measuring()
 
-
-@pytest.mark.dut_ppk
+@pytest.mark.slow
 def test_power(thingy91x_ppk2, hex_file):
-    flash_device(os.path.abspath(hex_file))
-    reset_device()
+    '''
+    Test that the device can reach PSM and measure the current consumption
+
+    Current consumption is measured and report generated.
+    '''
+    flash_device(os.path.abspath(hex_file), serial=SEGGER_PPK)
+    reset_device(serial=SEGGER_PPK)
     try:
         thingy91x_ppk2.t91x_uart.wait_for_str("Connected to Cloud", timeout=120)
     except AssertionError:

@@ -5,13 +5,13 @@
 
 import os
 import re
-import pytest
 import types
+import pytest
+import subprocess
+from pytest_metadata.plugin import metadata_key
 from utils.flash_tools import recover_device
 from utils.uart import Uart, UartBinary
 from utils.hellonrfcloud_fota import HelloNrfCloudFOTA
-import sys
-sys.path.append(os.getcwd())
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -19,11 +19,46 @@ logger = get_logger()
 UART_TIMEOUT = 60 * 30
 
 SEGGER = os.getenv('SEGGER')
-UART_ID = os.getenv('UART_ID', SEGGER)
+UART_ID = SEGGER
 FOTADEVICE_IMEI = os.getenv('IMEI')
 FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
 
-def get_uarts():
+def pytest_html_report_title(report):
+    report.title = os.getenv("TEST_REPORT_NAME", "OOB Test Report")
+
+
+def check_output(cmd, regexp):
+    p = subprocess.check_output(cmd.split()).decode().strip()
+    match = re.search(regexp, p)
+    return match.group(1)
+
+def pytest_configure(config):
+    config.stash[metadata_key]["Board"] = "thingy91x"
+    config.stash[metadata_key]["Board revision"] = os.getenv("DUT1_HW_REVISION", "Undefined")
+    config.stash[metadata_key]["nrfutil version"] = check_output("nrfutil --version", r"nrfutil ([0-9\.]+)")
+    config.stash[metadata_key]["nrfutil-device version"] = check_output(
+        "nrfutil device --version",
+        r"nrfutil-device ([0-9\.]+)"
+    )
+    config.stash[metadata_key]["SEGGER JLink version"] = check_output(
+        "nrfutil device --version",
+        r"SEGGER J-Link version: JLink_V([0-9a-z\.]+)"
+    )
+
+# Add column to table for test specification
+def pytest_html_results_table_header(cells):
+    cells.insert(2, "<th>Specification</th>")
+
+def pytest_html_results_table_row(report, cells):
+    cells.insert(2, f"<td>{report.description}</td>")
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    report.description = str(item.function.__doc__)
+
+def get_uarts(uart_id):
     base_path = "/dev/serial/by-id"
     try:
         serial_paths = [os.path.join(base_path, entry) for entry in os.listdir(base_path)]
@@ -34,7 +69,7 @@ def get_uarts():
     uarts = []
 
     for path in sorted(serial_paths):
-        if UART_ID in path:
+        if uart_id in path:
             uarts.append(path)
         else:
             continue
@@ -55,7 +90,7 @@ def pytest_runtest_logfinish(nodeid, location):
 
 @pytest.fixture(scope="module")
 def t91x_board():
-    all_uarts = get_uarts()
+    all_uarts = get_uarts(UART_ID)
     if not all_uarts:
         pytest.fail("No UARTs found")
     log_uart_string = all_uarts[0]
@@ -74,7 +109,7 @@ def t91x_board():
 @pytest.fixture(scope="module")
 def t91x_fota(t91x_board):
     fota = HelloNrfCloudFOTA(device_id=f"oob-{FOTADEVICE_IMEI}", \
-                                    fingerprint=FOTADEVICE_FINGERPRINT)
+                             fingerprint=FOTADEVICE_FINGERPRINT)
 
     yield types.SimpleNamespace(
         fota=fota,
@@ -94,7 +129,7 @@ def t91x_fota(t91x_board):
 
 @pytest.fixture(scope="module")
 def t91x_traces(t91x_board):
-    all_uarts = get_uarts()
+    all_uarts = get_uarts(UART_ID)
     trace_uart_string = all_uarts[1]
     uart_trace = UartBinary(trace_uart_string)
 
