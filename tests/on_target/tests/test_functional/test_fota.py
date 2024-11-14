@@ -74,10 +74,10 @@ def run_fota_fixture(t91x_fota, hex_file):
 
     return _run_fota
 
-
-@pytest.mark.dut1
-@pytest.mark.fota
-def test_app_fota(t91x_fota, hex_file, run_fota_fixture):
+def test_app_fota(t91x_board, hex_file, run_fota_fixture):
+    '''
+    Test application FOTA on nrf9151
+    '''
     # Get latest APP fota bundle
     results = t91x_fota.fota.get_fota_bundles()
     if not results:
@@ -94,9 +94,10 @@ def test_app_fota(t91x_fota, hex_file, run_fota_fixture):
     run_fota_fixture(bundleId=latest_app_bundle["bundleId"], fota_type="app", test_fota_resumption=True)
 
 
-@pytest.mark.dut1
-@pytest.mark.fota
-def test_delta_mfw_fota(t91x_fota, hex_file, run_fota_fixture):
+def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+    '''
+    Test delta modem FOTA on nrf9151
+    '''
     # Flash with mfw201
     flash_device(os.path.abspath(MFW_201_FILEPATH))
 
@@ -106,8 +107,9 @@ def test_delta_mfw_fota(t91x_fota, hex_file, run_fota_fixture):
     # Restore mfw201
     flash_device(os.path.abspath(MFW_201_FILEPATH))
 
-
-@pytest.mark.dut1
-@pytest.mark.fullmfw_fota
-def test_full_mfw_fota(t91x_fota, hex_file, run_fota_fixture):
+@pytest.mark.slow
+def test_full_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+    '''
+    Test full modem FOTA on nrf9151
+    '''
     run_fota_fixture(FULL_MFW_BUNDLEID, "full", FULL_MFW_FOTA_TIMEOUT)

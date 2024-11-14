@@ -26,7 +26,7 @@ NRF91_HEX_FILE = "artifacts/nrf91-bl-v2.hex"
 
 SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
 SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
-CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID', "")
+CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID_DUT_2', "")
 
 @pytest.fixture(scope="function")
 def t91x_dfu():
@@ -59,7 +59,7 @@ def t91x_dfu():
 
     logger.info("nRF53 initialized successfully")
 
-    all_uarts = get_uarts()
+    all_uarts = get_uarts(CONNECTIVITY_BRIDGE_UART)
     if not all_uarts:
         pytest.fail("No UARTs found")
     logger.info(f"All uarts discovered: {all_uarts}")
@@ -73,9 +73,11 @@ def t91x_dfu():
     uart.stop()
 
 
-@pytest.mark.dut2
-@pytest.mark.dfu
+@pytest.mark.slow
 def test_dfu(t91x_dfu):
+    '''
+    Test to perform DFU on nRF53
+    '''
     logger.info("Starting DFU, stopping UART")
     t91x_dfu.uart.stop()
 

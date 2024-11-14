@@ -17,9 +17,10 @@ trace_collection_time = 60
 trace_read_timeout = 60
 threshold_lost_traces = 200
 
-@pytest.mark.traces
-@pytest.mark.dut1
 def test_traces(t91x_traces, hex_file):
+    '''
+    Test that the device can collect and dump modem traces to uart1
+    '''
     flash_device(os.path.abspath(hex_file))
     time.sleep(5)
     t91x_traces.uart.xfactoryreset()
