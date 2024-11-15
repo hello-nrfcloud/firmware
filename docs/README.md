@@ -1,7 +1,5 @@
 # Welcome to OOB-firmware GitHub Pages Site
 
 ## PPK files
-- [HTML Page](test_html.html)
-- [Image](test_png.png)
-- [CSV File](test_csv.csv)
+- [HTML interactive image](test_html.html)
 - [Power badge](power_badge.json)
