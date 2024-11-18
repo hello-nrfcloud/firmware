@@ -5,3 +5,6 @@ pyusb
 imgtool
 requests
 memfault-cli
+ppk2-api
+pandas
+plotly
