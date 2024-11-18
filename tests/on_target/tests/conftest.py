@@ -8,7 +8,7 @@ import re
 import pytest
 import types
 from utils.flash_tools import recover_device
-from utils.uart import Uart
+from utils.uart import Uart, UartBinary
 from utils.hellonrfcloud_fota import HelloNrfCloudFOTA
 import sys
 sys.path.append(os.getcwd())
@@ -59,7 +59,6 @@ def t91x_board():
     if not all_uarts:
         pytest.fail("No UARTs found")
     log_uart_string = all_uarts[0]
-
     uart = Uart(log_uart_string, timeout=UART_TIMEOUT)
     fota = HelloNrfCloudFOTA(device_id=f"oob-{FOTADEVICE_IMEI}", \
                                     fingerprint=FOTADEVICE_FINGERPRINT)
@@ -85,6 +84,19 @@ def t91x_board():
     recover_device()
 
     scan_log_for_assertions(uart_log)
+
+@pytest.fixture(scope="module")
+def t91x_traces(t91x_board):
+    all_uarts = get_uarts()
+    trace_uart_string = all_uarts[1]
+    uart_trace = UartBinary(trace_uart_string)
+
+    yield types.SimpleNamespace(
+        trace=uart_trace,
+        uart=t91x_board.uart
+        )
+
+    uart_trace.stop()
 
 @pytest.fixture(scope="session")
 def hex_file():
