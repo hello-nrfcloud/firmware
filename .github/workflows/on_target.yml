@@ -192,6 +192,16 @@ jobs:
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
+      - name: Run modem trace test
+        working-directory: thingy91x-oob/tests/on_target
+        run: |
+          mkdir -p results
+          pytest -s -v -m "dut1 and traces" \
+            --junit-xml=results/test-results-traces-location.xml \
+            tests
+        env:
+          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+
       - name: Results
         if: always()
         uses: pmeier/pytest-results-action@v0.7.1
