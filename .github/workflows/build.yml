@@ -37,7 +37,11 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "tests/on_target/**"
   pull_request:
+    paths-ignore:
+      - "tests/on_target/**"
   schedule:
     - cron: "0 0 * * *"
 
