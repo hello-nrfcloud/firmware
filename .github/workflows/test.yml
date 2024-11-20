@@ -50,6 +50,8 @@ jobs:
       artifact_fw_version: ${{ needs.build.outputs.version }}
       artifact_run_id: ${{ needs.build.outputs.run_id }}
   test:
+    permissions:
+      contents: write
     uses: ./.github/workflows/on_target.yml
     needs: build
     secrets: inherit
