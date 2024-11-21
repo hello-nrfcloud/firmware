@@ -26,7 +26,7 @@ NRF91_HEX_FILE = "artifacts/nrf91-bl-v2.hex"
 
 SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
 SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
-CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID')
+CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID', "")
 
 @pytest.fixture(scope="function")
 def t91x_dfu():
