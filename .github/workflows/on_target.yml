@@ -236,6 +236,7 @@ jobs:
 
       - name: Commit and Push Badge File to gh-pages Branch
         if: ${{ inputs.run_ppk_tests }}
+        continue-on-error: true
         working-directory: thingy91x-oob
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
