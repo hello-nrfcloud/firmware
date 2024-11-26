@@ -145,3 +145,7 @@ Modem traces are enabled by default on the Thingy:91 X and continously stored to
    modem_trace dump_uart    # Dump traces to UART 1 for analysis
 
 ## Known issues
+
+## Interactive BOM
+
+Explore the board online at this page: [Interactive BOM PCA20065 1.0.0](docs/pca20065_1_0_0.html).
