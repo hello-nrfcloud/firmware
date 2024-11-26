@@ -22,11 +22,12 @@ from utils.logger import get_logger
 logger = get_logger()
 
 UART_TIMEOUT = 60 * 30
-POWER_TIMEOUT = 60 * 20
+POWER_TIMEOUT = 60 * 15
 MAX_CURRENT_PSM_UA = 10
 SAMPLING_INTERVAL = 0.01
 CSV_FILE = "power_measurements.csv"
 HMTL_PLOT_FILE = "power_measurements_plot.html"
+
 
 def save_badge_data(average):
     badge_filename = "power_badge.json"
@@ -53,6 +54,7 @@ def save_badge_data(average):
 
     logger.info(f"Minimum average current saved to {badge_filename}")
 
+
 def save_measurement_data(samples):
     # Generate timestamps for each sample assuming uniform sampling interval
     timestamps = [round(i * SAMPLING_INTERVAL, 2) for i in range(len(samples))]
@@ -66,6 +68,7 @@ def save_measurement_data(samples):
             writer.writerow({'Time (s)': t, 'Current (uA)': current})
 
     logger.info(f"Measurement data saved to {CSV_FILE}")
+
 
 def generate_time_series_html(csv_file, date_column, value_column, output_file="time_series_plot.html"):
     """
@@ -84,7 +87,7 @@ def generate_time_series_html(csv_file, date_column, value_column, output_file="
     df = pd.read_csv(csv_file, parse_dates=[date_column])
 
     title = "OOB Current Consumption Plot\n\n"
-    note_text = "Note: Low power state is reached after ~10 min, earlier than that uart is active (drawing ≳500uA)"
+    note_text = "Note: Low power state is reached after ~10 min, earlier than that uart is active (drawing ≥500uA)"
     title += f"<br><span style='font-size:12px;color:gray;'>{note_text}</span>"
 
     # Create an interactive Plotly line chart
@@ -126,7 +129,6 @@ def thingy91x_ppk2():
     else:
         pytest.skip("Failed to get ppk modifiers after 10 attempts")
 
-
     ppk2_dev.set_source_voltage(3300)
     ppk2_dev.use_ampere_meter()  # set ampere meter mode
     ppk2_dev.toggle_DUT_power("ON")  # enable DUT power
@@ -156,6 +158,7 @@ def thingy91x_ppk2():
     recover_device()
     ppk2_dev.stop_measuring()
 
+
 @pytest.mark.dut_ppk
 def test_power(thingy91x_ppk2, hex_file):
     flash_device(os.path.abspath(hex_file))
@@ -172,6 +175,8 @@ def test_power(thingy91x_ppk2, hex_file):
     rolling_average = float('inf')
     samples_list = []
     last_log_time = start
+    psm_reached = False
+
     # Initialize an empty pandas Series to store samples over time
     samples_series = pd.Series(dtype='float64')
     while time.time() < start + POWER_TIMEOUT:
@@ -179,7 +184,7 @@ def test_power(thingy91x_ppk2, hex_file):
             read_data = thingy91x_ppk2.ppk2_dev.get_data()
             if read_data != b'':
                 ppk_samples, _ = thingy91x_ppk2.ppk2_dev.get_samples(read_data)
-                sample = sum(ppk_samples)/len(ppk_samples)
+                sample = sum(ppk_samples) / len(ppk_samples)
                 sample = round(sample, 2)
                 samples_list.append(sample)
 
@@ -201,19 +206,21 @@ def test_power(thingy91x_ppk2, hex_file):
 
                     last_log_time = current_time
 
+                    # Check if PSM target has been reached
+                    if rolling_average < MAX_CURRENT_PSM_UA and rolling_average > 0:
+                        psm_reached = True
+
         except Exception as e:
             logger.error(f"Catching exception: {e}")
             pytest.skip("Something went wrong, unable to perform power measurements")
 
-        if rolling_average < MAX_CURRENT_PSM_UA and rolling_average > 0:
-            logger.info("psm target reached for more than 3 secs")
-            break
         time.sleep(SAMPLING_INTERVAL)  # lower time between sampling -> less samples read in one sampling period
-    else:
-        save_badge_data(min_rolling_average)
-        save_measurement_data(samples_list)
-        generate_time_series_html(CSV_FILE, 'Time (s)', 'Current (uA)', HMTL_PLOT_FILE)
-        pytest.fail(f"PSM target not reached after {POWER_TIMEOUT} seconds, only reached {min_rolling_average} uA")
+
+    # Save measurement data and generate HTML report
     save_badge_data(min_rolling_average)
     save_measurement_data(samples_list)
     generate_time_series_html(CSV_FILE, 'Time (s)', 'Current (uA)', HMTL_PLOT_FILE)
+
+    # Determine test result based on whether PSM was reached
+    if not psm_reached:
+        pytest.fail(f"PSM target not reached after {POWER_TIMEOUT / 60} minutes, only reached {min_rolling_average} uA")
