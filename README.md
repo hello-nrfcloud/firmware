@@ -146,6 +146,10 @@ Modem traces are enabled by default on the Thingy:91 X and continously stored to
 
 ## Known issues
 
+* Serial DFU for nRF91 stops working after using GNU screen
+  * Will be fixed with the next release (https://github.com/nrfconnect/sdk-nrf/pull/19024)
+  * Workaround: use a different serial terminal application like Nordic's Serial Terminal or `tio`, power cycle device if needed.
+
 ## Interactive BOM
 
-Explore the board online at this page: [Interactive BOM PCA20065 1.0.0](docs/pca20065_1_0_0.html).
+Explore the board online at this page: [Interactive BOM PCA20065 1.0.0](https://htmlpreview.github.io/?https://github.com/hello-nrfcloud/firmware/blob/main/docs/pca20065_1_0_0.html).
