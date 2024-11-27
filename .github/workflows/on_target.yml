@@ -210,13 +210,28 @@ jobs:
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
 
+      - name: Run memfault test
+        if: ${{ inputs.run_modem_trace_tests }}
+        working-directory: thingy91x-oob/tests/on_target
+        run: |
+          mkdir -p results
+          pytest -s -v -m "dut1 and memfault" \
+            --junit-xml=results/test-results-memfault.xml \
+            tests
+        env:
+          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+          IMEI: ${{ secrets.IMEI_DUT_1 }}
+          MEMFAULT_ORGANIZATION_TOKEN: ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }}
+          MEMFAULT_ORGANIZATION_SLUG: ${{ vars.MEMFAULT_ORGANIZATION_SLUG }}
+          MEMFAULT_PROJECT_SLUG: ${{ vars.MEMFAULT_PROJECT_SLUG }}
+
       - name: Run modem trace test
         if: ${{ inputs.run_modem_trace_tests }}
         working-directory: thingy91x-oob/tests/on_target
         run: |
           mkdir -p results
           pytest -s -v -m "dut1 and traces" \
-            --junit-xml=results/test-results-traces-location.xml \
+            --junit-xml=results/test-results-traces.xml \
             tests
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
