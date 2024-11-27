@@ -20,66 +20,66 @@ FULL_MFW_BUNDLEID = "MDM_FULL*bdd24c80*mfw_nrf91x1_full_2.0.1"
 APP_FOTA_TIMEOUT = 60 * 10
 FULL_MFW_FOTA_TIMEOUT = 60 * 30
 
-def post_job(t91x_board, bundle_id, fota_type):
-    result = t91x_board.fota.post_fota_job(type=fota_type, bundle_id=bundle_id)
+def post_job(t91x_fota, bundle_id, fota_type):
+    result = t91x_fota.fota.post_fota_job(type=fota_type, bundle_id=bundle_id)
     job_id = result["id"]
     if not result:
         pytest.skip("Failed to post FOTA job")
-    t91x_board.uart.flush()
+    t91x_fota.uart.flush()
     return job_id
 
-def run_fota_resumption(t91x_board, fota_type):
+def run_fota_resumption(t91x_fota, fota_type):
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
-    t91x_board.uart.wait_for_str("bytes (50%)")
+    t91x_fota.uart.wait_for_str("bytes (50%)")
 
     patterns_lte_offline = ["network: Network connectivity lost"]
     patterns_lte_normal = ["network: Network connectivity established", "transport: Connected to Cloud"]
 
     # LTE disconnect
-    t91x_board.uart.flush()
-    t91x_board.uart.write("lte offline\r\n")
-    t91x_board.uart.wait_for_str(patterns_lte_offline, timeout=20)
+    t91x_fota.uart.flush()
+    t91x_fota.uart.write("lte offline\r\n")
+    t91x_fota.uart.wait_for_str(patterns_lte_offline, timeout=20)
 
     # LTE reconnect
-    t91x_board.uart.flush()
-    t91x_board.uart.write("lte normal\r\n")
-    t91x_board.uart.wait_for_str(patterns_lte_normal, timeout=120)
+    t91x_fota.uart.flush()
+    t91x_fota.uart.write("lte normal\r\n")
+    t91x_fota.uart.wait_for_str(patterns_lte_normal, timeout=120)
 
-    t91x_board.uart.wait_for_str("fota_download: Refuse fragment, restart with offset")
-    t91x_board.uart.wait_for_str("fota_download: Downloading from offset:")
+    t91x_fota.uart.wait_for_str("fota_download: Refuse fragment, restart with offset")
+    t91x_fota.uart.wait_for_str("fota_download: Downloading from offset:")
 
 @pytest.fixture
-def run_fota_fixture(t91x_board, hex_file):
+def run_fota_fixture(t91x_fota, hex_file):
     def _run_fota(bundleId, fota_type, fotatimeout=APP_FOTA_TIMEOUT, test_fota_resumption=False):
         flash_device(os.path.abspath(hex_file))
-        t91x_board.uart.xfactoryreset()
-        t91x_board.uart.flush()
+        t91x_fota.uart.xfactoryreset()
+        t91x_fota.uart.flush()
         reset_device()
-        t91x_board.uart.wait_for_str("Connected to Cloud")
+        t91x_fota.uart.wait_for_str("Connected to Cloud")
 
-        job_id = post_job(t91x_board, bundleId, fota_type)
+        job_id = post_job(t91x_fota, bundleId, fota_type)
 
         # if test_fota_resumption:
-        #     run_fota_resumption(t91x_board, fota_type)
+        #     run_fota_resumption(t91x_fota, fota_type)
 
-        t91x_board.uart.flush()
-        t91x_board.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
+        t91x_fota.uart.flush()
+        t91x_fota.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
         if fota_type == "app":
-            t91x_board.uart.wait_for_str("App FOTA update confirmed")
+            t91x_fota.uart.wait_for_str("App FOTA update confirmed")
         elif fota_type == "delta":
-            t91x_board.uart.wait_for_str("Modem (delta) FOTA complete")
+            t91x_fota.uart.wait_for_str("Modem (delta) FOTA complete")
         elif fota_type == "full":
-            t91x_board.uart.wait_for_str("FMFU finished")
-        t91x_board.uart.wait_for_str("Connected to Cloud", "Failed to connect to Cloud after FOTA")
+            t91x_fota.uart.wait_for_str("FMFU finished")
+        t91x_fota.uart.wait_for_str("Connected to Cloud", "Failed to connect to Cloud after FOTA")
 
     return _run_fota
 
 
 @pytest.mark.dut1
 @pytest.mark.fota
-def test_app_fota(t91x_board, hex_file, run_fota_fixture):
+def test_app_fota(t91x_fota, hex_file, run_fota_fixture):
     # Get latest APP fota bundle
-    results = t91x_board.fota.get_fota_bundles()
+    results = t91x_fota.fota.get_fota_bundles()
     if not results:
         pytest.fail("Failed to get APP FOTA bundles")
     available_bundles = results["bundles"]
@@ -96,7 +96,7 @@ def test_app_fota(t91x_board, hex_file, run_fota_fixture):
 
 @pytest.mark.dut1
 @pytest.mark.fota
-def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+def test_delta_mfw_fota(t91x_fota, hex_file, run_fota_fixture):
     # Flash with mfw201
     flash_device(os.path.abspath(MFW_201_FILEPATH))
 
@@ -109,5 +109,5 @@ def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
 
 @pytest.mark.dut1
 @pytest.mark.fullmfw_fota
-def test_full_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+def test_full_mfw_fota(t91x_fota, hex_file, run_fota_fixture):
     run_fota_fixture(FULL_MFW_BUNDLEID, "full", FULL_MFW_FOTA_TIMEOUT)

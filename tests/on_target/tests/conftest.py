@@ -60,12 +60,25 @@ def t91x_board():
         pytest.fail("No UARTs found")
     log_uart_string = all_uarts[0]
     uart = Uart(log_uart_string, timeout=UART_TIMEOUT)
+
+    yield types.SimpleNamespace(
+		uart=uart
+		)
+
+    uart_log = uart.whole_log
+    uart.stop()
+    recover_device()
+
+    scan_log_for_assertions(uart_log)
+
+@pytest.fixture(scope="module")
+def t91x_fota(t91x_board):
     fota = HelloNrfCloudFOTA(device_id=f"oob-{FOTADEVICE_IMEI}", \
                                     fingerprint=FOTADEVICE_FINGERPRINT)
 
     yield types.SimpleNamespace(
-		uart=uart,
-        fota=fota
+        fota=fota,
+        uart=t91x_board.uart
 		)
 
     # Cancel pending fota jobs, at fota test teardown
@@ -78,12 +91,6 @@ def t91x_board():
                 fota.delete_jobs(pending_jobs)
         except Exception as e:
             logger.error(f"Error during teardown while canceling pending fota jobs: {e}")
-
-    uart_log = uart.whole_log
-    uart.stop()
-    recover_device()
-
-    scan_log_for_assertions(uart_log)
 
 @pytest.fixture(scope="module")
 def t91x_traces(t91x_board):
