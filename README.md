@@ -15,4 +15,4 @@ This project is based on the
 
 ## Getting started
 
-To get started with hello-nrfcloud firmware for the Thingy:91 X, follow [documentation](https://github.com/hello-nrfcloud/firmware).
+To get started with hello-nrfcloud firmware for the Thingy:91 X, follow [documentation](https://hello-nrfcloud.github.io/firmware/html/index.html).
