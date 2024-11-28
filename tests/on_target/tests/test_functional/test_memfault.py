@@ -62,8 +62,6 @@ def wait_for_heartbeat(timestamp_old_heartbeat_evt):
     else:
         raise AssertionError("No new heartbeat event observed")
 
-@pytest.mark.memfault
-@pytest.mark.dut1
 def test_memfault(t91x_board, hex_file):
     flash_device(os.path.abspath(hex_file))
     t91x_board.uart.xfactoryreset()

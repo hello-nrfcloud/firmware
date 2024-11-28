@@ -74,7 +74,7 @@ def run_fota_fixture(t91x_fota, hex_file):
 
     return _run_fota
 
-def test_app_fota(t91x_board, hex_file, run_fota_fixture):
+def test_app_fota(t91x_fota, hex_file, run_fota_fixture):
     '''
     Test application FOTA on nrf9151
     '''
