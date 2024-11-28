@@ -50,7 +50,11 @@ def wait_for_heartbeat(timestamp_old_heartbeat_evt):
         new_heartbeat_events = get_latest_events("HEARTBEAT", IMEI)
         if not new_heartbeat_events:
             continue
-        if not new_heartbeat_events[0]["summary"]["event_info"]["metrics"]["MemfaultSdkMetric_UnexpectedRebootCount"] >= 1:
+        try:
+            unexpected_reboot_count = new_heartbeat_events[0]["summary"]["event_info"]["metrics"]["MemfaultSdkMetric_UnexpectedRebootCount"]
+        except (KeyError, ValueError):
+            continue
+        if unexpected_reboot_count < 1:
             continue
         # Check that we have heartbeat event with newer timestamp
         if not timestamp_old_heartbeat_evt:
