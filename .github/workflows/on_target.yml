@@ -14,7 +14,7 @@ on:
         required: false
       pytest_path:
         type: string
-        required: true
+        required: false
         default: tests
 
   workflow_dispatch:
@@ -34,7 +34,7 @@ on:
       pytest_path:
         description: Select test execution path
         type: string
-        required: true
+        required: false
         default: tests
 
 jobs:
@@ -107,6 +107,9 @@ jobs:
           TEST_REPORT_NAME: OOB Firwmare Test Report
           DUT1_HW_REVISION: ${{ vars.DUT1_HW_REVISION }}
           SEGGER_PPK: ${{ secrets.SEGGER_DUT_PPK }}
+          MEMFAULT_ORGANIZATION_TOKEN: ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }}
+          MEMFAULT_ORGANIZATION_SLUG: ${{ vars.MEMFAULT_ORGANIZATION_SLUG }}
+          MEMFAULT_PROJECT_SLUG: ${{ vars.MEMFAULT_PROJECT_SLUG }}
 
       - name: Commit and Push Badge File to gh-pages Branch
         continue-on-error: true
