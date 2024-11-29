@@ -9,7 +9,7 @@ on:
         default: -m "not slow"
 
   schedule:
-    - cron: "15 * * * *"
+    - cron: "0 0 * * *"
   push:
     branches:
       - main
