@@ -92,7 +92,14 @@ jobs:
         working-directory: thingy91x-oob/tests/on_target
         run: |
           mkdir -p results
-          pytest -v ${{ inputs.pytest_marker }} \
+
+          if [ "${{ inputs.pytest_marker }}" == "no_markers_flag" ]; then
+            real_pytest_marker=""
+          else
+            real_pytest_marker="${{ inputs.pytest_marker }}"
+          fi
+
+          pytest -v $real_pytest_marker \
             --junit-xml=results/test-results.xml \
             --html=results/test-results.html --self-contained-html \
             ${{ inputs.pytest_path }}
