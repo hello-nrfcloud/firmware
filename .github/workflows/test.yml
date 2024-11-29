@@ -9,7 +9,7 @@ on:
         default: -m "not slow"
 
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "50 13 * * *"
   push:
     branches:
       - main
@@ -35,4 +35,4 @@ jobs:
     with:
       artifact_fw_version: ${{ needs.build.outputs.version }}
       artifact_run_id: ${{ needs.build.outputs.run_id }}
-      pytest_marker: ${{ inputs.pytest_marker || (github.event_name == 'schedule' && '') || (github.event_name == 'push' && '-m "not slow"') }}
+      pytest_marker: ${{ inputs.pytest_marker || (github.event_name == 'schedule' && 'no_markers_flag') || (github.event_name == 'push' && '-m "not slow"') }}
