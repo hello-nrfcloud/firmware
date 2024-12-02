@@ -41,11 +41,15 @@ on:
       - "tests/on_target/**"
       - ".github/workflows/test.yml"
       - ".github/workflows/on_target.yml"
+      - ".github/workflows/docs-build-and-publish.yml"
+      - "docs/**"
   pull_request:
     paths-ignore:
       - "tests/on_target/**"
       - ".github/workflows/test.yml"
       - ".github/workflows/on_target.yml"
+      - ".github/workflows/docs-build-and-publish.yml"
+      - "docs/**"
   schedule:
     - cron: "0 0 * * *"
 
