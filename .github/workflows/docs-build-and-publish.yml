@@ -63,7 +63,6 @@ jobs:
 
           # Update docs
           rm -rf docs/html
-          mkdir docs/html
           cp -r docs/build/html docs/html
           rm -rf docs/build
 
