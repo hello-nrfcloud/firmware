@@ -13,11 +13,13 @@ on:
       - main
 
 jobs:
-  build:
+  docs-build-and-publish:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
