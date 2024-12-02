@@ -8,6 +8,7 @@ About Thingy:91 X: Hello nRF Cloud firmware
    :depth: 1
 
 This project is based on the `NCS Example Application`_.
+The project contains the firmware that is programmed on the Thingy:91 X in the factory.
 
 .. to do intro
 
