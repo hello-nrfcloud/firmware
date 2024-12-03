@@ -32,3 +32,5 @@
 .. _`Interactive BOM PCA20065 1.0.0.`: https://htmlpreview.github.io/?https://github.com/hello-nrfcloud/firmware/blob/main/docs/pca20065_1_0_0.html
 
 .. _`pyOCD`: https://github.com/pyocd/pyOCD
+
+.. _`hello.nrfcloud.com`: https://hello.nrfcloud.com/
