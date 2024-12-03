@@ -6,6 +6,7 @@
 import subprocess
 import os
 import sys
+import glob
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
 from utils.thingy91x_dfu import detect_family_from_zip
@@ -33,6 +34,8 @@ def reset_device(serial=SEGGER, reset_kind="RESET_SYSTEM"):
 
 def flash_device(hexfile, serial=SEGGER, extra_args=[]):
     # hexfile (str): Full path to file (hex or zip) to be programmed
+    if not isinstance(hexfile, str):
+        raise ValueError("hexfile cannot be None")
     logger.info(f"Flashing device, segger: {serial}, firmware: {hexfile}")
     try:
         result = subprocess.run(['nrfutil', 'device', 'program', *extra_args, '--firmware', hexfile, '--serial-number', serial], check=True, text=True, capture_output=True)
@@ -118,3 +121,10 @@ def setup_jlink(serial_number):
         logger.error(f"Standard output:\n{e.stdout}")
         logger.error(f"Standard error:\n{e.stderr}")
         raise
+
+def get_first_artifact_match(pattern):
+    matches = glob.glob(pattern)
+    if matches:
+        return matches[0]
+    else:
+        return None

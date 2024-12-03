@@ -1,7 +1,11 @@
 pytest
+pytest-html
 pyserial
 termcolor
 pyusb
 imgtool
 requests
 memfault-cli
+ppk2-api
+pandas
+plotly

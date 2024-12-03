@@ -3,32 +3,20 @@ name: Target tests
 on:
   workflow_call:
     inputs:
-      artifact_fw_version:
-        type: string
-        required: true
       artifact_run_id:
         type: string
         required: true
-      run_log_check_tests:
-        type: boolean
-        required: false
-        default: true
-      run_fota_tests:
-        type: boolean
-        required: false
-        default: true
-      run_fullmfwfota_test:
-        type: boolean
+      artifact_fw_version:
+        type: string
         required: true
-        default: false
-      run_dfu_tests:
-        type: boolean
+      pytest_marker:
+        type: string
         required: false
-        default: true
-      run_connectivity_bridge_tests:
-        type: boolean
+      pytest_path:
+        type: string
         required: false
-        default: true
+        default: tests
+
   workflow_dispatch:
     inputs:
       artifact_fw_version:
@@ -39,34 +27,25 @@ on:
         description: The run ID of the workflow to fetch artifacts from
         type: string
         required: true
-      run_log_check_tests:
-        type: boolean
-        required: true
-        default: true
-      run_fota_tests:
-        type: boolean
-        required: true
-        default: false
-      run_fullmfwfota_test:
-        type: boolean
-        required: true
-        default: false
-      run_dfu_tests:
-        type: boolean
-        required: true
-        default: false
-      run_connectivity_bridge_tests:
-        type: boolean
-        required: true
-        default: false
+      pytest_marker:
+        description: The pytest marker to run
+        type: string
+        required: false
+      pytest_path:
+        description: Select test execution path
+        type: string
+        required: false
+        default: tests
 
 jobs:
   target_test:
     name: Target Test
     runs-on: self-hosted
+    permissions:
+      contents: write
     environment: production
     container:
-      image: ghcr.io/hello-nrfcloud/firmware:docker-v1.0.0
+      image: ghcr.io/hello-nrfcloud/firmware:docker-v1.0.3
       options: --privileged
       volumes:
         - /dev:/dev:rw
@@ -109,88 +88,35 @@ jobs:
               --software-version ${{ inputs.artifact_fw_version }} \
               hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91.elf
 
-      - name: Run UART tests
-        if: ${{ inputs.run_log_check_tests }}
+      - name: Target Tests
         working-directory: thingy91x-oob/tests/on_target
         run: |
           mkdir -p results
-          pytest -s -v -m "dut1 and uart" \
-            --junit-xml=results/test-results-uart.xml \
-            tests
+          pytest -v ${{ inputs.pytest_marker }} \
+            --junit-xml=results/test-results.xml \
+            --html=results/test-results.html --self-contained-html \
+            ${{ inputs.pytest_path }}
         env:
           SEGGER: ${{ secrets.SEGGER_DUT_1 }}
-          LOG_FILENAME: oob_uart_test_log
-
-      - name: Run FOTA tests (standard)
-        if: ${{ inputs.run_fota_tests }}
-        working-directory: thingy91x-oob/tests/on_target
-        run: |
-          pytest -s -v -m "dut1 and fota" \
-            --junit-xml=results/test-results-fota.xml \
-            tests
-        env:
-          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
-          IMEI: ${{ secrets.IMEI_DUT_1 }}
-          FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
-          LOG_FILENAME: oob_fota_test_log
-
-      - name: Run FOTA tests (FULLMFW)
-        if: ${{ inputs.run_fullmfwfota_test }}
-        working-directory: thingy91x-oob/tests/on_target
-        run: |
-          pytest -s -v -m "dut1 and fullmfw_fota" \
-            --junit-xml=results/test-results-fullmfw-fota.xml \
-            tests
-        env:
-          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
-          IMEI: ${{ secrets.IMEI_DUT_1 }}
-          FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
-          LOG_FILENAME: oob_fullmfw_fota_test_log
-
-      - name: Run DFU tests
-        if: ${{ inputs.run_dfu_tests }}
-        working-directory: thingy91x-oob/tests/on_target
-        run: |
-          pytest -s -v -m "dut2 and dfu" \
-            --junit-xml=results/test-results-dfu.xml \
-            tests
-        env:
           SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
           SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
-          UART_ID: ${{ secrets.UART_DUT_2 }}
-          NRF53_NET_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-net.hex
-          NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
-          NRF53_APP_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
-          NRF53_BL_UPDATE_ZIP: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
-          NRF91_HEX_FILE: artifacts/nrf91-bl-v2.hex
-          NRF91_APP_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
-          NRF91_BL_UPDATE_ZIP: artifacts/hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
-          LOG_FILENAME: oob_dfu_test_log
+          IMEI: ${{ secrets.IMEI_DUT_1 }}
+          UART_ID_DUT_2: ${{ secrets.UART_DUT_2 }}
+          FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
+          LOG_FILENAME: oob_uart_test_log
+          TEST_REPORT_NAME: OOB Firwmare Test Report
+          DUT1_HW_REVISION: ${{ vars.DUT1_HW_REVISION }}
+          SEGGER_PPK: ${{ secrets.SEGGER_DUT_PPK }}
+          MEMFAULT_ORGANIZATION_TOKEN: ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }}
+          MEMFAULT_ORGANIZATION_SLUG: ${{ vars.MEMFAULT_ORGANIZATION_SLUG }}
+          MEMFAULT_PROJECT_SLUG: ${{ vars.MEMFAULT_PROJECT_SLUG }}
 
-      - name: Run Connectivity Bridge Test
-        if: ${{ inputs.run_connectivity_bridge_tests }}
-        working-directory: thingy91x-oob/tests/on_target
-        run: |
-          pytest -s -v -m "dut2 and conn_bridge" \
-            --junit-xml=results/test-results-connectivity-bridge.xml \
-            tests
+      - name: Commit and Push Badge File to gh-pages Branch
+        continue-on-error: true
+        working-directory: thingy91x-oob
         env:
-          SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
-          UART_ID: ${{ secrets.UART_DUT_2 }}
-          NRF53_NET_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-net.hex
-          NRF53_APP_HEX_FILE: artifacts/connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-app.hex
-          NRF91_CUSTOM_APP_ZIP: artifacts/usb_uart_bridge_app.zip
-          LOG_FILENAME: oob_conn_bridge_test_log
-
-      - name: Run Wi-Fi location tests
-        working-directory: thingy91x-oob/tests/on_target
-        run: |
-          mkdir -p results
-          pytest -s -v -m "dut1 and wifi" \
-            --junit-xml=results/test-results-wifi-location.xml \
-            tests
-        env:
-          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./tests/on_target/scripts/commit_badge.sh
 
       - name: Results
         if: always()
@@ -200,6 +126,15 @@ jobs:
           summary: true
           fail-on-empty: true
           title: OOB FW Test Results
+
+      - name: Create Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        id: artifact-report
+        with:
+          name: test-report
+          path: |
+            thingy91x-oob/tests/on_target/results/*.html
 
       - name: Push log files to artifacts
         if: always()
