@@ -7,5 +7,4 @@ Release notes
    :local:
    :depth: 2
 
-All the notable changes to the Hello nRF Cloud firmware are listed here.
-Also, see the `release on GitHub <github_release_>`_ for detailed information.
+For all the notable changes to the Hello nRF Cloud firmware, see the `release on GitHub <github_release_>`_.

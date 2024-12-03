@@ -7,7 +7,7 @@ Firmware Architecture
    :local:
    :depth: 2
 
-This is the firmware that is programmed on the nRF9151 of the Thingy:91 X in the factory.
+The firmware on the nRF9151 SiP of the Thingy:91 X is factory-programmed.
 It showcases the device's functionality if you like to try out the device.
 `nRF Cloud CoAP`_ is used as the cloud solution.
 
@@ -70,9 +70,6 @@ Shell module
 Accessing of modules with ZBUS channels
 ***************************************
 
-.. note::
-   The ERROR channel and channels only used internally in modules are omitted.
-
 The following table showcases the access of modules with different ZBUS channels:
 
 +--------------+---------+-------------+----------+---------+---------+-----+--------+------+-----+----------+-------+-----------+
@@ -98,3 +95,6 @@ The following table showcases the access of modules with different ZBUS channels
 +--------------+---------+-------------+----------+---------+---------+-----+--------+------+-----+----------+-------+-----------+
 | TIME         | R       | R           |          | R       |         | W   |        |      | R   |          |       |           |
 +--------------+---------+-------------+----------+---------+---------+-----+--------+------+-----+----------+-------+-----------+
+
+.. note::
+   The ERROR channel and channels only used internally in modules are omitted.
