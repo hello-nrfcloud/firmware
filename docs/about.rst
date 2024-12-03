@@ -10,8 +10,6 @@ About Thingy:91 X: Hello nRF Cloud firmware
 This project is based on the `NCS Example Application`_.
 The project contains the firmware that is programmed on the Thingy:91 X in the factory.
 
-.. to do intro
-
 LED indication
 **************
 
@@ -21,17 +19,17 @@ The following table describes the supported LED states:
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | LED effect     | Color      | Meaning                                      | Duration (seconds)                                  |
 +================+============+==============================================+=====================================================+
-| Blinking       | Yellow     | Device is (re-)connecting to the LTE network | NA                                                  |
+| Blinking       | Yellow     | Device is reconnecting to the LTE network    | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
-| Blinking       | Green      | Location searching                           | NA                                                  |
+| Blinking       | Green      | Searching for location                       | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | Blinking slow  | Blue       | Device is actively polling cloud             | 10 minutes after last config update or button press |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
-| Solid          | Configured | Device has received a LED configuration      | NA                                                  |
+| Solid          | Configured | Device has received an LED configuration     | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | Blinking rapid | Red        | Fatal error, the device will reboot          | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
-| Blinking slow  | Red        | Irrecoverable Fatal error                    | NA                                                  |
+| Blinking slow  | Red        | Irrecoverable fatal error                    | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 
 Interactive bill of materials (BOM)
