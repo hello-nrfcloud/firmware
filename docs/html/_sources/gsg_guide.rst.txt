@@ -19,7 +19,7 @@ Before initializing, start the toolchain environment:
 
    nrfutil toolchain-manager launch --
 
-To initialize the workspace folder (:file:`hello-nrfcloud`) , where the ``firmware`` project and all nRF Connect SDK modules will be cloned, run the following commands:
+To initialize the workspace folder (:file:`hello-nrfcloud`) where the ``firmware`` project and all nRF Connect SDK modules will be cloned, run the following commands:
 
 .. code-block::
 
@@ -37,12 +37,12 @@ To initialize the workspace folder (:file:`hello-nrfcloud`) , where the ``firmwa
    # Use sysbuild by default
    west config build.sysbuild True
 
-Building and Running
+Building and running
 ********************
 
 Complete the following steps for building and running:
 
-#. Change the folder:
+#. Navigate to the project folder:
 
    .. code-block::
 
@@ -54,7 +54,7 @@ Complete the following steps for building and running:
 
       west build -b thingy91x/nrf9151/ns app
 
-#. When using the serial bootloader, you can update using this command:
+#. When using the serial bootloader, you can update the application using the following command:
 
    .. code-block::
 
@@ -66,12 +66,12 @@ Complete the following steps for building and running:
 
       west flash --erase
 
-Experimental: You can also use `pyOCD`_ to flash the nRF9151 using the CMSIS-DAP interface provided by the connectivity bridge firmware.
+Experimental: You can also use `pyOCD`_ to flash the nRF9151 SiP using the CMSIS-DAP interface provided by the connectivity bridge firmware.
 
 .. important::
 
    Do not use pyOCD with JLink probes.
-   Use `nRF Util`_ or the west runner instead.
+   Use `nRF Util`_ or the West Runner instead.
 
 .. note::
 
@@ -101,7 +101,7 @@ Complete the following steps for programming:
      pyocd erase --mass
 
 Experimental: You can update the modem firmware using pyOCD.
-To do this, use the following included ``nrf91_flasher`` script:
+To do this, use the included ``nrf91_flasher`` script as follows:
 
 .. code-block::
 
