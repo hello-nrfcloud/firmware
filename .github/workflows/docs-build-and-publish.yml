@@ -66,6 +66,14 @@ jobs:
           cp -r docs/build/html docs/html
           rm -rf docs/build
 
+          # Check for changes
+          if git diff --quiet docs/html; then
+              echo "No changes detected in documentation. Exiting gracefully."
+              exit 0
+          else
+              echo "Changes detected. Creating a new commit."
+          fi
+
           # Create commit with doc updates
           git add docs/html
           git commit -m "Updating documentation based on ${{ github.sha }}"
