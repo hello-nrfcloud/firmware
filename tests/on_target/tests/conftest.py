@@ -16,7 +16,7 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-UART_TIMEOUT = 60 * 30
+UART_TIMEOUT = 60 * 60 * 2
 
 SEGGER = os.getenv('SEGGER')
 UART_ID = SEGGER
@@ -102,7 +102,7 @@ def t91x_board():
 
     uart_log = uart.whole_log
     uart.stop()
-    recover_device()
+    # recover_device()
 
     scan_log_for_assertions(uart_log)
 

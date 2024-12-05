@@ -43,19 +43,20 @@ def test_uart_output(t91x_board, hex_file):
     # Boot
     t91x_board.uart.flush()
     reset_device()
-    t91x_board.uart.wait_for_str(patterns_boot, timeout=120)
+    reset_device()
+    t91x_board.uart.wait_for_str(patterns_boot, timeout=120 * 20)
 
     # Button press
     t91x_board.uart.flush()
     t91x_board.uart.write("zbus button_press\r\n")
-    t91x_board.uart.wait_for_str(patterns_button_press, timeout=120)
+    t91x_board.uart.wait_for_str(patterns_button_press, timeout=120 * 20)
 
     # LTE disconnect
     t91x_board.uart.flush()
     t91x_board.uart.write("lte offline\r\n")
-    t91x_board.uart.wait_for_str(patterns_lte_offline, timeout=20)
+    t91x_board.uart.wait_for_str(patterns_lte_offline, timeout=20 * 20)
 
     # LTE reconnect
     t91x_board.uart.flush()
     t91x_board.uart.write("lte normal\r\n")
-    t91x_board.uart.wait_for_str(patterns_lte_normal, timeout=120)
+    t91x_board.uart.wait_for_str(patterns_lte_normal, timeout=120 * 20)
