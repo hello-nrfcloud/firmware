@@ -29,7 +29,7 @@ def post_job(t91x_fota, bundle_id, fota_type):
 
 def run_fota_resumption(t91x_fota, fota_type):
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
-    t91x_fota.uart.wait_for_str("bytes (50%)")
+    t91x_fota.uart.wait_for_str("FOTA download percent: 50%")
 
     patterns_lte_offline = ["network: Network connectivity lost"]
     patterns_lte_normal = ["network: Network connectivity established", "transport: Connected to Cloud"]
@@ -58,8 +58,8 @@ def run_fota_fixture(t91x_fota, hex_file):
 
         post_job(t91x_fota, bundleId, fota_type)
 
-        # if test_fota_resumption:
-        #     run_fota_resumption(t91x_fota, fota_type)
+        if test_fota_resumption:
+            run_fota_resumption(t91x_fota, fota_type)
 
         t91x_fota.uart.flush()
         t91x_fota.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
