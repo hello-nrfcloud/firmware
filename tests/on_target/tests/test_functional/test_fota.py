@@ -22,11 +22,10 @@ FULL_MFW_FOTA_TIMEOUT = 60 * 30
 
 def post_job(t91x_fota, bundle_id, fota_type):
     result = t91x_fota.fota.post_fota_job(type=fota_type, bundle_id=bundle_id)
-    job_id = result["id"]
     if not result:
         pytest.skip("Failed to post FOTA job")
     t91x_fota.uart.flush()
-    return job_id
+    return
 
 def run_fota_resumption(t91x_fota, fota_type):
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
@@ -57,7 +56,7 @@ def run_fota_fixture(t91x_fota, hex_file):
         reset_device()
         t91x_fota.uart.wait_for_str("Connected to Cloud")
 
-        job_id = post_job(t91x_fota, bundleId, fota_type)
+        post_job(t91x_fota, bundleId, fota_type)
 
         # if test_fota_resumption:
         #     run_fota_resumption(t91x_fota, fota_type)
