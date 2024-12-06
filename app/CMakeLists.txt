@@ -22,6 +22,7 @@ add_subdirectory(src/modules/app)
 add_subdirectory(src/modules/fota)
 add_subdirectory(src/modules/environmental)
 add_subdirectory(src/modules/button)
+add_subdirectory(src/modules/bluetooth)
 
 # Optional modules
 add_subdirectory_ifdef(CONFIG_APP_LED src/modules/led)

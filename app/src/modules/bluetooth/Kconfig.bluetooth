@@ -1,0 +1,34 @@
+#
+# Copyright (c) 2023 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "Bluetooth"
+	depends on NRF_CLOUD_COAP
+
+config APP_BLUETOOTH_THREAD_STACK_SIZE
+	int "Thread stack size"
+	default 1536
+
+config APP_BLUETOOTH_MESSAGE_QUEUE_SIZE
+	int "Message queue size"
+	default 5
+	help
+	  ZBus subscriber message queue size.
+
+config APP_BLUETOOTH_WATCHDOG_TIMEOUT_SECONDS
+	int "Watchdog timeout seconds"
+	default 180
+
+config APP_BLUETOOTH_EXEC_TIME_SECONDS_MAX
+	int "Maximum execution time seconds"
+	default 120
+	help
+	  Maximum time allowed for a single execution of the module's thread loop.
+
+module = APP_BLUETOOTH
+module-str = Bluetooth
+source "subsys/logging/Kconfig.template.log_config"
+
+endmenu # Bluetooth

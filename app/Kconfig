@@ -25,6 +25,7 @@ rsource "src/modules/environmental/Kconfig.environmental"
 rsource "src/modules/memfault/Kconfig.memfault"
 rsource "src/modules/shell/Kconfig.shell"
 rsource "src/modules/button/Kconfig.button"
+rsource "src/modules/bluetooth/Kconfig.bluetooth"
 
 endmenu
 
