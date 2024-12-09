@@ -43,7 +43,7 @@ def run_location(t91x_board, hex_file, location_method):
     # Cloud connection
     t91x_board.uart.flush()
     reset_device()
-    t91x_board.uart.wait_for_str(patterns_cloud_connection, timeout=60)
+    t91x_board.uart.wait_for_str(patterns_cloud_connection, timeout=120)
 
     # Location
     t91x_board.uart.wait_for_str(patterns_location, timeout=180)

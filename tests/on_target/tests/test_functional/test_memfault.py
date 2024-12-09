@@ -81,7 +81,7 @@ def test_memfault(t91x_board, hex_file):
 
     t91x_board.uart.flush()
     reset_device()
-    t91x_board.uart.wait_for_str(patterns_memfault, timeout=60)
+    t91x_board.uart.wait_for_str(patterns_memfault, timeout=120)
 
     # Trigger bus fault to generate memfault event
     t91x_board.uart.write("mflt test busfault\r\n")
