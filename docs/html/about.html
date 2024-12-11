@@ -128,17 +128,22 @@ The following table describes the supported LED states:</p>
 <td><p>Device is actively polling cloud</p></td>
 <td><p>10 minutes after last config update or button press</p></td>
 </tr>
-<tr class="row-odd"><td><p>Solid</p></td>
+<tr class="row-odd"><td><p>Blinking</p></td>
+<td><p>Purple</p></td>
+<td><p>Device is downloading FOTA image</p></td>
+<td><p>Until the download has completed or failed</p></td>
+</tr>
+<tr class="row-even"><td><p>Solid</p></td>
 <td><p>Configured</p></td>
 <td><p>Device has received an LED configuration</p></td>
 <td><p>NA</p></td>
 </tr>
-<tr class="row-even"><td><p>Blinking rapid</p></td>
+<tr class="row-odd"><td><p>Blinking rapid</p></td>
 <td><p>Red</p></td>
 <td><p>Fatal error, the device will reboot</p></td>
 <td><p>NA</p></td>
 </tr>
-<tr class="row-odd"><td><p>Blinking slow</p></td>
+<tr class="row-even"><td><p>Blinking slow</p></td>
 <td><p>Red</p></td>
 <td><p>Irrecoverable fatal error</p></td>
 <td><p>NA</p></td>
