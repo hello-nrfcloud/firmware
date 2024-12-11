@@ -25,6 +25,8 @@ The following table describes the supported LED states:
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | Blinking slow  | Blue       | Device is actively polling cloud             | 10 minutes after last config update or button press |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
+| Blinking       | Purple     | Device is downloading FOTA image             | Until the download has completed or failed          |
++----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | Solid          | Configured | Device has received an LED configuration     | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | Blinking rapid | Red        | Fatal error, the device will reboot          | NA                                                  |

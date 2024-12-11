@@ -29,6 +29,7 @@ ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(TRIGGER_MODE_CHAN, led, 0);
 ZBUS_CHAN_ADD_OBS(LOCATION_CHAN, led, 0);
+ZBUS_CHAN_ADD_OBS(FOTA_STATUS_CHAN, led, 0);
 
 /* Zephyr SMF states */
 enum state {
@@ -41,6 +42,8 @@ enum state {
 	STATE_POLL,
 	/* Sub-state to STATE_LED_NOT_SET */
 	STATE_NORMAL,
+	/* Sub-state to STATE_LED_NOT_SET */
+	STATE_FOTA,
 	STATE_ERROR,
 };
 
@@ -331,6 +334,15 @@ static void led_not_set_running(void *o)
 		smf_set_state(SMF_CTX(user_object), &states[STATE_LED_SET]);
 		return;
 	}
+
+	if (&FOTA_STATUS_CHAN == user_object->chan) {
+		const enum fota_status *status = zbus_chan_const_msg(user_object->chan);
+
+		if (*status == FOTA_STATUS_START) {
+			smf_set_state(SMF_CTX(user_object), &states[STATE_FOTA]);
+			return;
+		}
+	}
 }
 
 /* STATE_POLL */
@@ -415,6 +427,43 @@ static void normal_running(void *o)
 	}
 }
 
+/* STATE_FOTA */
+
+static void fota_entry(void *o)
+{
+	ARG_UNUSED(o);
+
+	LOG_DBG("fota_entry");
+
+	transition_list_clear();
+	transition_list_append(LED_FOTA, HOLD_FOREVER, 0, 0, 0);
+
+	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
+}
+
+static void fota_running(void *o)
+{
+	struct s_object *user_object = o;
+
+	LOG_DBG("fota_running");
+
+	if (&FOTA_STATUS_CHAN == user_object->chan) {
+		const enum fota_status *status = zbus_chan_const_msg(user_object->chan);
+
+		if (*status == FOTA_STATUS_STOP) {
+			smf_set_state(SMF_CTX(user_object), &states[STATE_LED_NOT_SET]);
+			return;
+		}
+	}
+
+	/* We do not want to change LED pattern while downloading FOTA image */
+	if ((&TRIGGER_MODE_CHAN == user_object->chan) ||
+	    (&LOCATION_CHAN == user_object->chan)) {
+		smf_set_handled(SMF_CTX(&user_object));
+		return;
+	}
+}
+
 /* STATE_ERROR */
 
 static void error_entry(void *o)
@@ -465,6 +514,13 @@ static const struct smf_state states[] = {
 	[STATE_NORMAL] = SMF_CREATE_STATE(
 		normal_entry,
 		normal_running,
+		NULL,
+		&states[STATE_LED_NOT_SET],
+		NULL
+	),
+	[STATE_FOTA] = SMF_CREATE_STATE(
+		fota_entry,
+		fota_running,
 		NULL,
 		&states[STATE_LED_NOT_SET],
 		NULL
