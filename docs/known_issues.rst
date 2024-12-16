@@ -27,6 +27,6 @@ FOTA image downloads may fail to resume correctly after a network disconnection
    The image will be rejected by the bootloader, and will not harm the device.
    After a failed download, the device will attempt to download the image again.
 
-  **Workaround:** Disable the :kconfig:option`CONFIG_NRF_CLOUD_COAP_DOWNLOADS` Kconfig option in the application configuration.
+  **Workaround:** Disable the ``CONFIG_NRF_CLOUD_COAP_DOWNLOADS`` Kconfig option in the application configuration.
 
   **Affected platforms:** Thingy:91 X
