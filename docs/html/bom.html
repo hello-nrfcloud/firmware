@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About Thingy:91 X: Hello nRF Cloud firmware &mdash; hello-nrfcloud firmware 1.0.0 documentation</title>
+  <title>Bill of materials (BOM) &mdash; hello-nrfcloud firmware 1.0.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/nordic.css" type="text/css" />
   
@@ -21,11 +21,9 @@
     <script src="_static/js/theme.js"></script>
   <script type="text/javascript" src="_static/js/ncs.js"></script>
 
-    <link rel="author" title="About these documents" href="#" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Getting Started" href="gsg_guide.html" />
-    <link rel="prev" title="Thingy:91 X: Hello nRF Cloud firmware" href="index.html" />
+    <link rel="prev" title="Release notes" href="release_notes.html" />
   <link rel="shortcut icon" href="_static/images/favicon.ico"/>
 
 </head>
@@ -54,16 +52,13 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">About Thingy:91 X: Hello nRF Cloud firmware</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#led-indication">LED indication</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#interactive-bill-of-materials-bom">Interactive bill of materials (BOM)</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="gsg_guide.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Firmware Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_indication.html">LED indication</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="known_issues.html">Known issues</a></li>
 <li class="toctree-l1"><a class="reference internal" href="release_notes.html">Release notes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Bill of materials (BOM)</a></li>
 </ul>
 
         </div>
@@ -80,9 +75,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">About Thingy:91 X: Hello nRF Cloud firmware</li>
+      <li class="breadcrumb-item active">Bill of materials (BOM)</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/about.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/bom.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -90,71 +85,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="about-thingy-91-x-hello-nrf-cloud-firmware">
-<span id="thingy91-x-helloworld-firmware-about"></span><h1>About Thingy:91 X: Hello nRF Cloud firmware<a class="headerlink" href="#about-thingy-91-x-hello-nrf-cloud-firmware" title="Permalink to this heading"></a></h1>
-<nav class="contents local" id="contents">
-<ul class="simple">
-<li><p><a class="reference internal" href="#led-indication" id="id1">LED indication</a></p></li>
-<li><p><a class="reference internal" href="#interactive-bill-of-materials-bom" id="id2">Interactive bill of materials (BOM)</a></p></li>
-</ul>
-</nav>
-<p>This project is based on the <a class="reference external" href="https://github.com/nrfconnect/ncs-example-application">NCS Example Application</a>.
-The project contains the firmware that is programmed on the Thingy:91 X in the factory.</p>
-<section id="led-indication">
-<h2><a class="toc-backref" href="#id1" role="doc-backlink">LED indication</a><a class="headerlink" href="#led-indication" title="Permalink to this heading"></a></h2>
-<p>The firmware supports multiple LED patterns to visualize the operating state of the application.
-The following table describes the supported LED states:</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>LED effect</p></th>
-<th class="head"><p>Color</p></th>
-<th class="head"><p>Meaning</p></th>
-<th class="head"><p>Duration (seconds)</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Blinking</p></td>
-<td><p>Yellow</p></td>
-<td><p>Device is reconnecting to the LTE network</p></td>
-<td><p>NA</p></td>
-</tr>
-<tr class="row-odd"><td><p>Blinking</p></td>
-<td><p>Green</p></td>
-<td><p>Searching for location</p></td>
-<td><p>NA</p></td>
-</tr>
-<tr class="row-even"><td><p>Blinking slow</p></td>
-<td><p>Blue</p></td>
-<td><p>Device is actively polling cloud</p></td>
-<td><p>10 minutes after last config update or button press</p></td>
-</tr>
-<tr class="row-odd"><td><p>Blinking</p></td>
-<td><p>Purple</p></td>
-<td><p>Device is downloading FOTA image</p></td>
-<td><p>Until the download has completed or failed</p></td>
-</tr>
-<tr class="row-even"><td><p>Solid</p></td>
-<td><p>Configured</p></td>
-<td><p>Device has received an LED configuration</p></td>
-<td><p>NA</p></td>
-</tr>
-<tr class="row-odd"><td><p>Blinking rapid</p></td>
-<td><p>Red</p></td>
-<td><p>Fatal error, the device will reboot</p></td>
-<td><p>NA</p></td>
-</tr>
-<tr class="row-even"><td><p>Blinking slow</p></td>
-<td><p>Red</p></td>
-<td><p>Irrecoverable fatal error</p></td>
-<td><p>NA</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="interactive-bill-of-materials-bom">
-<h2><a class="toc-backref" href="#id2" role="doc-backlink">Interactive bill of materials (BOM)</a><a class="headerlink" href="#interactive-bill-of-materials-bom" title="Permalink to this heading"></a></h2>
+  <section id="bill-of-materials-bom">
+<span id="thingy91-x-helloworld-firmware-bom"></span><h1>Bill of materials (BOM)<a class="headerlink" href="#bill-of-materials-bom" title="Permalink to this heading"></a></h1>
 <p>You can explore the interactive BOM for the Thingy:91 X board online on <a class="reference external" href="https://htmlpreview.github.io/?https://github.com/hello-nrfcloud/firmware/blob/main/docs/pca20065_1_0_0.html">Interactive BOM PCA20065 1.0.0.</a></p>
-</section>
 </section>
 
 
@@ -164,10 +97,8 @@ The following table describes the supported LED states:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="gsg_guide.html" class="btn btn-neutral float-right" title="Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="index.html" class="btn btn-neutral" title="Thingy:91 X: Hello nRF Cloud firmware" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="release_notes.html" class="btn btn-neutral" title="Release notes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

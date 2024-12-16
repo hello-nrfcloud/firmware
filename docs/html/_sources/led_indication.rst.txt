@@ -1,17 +1,11 @@
 .. _thingy91_x_helloworld_firmware_about:
 
-About Thingy:91 X: Hello nRF Cloud firmware
-###########################################
+LED indication
+##############
 
 .. contents::
    :local:
-   :depth: 1
-
-This project is based on the `NCS Example Application`_.
-The project contains the firmware that is programmed on the Thingy:91 X in the factory.
-
-LED indication
-**************
+   :depth: 2
 
 The firmware supports multiple LED patterns to visualize the operating state of the application.
 The following table describes the supported LED states:
@@ -33,8 +27,3 @@ The following table describes the supported LED states:
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
 | Blinking slow  | Red        | Irrecoverable fatal error                    | NA                                                  |
 +----------------+------------+----------------------------------------------+-----------------------------------------------------+
-
-Interactive bill of materials (BOM)
-***********************************
-
-You can explore the interactive BOM for the Thingy:91 X board online on `Interactive BOM PCA20065 1.0.0.`_

@@ -21,7 +21,6 @@
     <script src="_static/js/theme.js"></script>
   <script type="text/javascript" src="_static/js/ncs.js"></script>
 
-    <link rel="author" title="About these documents" href="about.html" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Release notes" href="release_notes.html" />
@@ -54,12 +53,13 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="about.html">About Thingy:91 X: Hello nRF Cloud firmware</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gsg_guide.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Firmware Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_indication.html">LED indication</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Known issues</a></li>
 <li class="toctree-l1"><a class="reference internal" href="release_notes.html">Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bom.html">Bill of materials (BOM)</a></li>
 </ul>
 
         </div>
@@ -96,6 +96,18 @@
 This will be fixed with the next nRF Connect SDK release (<a class="reference external" href="https://github.com/nrfconnect/sdk-nrf/pull/19024">sdk-nrf PR #19024</a>).</p>
 </div></blockquote>
 <p><strong>Workaround:</strong> Use a different serial terminal application, for example, <a class="reference external" href="https://docs.nordicsemi.com/bundle/nrf-connect-serial-terminal/page/index.html">Serial Terminal app</a>, <code class="docutils literal notranslate"><span class="pre">tio</span></code> or, power cycle device, if needed.</p>
+<p><strong>Affected platforms:</strong> Thingy:91 X</p>
+</dd>
+</dl>
+<p>v2-0-0 v2-0-1</p>
+<dl>
+<dt>FOTA image downloads may fail to resume correctly after a network disconnection</dt><dd><blockquote>
+<div><p>FOTA image downloads may fail to resume correctly after a network disconnection.
+The downloader may use the wrong byte offset when requesting file fragments, which results in a corrupted image being downloaded.
+The image will be rejected by the bootloader, and will not harm the device.
+After a failed download, the device will attempt to download the image again.</p>
+</div></blockquote>
+<p><strong>Workaround:</strong> Disable the :kconfig:option`CONFIG_NRF_CLOUD_COAP_DOWNLOADS` Kconfig option in the application configuration.</p>
 <p><strong>Affected platforms:</strong> Thingy:91 X</p>
 </dd>
 </dl>
