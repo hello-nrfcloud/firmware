@@ -14,6 +14,7 @@
 .. _`Serial Terminal app`: https://docs.nordicsemi.com/bundle/nrf-connect-serial-terminal/page/index.html
 .. _`Getting started guide`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/installation.html
 .. _`nRF Util`: https://docs.nordicsemi.com/bundle/nrf-connect-serial-terminal/page/index.html
+.. _`Connectivity Bridge`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/applications/connectivity_bridge/README.html
 
 .. ### github.com
 
