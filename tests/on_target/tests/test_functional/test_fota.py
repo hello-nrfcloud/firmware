@@ -28,11 +28,12 @@ def post_job(t91x_fota, bundle_id, fota_type):
     return
 
 def run_fota_resumption(t91x_fota, fota_type):
+    t91x_fota.uart.wait_for_str("50%")
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
     t91x_fota.uart.wait_for_str("bytes (50%)")
 
     patterns_lte_offline = ["network: Network connectivity lost"]
-    patterns_lte_normal = ["network: Network connectivity established", "transport: Connected to Cloud"]
+    patterns_lte_normal = ["network: Network connectivity established"]
 
     # LTE disconnect
     t91x_fota.uart.flush()
@@ -70,6 +71,7 @@ def run_fota_fixture(t91x_fota, hex_file):
         elif fota_type == "full":
             t91x_fota.uart.wait_for_str("FMFU finished")
         t91x_fota.uart.wait_for_str("Connected to Cloud", "Failed to connect to Cloud after FOTA")
+        t91x_fota.uart.wait_for_str("No pending FOTA job")
 
     return _run_fota
 

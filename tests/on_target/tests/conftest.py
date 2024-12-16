@@ -106,7 +106,7 @@ def t91x_board():
 
     scan_log_for_assertions(uart_log)
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def t91x_fota(t91x_board):
     fota = HelloNrfCloudFOTA(device_id=f"oob-{FOTADEVICE_IMEI}", \
                              fingerprint=FOTADEVICE_FINGERPRINT)
