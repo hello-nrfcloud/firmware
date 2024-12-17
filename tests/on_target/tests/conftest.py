@@ -88,7 +88,7 @@ def pytest_runtest_logstart(nodeid, location):
 def pytest_runtest_logfinish(nodeid, location):
     logger.info(f"Finished test: {nodeid}")
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def t91x_board():
     all_uarts = get_uarts(UART_ID)
     if not all_uarts:
@@ -127,7 +127,7 @@ def t91x_fota(t91x_board):
         except Exception as e:
             logger.error(f"Error during teardown while canceling pending fota jobs: {e}")
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def t91x_traces(t91x_board):
     all_uarts = get_uarts(UART_ID)
     trace_uart_string = all_uarts[1]
