@@ -33,13 +33,14 @@ CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID_DUT_2', "")
 
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def t91x_conn_bridge():
     '''
     This fixture initializes the nRF53 and nRF91 for connectivity bridge test.
     First the nRF53 is flashed with connectivity bridge fw.
     Then dfu is performed on nrf91 with custom test app.
     '''
+
     logger.info("Recovering nRF53 network core")
     recover_device(serial=SEGGER_NRF53, core='Network')
     logger.info("Recovering nRF53 application core")
@@ -77,13 +78,12 @@ def t91x_conn_bridge():
 @pytest.mark.slow
 def test_conn_bridge(t91x_conn_bridge):
     '''
-    Test the connectivity bridge between nRF53 and nRF91
+    Test basic functionalities of the connectivity bridge
 
     Test steps:
     1. Wait for UART0 and UART1 to be available
     2. Send 4k of data from USB to UART0
     3. Send 4k of data from UART1 to USB
-    4. Send 40k of data from UART1 to USB
     '''
     t91x_conn_bridge.uart0.wait_for_str(
             "UART0 running at baudrate 115200", timeout=UART_TIMEOUT
@@ -147,36 +147,42 @@ def test_conn_bridge(t91x_conn_bridge):
             assert line in log[count], line + " not in " + log[count]
             count = count + 1
 
-    # Test beefy tx on uart1 from nrf9160 to usb
-    # Emulates 40k of uart1 modem traces (10 times the 4k control string)
-    logger.info("Testing 40k of uart1 modem traces")
-    beefy_ctrl_str = ''.join([generate_control_str() for _ in range(10)])  # Generate 10 times the control string
+
+@pytest.mark.slow
+def test_conn_bridge_stress_traces(t91x_conn_bridge):
+    '''
+    Stress test the connectivity bridge, simulating heavy modem tyraces coming from NRF91
+
+    Test steps:
+    1. Wait for UART0 and UART1 to be available
+    2. Send 400k of data from NRF91 to usb through NRF53
+    '''
+    t91x_conn_bridge.uart0.wait_for_str(
+            "UART0 running at baudrate 115200", timeout=UART_TIMEOUT
+        )
+    t91x_conn_bridge.uart1.wait_for_str(
+            "UART1 running at baudrate 1000000", timeout=UART_TIMEOUT
+        )
+
+    # Test beefy tx on uart1 from NRF91 to usb
+    logger.info(f"Testing 400k of uart1 modem traces")
+     # Generate 100 times the control string to get 400k
+    beefy_ctrl_str = ''.join([generate_control_str() for _ in range(100)])
     t91x_conn_bridge.uart1.flush()
-    t91x_conn_bridge.uart0.write(b"CHECK_UART1_40k_TRACES\r\n")
-    t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)
+    t91x_conn_bridge.uart0.write(b"CHECK_UART1_400k_TRACES\r\n")
+    try:
+        t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)
+    except Exception:
+        ctrl_str = generate_control_str()
+        log = t91x_conn_bridge.uart1.log
+        number_of_control_strings_in_trace = log.count(ctrl_str)
+        logger.error(f"found only {number_of_control_strings_in_trace} control strings out of 100")
+        raise AssertionError
 
-    # TODO: refine assertion handling, see below for inspiration
-    # try:
-    #     t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)  # Wait for the null-terminated string
-    # except Exception as e:
-    #     logger.error(f"wait_for_str failed, exception: {e}")
-
-    #     log = t91x_conn_bridge.uart1.log.split()
-    #     beefy_ctrl_str = beefy_ctrl_str.split('\x00')  # Split the control string by null-terminator
-
-    #     missing_strings = []  # List to keep track of missing control strings
-    #     missing_strings_counter = 0
-    #     for ctrl in beefy_ctrl_str:
-    #         if ctrl not in log:
-    #             missing_strings.append(ctrl)  # Add missing control string to the list
-    #             missing_strings_counter = missing_strings_counter + 1
-
-    #     if missing_strings:
-    #         logger.error("LOG")
-    #         logger.error(log)
-    #         raise AssertionError(
-    #             f"The following {missing_strings_counter} control strings were not found in the log:\n" + "\n".join(missing_strings)
-    #         ) from AssertionError
+    ctrl_str = generate_control_str()
+    log = t91x_conn_bridge.uart1.log
+    number_of_control_strings_in_trace = log.count(ctrl_str)
+    logger.debug(f"found {number_of_control_strings_in_trace} control strings out of 100")
 
 def generate_control_str():
     control_str = ""
