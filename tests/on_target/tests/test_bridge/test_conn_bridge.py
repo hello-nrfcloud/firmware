@@ -155,28 +155,7 @@ def test_conn_bridge(t91x_conn_bridge):
     t91x_conn_bridge.uart0.write(b"CHECK_UART1_40k_TRACES\r\n")
     t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)
 
-    # TODO: refine assertion handling, see below for inspiration
-    # try:
-    #     t91x_conn_bridge.uart1.wait_for_str(beefy_ctrl_str, timeout=20)  # Wait for the null-terminated string
-    # except Exception as e:
-    #     logger.error(f"wait_for_str failed, exception: {e}")
 
-    #     log = t91x_conn_bridge.uart1.log.split()
-    #     beefy_ctrl_str = beefy_ctrl_str.split('\x00')  # Split the control string by null-terminator
-
-    #     missing_strings = []  # List to keep track of missing control strings
-    #     missing_strings_counter = 0
-    #     for ctrl in beefy_ctrl_str:
-    #         if ctrl not in log:
-    #             missing_strings.append(ctrl)  # Add missing control string to the list
-    #             missing_strings_counter = missing_strings_counter + 1
-
-    #     if missing_strings:
-    #         logger.error("LOG")
-    #         logger.error(log)
-    #         raise AssertionError(
-    #             f"The following {missing_strings_counter} control strings were not found in the log:\n" + "\n".join(missing_strings)
-    #         ) from AssertionError
 
 def generate_control_str():
     control_str = ""
