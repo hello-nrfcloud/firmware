@@ -30,7 +30,6 @@ def post_job(t91x_fota, bundle_id, fota_type):
 def run_fota_resumption(t91x_fota, fota_type):
     t91x_fota.uart.wait_for_str("50%")
     logger.debug(f"Testing fota resumption on disconnect for {fota_type} fota")
-    t91x_fota.uart.wait_for_str("bytes (50%)")
 
     patterns_lte_offline = ["network: Network connectivity lost"]
     patterns_lte_normal = ["network: Network connectivity established"]
