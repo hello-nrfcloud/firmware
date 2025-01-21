@@ -13,7 +13,8 @@
 .. _`Cellular Monitor app`: https://docs.nordicsemi.com/bundle/nrf-connect-cellularmonitor/page/index.html
 .. _`Serial Terminal app`: https://docs.nordicsemi.com/bundle/nrf-connect-serial-terminal/page/index.html
 .. _`Getting started guide`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/installation.html
-.. _`nRF Util`: https://docs.nordicsemi.com/bundle/nrf-connect-serial-terminal/page/index.html
+.. _`nRF Util`: https://docs.nordicsemi.com/bundle/nrfutil/page/README.html
+.. _`Installing nRF Util`: https://docs.nordicsemi.com/bundle/nrfutil/page/guides/installing.html
 .. _`Connectivity Bridge`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/applications/connectivity_bridge/README.html
 
 .. ### github.com
@@ -31,6 +32,12 @@
 .. _`Memfault`: https://memfault.com/
 
 .. _`Interactive BOM PCA20065 1.0.0.`: https://htmlpreview.github.io/?https://github.com/hello-nrfcloud/firmware/blob/main/docs/pca20065_1_0_0.html
+
+.. _`nRF5340 application firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-app.hex
+.. _`nRF5340 network firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-net.hex
+.. _`nRF9151 firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/hello.nrfcloud.com-v2.0.1+debug-thingy91x-nrf91.hex
+.. _`nRF5340 DFU`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-dfu.zip
+.. _`nRF9151 DFU`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/hello.nrfcloud.com-v2.0.1+debug-thingy91x-nrf91-dfu.zip
 
 .. _`pyOCD`: https://github.com/pyocd/pyOCD
 
