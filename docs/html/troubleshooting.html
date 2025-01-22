@@ -58,6 +58,8 @@
 <li class="toctree-l1"><a class="reference internal" href="led_indication.html">LED indication</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#modem-traces">Modem traces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#factory-reset-bootloader">Factory reset (Bootloader)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#factory-reset-j-link">Factory reset (J-Link)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="known_issues.html">Known issues</a></li>
@@ -94,6 +96,8 @@
 <nav class="contents local" id="contents">
 <ul class="simple">
 <li><p><a class="reference internal" href="#modem-traces" id="id1">Modem traces</a></p></li>
+<li><p><a class="reference internal" href="#factory-reset-bootloader" id="id2">Factory reset (Bootloader)</a></p></li>
+<li><p><a class="reference internal" href="#factory-reset-j-link" id="id3">Factory reset (J-Link)</a></p></li>
 </ul>
 </nav>
 <p>The following section contains guidelines on how to troubleshoot issues with the device.</p>
@@ -131,6 +135,71 @@ modem_trace dump_uart    # Dump traces to UART 1 for analysis
 </ol>
 </li>
 </ol>
+</section>
+<section id="factory-reset-bootloader">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Factory reset (Bootloader)</a><a class="headerlink" href="#factory-reset-bootloader" title="Permalink to this heading"></a></h2>
+<p>If you have not used a debug probe to program your Thingy:91 X, and it became unresponsive, it is possible to recover the device without additional tools.</p>
+<p>See <a class="reference external" href="https://docs.nordicsemi.com/bundle/nrfutil/page/guides/installing.html">Installing nRF Util</a> for instructions for installing nRF Util. Install the nRF Util device command as well.
+Download the following files from the hello-nrfcloud/firmware release:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-dfu.zip">nRF5340 DFU</a></p></li>
+<li><p><a class="reference external" href="https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/hello.nrfcloud.com-v2.0.1+debug-thingy91x-nrf91-dfu.zip">nRF9151 DFU</a></p></li>
+</ul>
+<p>If the device shows up on USB, the nRF5340 is correctly running the Connectivity bridge.
+If not, you can try to put the nRF5340 into serial recovery mode.
+This is done by turning off the device using the power switch, and pressing and holding <strong>Button 2</strong> while turning it back on.
+An MCUboot device shows up.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>nrfutil device program --firmware connectivity-bridge-v2.0.1-thingy91x-nrf53-dfu.zip --traits mcuboot
+</pre></div>
+</div>
+<p>Then, the Connectivity bridge triggers serial recovery mode for the nRF9151 automatically.</p>
+<p>Alternatively, you can force the nRF9151 serial recovery mode the same way with the nRF5340, but using <strong>Button 1</strong> instead.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>nrfutil device program --firmware hello.nrfcloud.com-v2.0.1-thingy91x-nrf91-dfu.zip --traits mcuboot
+</pre></div>
+</div>
+</section>
+<section id="factory-reset-j-link">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Factory reset (J-Link)</a><a class="headerlink" href="#factory-reset-j-link" title="Permalink to this heading"></a></h2>
+<p>If your Thingy:91 X is powered on and connected using a USB cable, it shows up as a USB device.
+Else, something is preventing the Connectivity bridge application on the nRF5340 from running.
+For example, this could be an application running on the nRF9151 that is driving the wrong pins.
+Another typical case is that the nRF5340 has been flashed by accident.</p>
+<p>You need to use an external J-Link to follow these steps.
+A Nordic development kit with a debug-out port can be used as well.</p>
+<p>See <a class="reference external" href="https://docs.nordicsemi.com/bundle/nrfutil/page/guides/installing.html">Installing nRF Util</a> for instructions for installing nRF Util. Install the nRF Util device command as well.
+Download the following files from the hello-nrfcloud/firmware release:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-app.hex">nRF5340 application firmware</a></p></li>
+<li><p><a class="reference external" href="https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-net.hex">nRF5340 network firmware</a></p></li>
+<li><p><a class="reference external" href="https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/hello.nrfcloud.com-v2.0.1+debug-thingy91x-nrf91.hex">nRF9151 firmware</a></p></li>
+</ul>
+<p>Set the SWD switch to <strong>nRF91</strong> and run the <code class="docutils literal notranslate"><span class="pre">nrfutil</span> <span class="pre">device</span> <span class="pre">recover</span></code> command to recover the nRF9151.
+Repeat the same for the nRF5340. You can use the <code class="docutils literal notranslate"><span class="pre">nrfutil</span> <span class="pre">device</span> <span class="pre">device-info</span></code> command to check that you are connected to the correct chip.
+When using a DK, there is an ambiguity between targeting the on-board chip and using debug-out.
+Running the <code class="docutils literal notranslate"><span class="pre">nrfutil</span> <span class="pre">device</span> <span class="pre">device-info</span></code> command is recommended to make sure you are not programming the on-board target accidentally.</p>
+<p>If nRF5340 recovery fails, an nRF9151 firmware might have been flashed previously.
+Even though the device shows up as unrecoverable, the soft-lock can be removed with these commands.
+You might have to repeat them for a successful result.
+Do not use them on an nRF91 Series device.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>nrfutil device recover --x-family nrf53 --core Network --traits jlink
+nrfutil device recover --x-family nrf53 --core Application --traits jlink
+</pre></div>
+</div>
+<p>Now that both chips are recovered, set the SWD switch to <strong>nRF91</strong>.
+To check you are connected to the correct chip, run the <code class="docutils literal notranslate"><span class="pre">nrfutil</span> <span class="pre">device</span> <span class="pre">device-info</span></code> command.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>nrfutil device program --firmware hello.nrfcloud.com-v2.0.1+debug-thingy91x-nrf91.hex
+</pre></div>
+</div>
+<p>Set the SWD switch to <strong>nRF53</strong>.
+To check you are connected to the correct chip, run the <code class="docutils literal notranslate"><span class="pre">nrfutil</span> <span class="pre">device</span> <span class="pre">device-info</span></code> command.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>nrfutil device program --core Network --options reset=RESET_NONE,chip_erase_mode=ERASE_ALL,verify=VERIFY_NONE --firmware connectivity-bridge-v2.0.1-thingy91x-nrf53-net.hex
+nrfutil device program --options reset=RESET_SYSTEM,chip_erase_mode=ERASE_ALL,verify=VERIFY_NONE --firmware connectivity-bridge-v2.0.1-thingy91x-nrf53-app.hex
+</pre></div>
+</div>
+<p>The device shows up as a USB device again.
+Press <strong>Button 2</strong> to reset the nRF9151 DK.
+If you see that <strong>LED 1</strong> lights up, the recovery was successful.
+If you do not have a usable device after this procedure, contact Nordic Semiconductor’s technical support on <a href="#id4"><span class="problematic" id="id5">`DevZone`_</span></a>.</p>
 </section>
 </section>
 
