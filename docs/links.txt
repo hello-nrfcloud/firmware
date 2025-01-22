@@ -42,3 +42,5 @@
 .. _`pyOCD`: https://github.com/pyocd/pyOCD
 
 .. _`hello.nrfcloud.com`: https://hello.nrfcloud.com/
+
+.. _`DevZone`: https://devzone.nordicsemi.com/
