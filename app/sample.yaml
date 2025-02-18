@@ -30,4 +30,3 @@ tests:
     tags: ci_build
     extra_args:
       - mcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3
-      - CONFIG_BUILD_S1_VARIANT=y
