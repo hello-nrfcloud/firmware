@@ -16,6 +16,7 @@ logger = get_logger()
 MFW_202_FILEPATH = "artifacts/mfw_nrf91x1_2.0.2.zip"
 DELTA_MFW_BUNDLEID = "MODEM*3471f88e*mfw_nrf91x1_2.0.2-FOTA-TEST"
 FULL_MFW_BUNDLEID = "MDM_FULL*124c2b20*mfw_nrf91x1_full_2.0.2"
+APP_BUNDLEID = "APP*a82b7076*v2.0.1"
 
 APP_FOTA_TIMEOUT = 60 * 10
 FULL_MFW_FOTA_TIMEOUT = 60 * 30
@@ -74,27 +75,14 @@ def run_fota_fixture(t91x_fota, hex_file):
 
     return _run_fota
 
-def test_app_fota(t91x_fota, hex_file, run_fota_fixture):
+def test_app_fota(run_fota_fixture):
     '''
     Test application FOTA on nrf9151
     '''
-    # Get latest APP fota bundle
-    results = t91x_fota.fota.get_fota_bundles()
-    if not results:
-        pytest.fail("Failed to get APP FOTA bundles")
-    available_bundles = results["bundles"]
-    logger.debug(f"Number of available bundles: {len(available_bundles)}")
-    app_bundles = [bundle for bundle in available_bundles if "APP" in bundle["bundleId"]]
-    if not app_bundles:
-        pytest.fail("No APP FOTA bundles found")
-    latest_app_bundle = app_bundles[0]
-
-    logger.debug(f"Latest APP bundle: {latest_app_bundle}")
-
-    run_fota_fixture(bundleId=latest_app_bundle["bundleId"], fota_type="app", test_fota_resumption=True)
+    run_fota_fixture(bundleId=APP_BUNDLEID, fota_type="app", test_fota_resumption=True)
 
 
-def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+def test_delta_mfw_fota(run_fota_fixture):
     '''
     Test delta modem FOTA on nrf9151
     '''
@@ -109,7 +97,7 @@ def test_delta_mfw_fota(t91x_board, hex_file, run_fota_fixture):
         flash_device(os.path.abspath(MFW_202_FILEPATH))
 
 @pytest.mark.slow
-def test_full_mfw_fota(t91x_board, hex_file, run_fota_fixture):
+def test_full_mfw_fota(run_fota_fixture):
     '''
     Test full modem FOTA on nrf9151
     '''
