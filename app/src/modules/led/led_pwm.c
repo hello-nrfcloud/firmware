@@ -326,6 +326,7 @@ static int led_pwm_init(void)
 			   K_THREAD_STACK_SIZEOF(stack_area),
 			   K_LOWEST_APPLICATION_THREAD_PRIO,
 			   NULL);
+	k_thread_name_set(&led_pwm_queue.thread, "led_pwm_workq");
 
 	k_work_init_delayable(&leds.work, work_handler);
 
