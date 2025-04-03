@@ -8,11 +8,11 @@ manifest:
 
   remotes:
     - name: ncs
-      url-base: https://github.com/nrfconnect
+      url-base: https://github.com/maxd-nordic
 
   projects:
     - name: nrf
       remote: ncs
       repo-path: sdk-nrf
-      revision: v2.8.0-rc2
+      revision: v2.8.0-rc2-nrfcloud-thread-safety
       import: true
