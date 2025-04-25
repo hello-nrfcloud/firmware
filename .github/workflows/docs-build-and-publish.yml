@@ -1,25 +1,47 @@
-name: Documentation Build
+name: Documentation Build and Publish to Zoomin
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - main
-    paths:
-      - '.github/workflows/docs-build-and-publish.yml'
-      - 'docs/**'
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      documentation_tag:
+        type: string
+        required: false
+        default: "latest"
+        description: "Label of the documentation"
+      publish_to_prod:
+        type: boolean
+        default: true
+      publish_to_dev:
+        type: boolean
+        default: true
+
+  workflow_call:
+    inputs:
+      documentation_tag:
+        type: string
+        required: true
+        default: "latest"
+      publish_to_prod:
+        type: boolean
+        default: true
+      publish_to_dev:
+        type: boolean
+        default: true
 
 jobs:
   docs-build-and-publish:
+    env:
+      ARCHIVE: "addon-thingy91x_oob_${{inputs.documentation_tag}}.zip"
+
     runs-on: ubuntu-latest
+
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
+
     permissions:
       contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -39,44 +61,45 @@ jobs:
         run: |
           sphinx-build -M html . build
 
+          cp custom.properties build/html
+          sed -i 's/__VERSION__/'"${{inputs.documentation_tag}}"'/g' build/html/custom.properties
+
+          cp tags.yml build/html
+          sed -i 's/__VERSION__/'"${{inputs.documentation_tag}}"'/g' build/html/tags.yml
+
+          cd build/html
+
+          zip -rq "${{env.ARCHIVE}}" .
+          ls -lah .
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: doc-build
           if-no-files-found: error
-          retention-days: 2
           path: |
-            docs/build/html/
+            docs/build/html/${{env.ARCHIVE}}
 
-      - name: Update gh-pages
-        if: ${{ github.event_name == 'push' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Key
         run: |
-          git config --global --add safe.directory "$(pwd)"
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          mkdir -p /root/.ssh
+          ssh-keyscan ${{ vars.NCS_ZOOMIN_SERVER }} >> /root/.ssh/known_hosts
+          echo "${{ secrets.NCS_ZOOMIN_KEY }}" > zoomin_key
+          chmod 600 zoomin_key
 
-          git fetch origin gh-pages
-          git checkout gh-pages || git checkout -b gh-pages
-          git rebase origin/gh-pages
 
-          # Update docs
-          rm -rf docs/html
-          cp -r docs/build/html docs/html
-          rm -rf docs/build
+      - name: Publish documentation - dev
+        if: ${{inputs.publish_to_dev}}
+        run: |
+          sftp -v -i zoomin_key ${{vars.NCS_ZOOMIN_USER}}@${{ vars.NCS_ZOOMIN_SERVER }} <<EOF
+            cd ${{ vars.NCS_ZOOMIN_DEPLOY_DEV_PATH}}
+            put docs/build/html/${{env.ARCHIVE}}
+          EOF
 
-          # Check for changes
-          if git diff --quiet docs/html; then
-              echo "No changes detected in documentation. Exiting gracefully."
-              exit 0
-          else
-              echo "Changes detected. Creating a new commit."
-          fi
-
-          # Create commit with doc updates
-          git add docs/html
-          git commit -m "Updating documentation based on ${{ github.sha }}"
-
-          # Push changes
-          git push origin gh-pages:gh-pages
+      - name: Publish documentation - prod
+        if: ${{inputs.publish_to_prod}}
+        run: |
+          sftp -v -i zoomin_key ${{vars.NCS_ZOOMIN_USER}}@${{ vars.NCS_ZOOMIN_SERVER }} <<EOF
+            cd ${{ vars.NCS_ZOOMIN_DEPLOY_PROD_PATH}}
+            put docs/build/html/${{env.ARCHIVE}}
+          EOF
