@@ -7,7 +7,6 @@ on:
       - main
     paths:
       - '.github/workflows/docs-build-and-publish.yml'
-      - 'docs/**'
   push:
     branches:
       - main
