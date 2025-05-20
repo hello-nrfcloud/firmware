@@ -1,0 +1,18 @@
+# Publish latest documentation on push to main
+name: Publish latest documentation on push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'doc/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/docs-build-and-publish.yml
+    with:
+      documentation_tag: "latest"
+      publish_to_prod: false
+      publish_to_dev: true
+    secrets: inherit
