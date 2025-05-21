@@ -83,8 +83,8 @@ jobs:
 
       - name: Prepare Key
         run: |
-          mkdir -p /root/.ssh
-          ssh-keyscan upload-v1.zoominsoftware.io >> /root/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan upload-v1.zoominsoftware.io >> ~/.ssh/known_hosts
 
           echo "${{ secrets.ZOOMIN_KEY }}" > zoomin_key
           chmod 600 zoomin_key
