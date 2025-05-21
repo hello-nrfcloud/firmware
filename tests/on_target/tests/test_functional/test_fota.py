@@ -59,8 +59,8 @@ def run_fota_fixture(t91x_fota, hex_file):
 
         post_job(t91x_fota, bundleId, fota_type)
 
-        # if test_fota_resumption:
-        #     run_fota_resumption(t91x_fota, fota_type)
+        if test_fota_resumption:
+            run_fota_resumption(t91x_fota, fota_type)
 
         t91x_fota.uart.flush()
         t91x_fota.uart.wait_for_str("FOTA download finished", timeout=fotatimeout)
