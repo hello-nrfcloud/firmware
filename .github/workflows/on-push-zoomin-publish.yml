@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy:
-    uses: ./.github/workflows/docs-build-and-publish.yml
+    uses: ./.github/workflows/docs-build-and-publish-zooomin.yml
     with:
       documentation_tag: "latest"
       publish_to_prod: false
