@@ -93,7 +93,7 @@ jobs:
         if: ${{inputs.publish_to_prod}}
         run: |
           sftp -v -i zoomin_key nordic@upload-v1.zoominsoftware.io <<EOF
-            cd docs-be.zoominsoftware.io/sphinx-html/incoming
+            cd docs-be.nordicsemi.com/sphinx-html/incoming
             put docs/build/html/${{env.ARCHIVE}}
           EOF
 
