@@ -10,7 +10,7 @@ on:
         description: "Label of the documentation"
       publish_to_prod:
         type: boolean
-        default: false
+        default: true
       publish_to_dev:
         type: boolean
         default: true
@@ -23,7 +23,7 @@ on:
         default: "latest"
       publish_to_prod:
         type: boolean
-        default: false
+        default: true
       publish_to_dev:
         type: boolean
         default: true

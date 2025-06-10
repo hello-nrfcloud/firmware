@@ -18,7 +18,7 @@ Some of the key features of the firmware include:
 * Modem tracing capability
 * LED indication for visualizing the operating state of the application
 
-The project repository is based on the `NCS Example Application`_ and customized to the needs of the application.
+The project repository is based on the `nRF Connect SDK example application <NCS Example Application_>`_ and customized to the needs of the application.
 Read more about the various aspects of the firmware in the following sections.
 
 .. toctree::
