@@ -216,7 +216,13 @@ jobs:
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- \
+              -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 \
+              -DCONFIG_BUILD_S1_VARIANT=y \
+              -DCONFIG_UART_0_NRF_HW_ASYNC=y \
+              -DCONFIG_UART_1_NRF_HW_ASYNC=y \
+              -DCONFIG_UART_0_NRF_HW_ASYNC_TIMER=1 \
+              -DCONFIG_UART_1_NRF_HW_ASYNC_TIMER=2
 
       - name: Create partition manager report for nRF53 firmware
         working-directory: nrf/applications/connectivity_bridge/build
