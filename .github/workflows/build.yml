@@ -216,7 +216,7 @@ jobs:
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 -DCONFIG_BUILD_S1_VARIANT=y
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3
 
       - name: Create partition manager report for nRF53 firmware
         working-directory: nrf/applications/connectivity_bridge/build
@@ -269,10 +269,13 @@ jobs:
         working-directory: thingy91x-oob
         run: |
           west twister -T . --test app/app.build.bootloader_update -v -p thingy91x/nrf9151/ns --inline-logs
-          cp twister-out/thingy91x_nrf9151_ns/app/app.build.bootloader_update/dfu_mcuboot.zip \
+          cp twister-out/thingy91x_nrf9151_ns/zephyr/app/app.build.bootloader_update/dfu_mcuboot.zip \
             hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
           rm -rf twister-out
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -d ../nrf/applications/connectivity_bridge/build-bl-update ../nrf/applications/connectivity_bridge -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4 -DCONFIG_BUILD_S1_VARIANT=y
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild \
+              -d ../nrf/applications/connectivity_bridge/build-bl-update \
+              ../nrf/applications/connectivity_bridge -- \
+              -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4
           cp ../nrf/applications/connectivity_bridge/build-bl-update/dfu_mcuboot.zip \
             connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
 
