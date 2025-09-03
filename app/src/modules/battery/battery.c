@@ -7,7 +7,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/drivers/sensor/npm1300_charger.h>
+#include <zephyr/drivers/sensor/npm13xx_charger.h>
 #include <zephyr/sys/util.h>
 #include <nrf_fuel_gauge.h>
 #include <date_time.h>
@@ -193,7 +193,7 @@ static int charger_read_sensors(float *voltage, float *current, float *temp, int
 	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_AVG_CURRENT, &value);
 	*current = (float)value.val1 + ((float)value.val2 / 1000000);
 
-	sensor_channel_get(charger, (enum sensor_channel)SENSOR_CHAN_NPM1300_CHARGER_STATUS,
+	sensor_channel_get(charger, (enum sensor_channel)SENSOR_CHAN_NPM13XX_CHARGER_STATUS,
 			   &value);
 	*chg_status = value.val1;
 
@@ -233,7 +233,7 @@ static void sample(int64_t *ref_time)
 				  NPM1300_CHG_STATUS_CC_MASK |
 				  NPM1300_CHG_STATUS_CV_MASK)) != 0;
 
-	state_of_charge = nrf_fuel_gauge_process(voltage, current, temp, delta, false, NULL);
+	state_of_charge = nrf_fuel_gauge_process(voltage, current, temp, delta, NULL);
 
 	LOG_DBG("State of charge: %f", (double)roundf(state_of_charge));
 	LOG_DBG("The battery is %s", charging ? "charging" : "not charging");

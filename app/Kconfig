@@ -6,6 +6,10 @@
 
 menu "Thingy Out-of-Box Application"
 
+config PM_PARTITION_SIZE_TFM_SRAM
+	hex
+	default 0x4000
+
 config APP_PAYLOAD_CHANNEL_BUFFER_MAX_SIZE
 	int "Payload maximum buffer size"
 	default 128

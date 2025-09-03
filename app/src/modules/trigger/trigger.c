@@ -113,11 +113,11 @@ struct s_object {
 /* SMF state object variable */
 static struct s_object state_object;
 
-static void trigger_send(enum trigger_type type, k_timeout_t timeout)
+static void trigger_send(enum trigger_type type)
 {
 	enum trigger_type trigger_type = type;
 
-	int err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, timeout);
+	int err = zbus_chan_pub(&TRIGGER_CHAN, &trigger_type, K_NO_WAIT);
 
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
@@ -136,7 +136,7 @@ static void frequent_poll_state_duration_timer_handler(struct k_timer * timer_id
 
 	LOG_DBG("Frequent poll duration timer expired");
 
-	err = zbus_chan_pub(&PRIV_TRIGGER_CHAN, &unused, K_SECONDS(1));
+	err = zbus_chan_pub(&PRIV_TRIGGER_CHAN, &unused, K_NO_WAIT);
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
@@ -151,7 +151,7 @@ static void trigger_work_fn(struct k_work *work)
 
 	LOG_DBG("Sending data sample trigger");
 
-	trigger_send(TRIGGER_DATA_SAMPLE, K_SECONDS(1));
+	trigger_send(TRIGGER_DATA_SAMPLE);
 
 	k_work_reschedule(&trigger_work, K_SECONDS(state_object.update_interval_used_sec));
 }
@@ -162,8 +162,8 @@ static void trigger_poll_work_fn(struct k_work *work)
 
 	LOG_DBG("Sending shadow/fota poll trigger");
 
-	trigger_send(TRIGGER_POLL, K_SECONDS(1));
-	trigger_send(TRIGGER_FOTA_POLL, K_SECONDS(1));
+	trigger_send(TRIGGER_POLL);
+	trigger_send(TRIGGER_FOTA_POLL);
 
 	k_work_reschedule(&trigger_poll_work,
 			  K_SECONDS(state_object.poll_interval_used_sec));
@@ -283,8 +283,8 @@ static void blocked_run(void *o)
 			user_object->button_number);
 
 		frequent_poll_duration_timer_start(true);
-		trigger_send(TRIGGER_POLL, K_SECONDS(1));
-		trigger_send(TRIGGER_FOTA_POLL, K_SECONDS(1));
+		trigger_send(TRIGGER_POLL);
+		trigger_send(TRIGGER_FOTA_POLL);
 
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received, refreshing poll duration timer");
@@ -316,7 +316,7 @@ static void frequent_poll_entry(void *o)
 				  K_SECONDS(user_object->poll_interval_used_sec));
 		return;
 	}
-	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_SECONDS(1));
+	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_NO_WAIT);
 
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
@@ -393,7 +393,7 @@ static void normal_entry(void *o)
 	user_object->trigger_mode = TRIGGER_MODE_NORMAL;
 
 	/* Send message on trigger mode channel */
-	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_SECONDS(1));
+	int err = zbus_chan_pub(&TRIGGER_MODE_CHAN, &user_object->trigger_mode, K_NO_WAIT);
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);
 		SEND_FATAL_ERROR();
