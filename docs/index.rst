@@ -29,6 +29,7 @@ Read more about the various aspects of the firmware in the following sections.
    gsg_guide
    architecture
    led_indication
+   antennatuning
    troubleshooting
    known_issues
    release_notes

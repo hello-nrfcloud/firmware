@@ -6,6 +6,7 @@
 
 .. _`nRF Cloud CoAP`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/libraries/networking/nrf_cloud_coap.html
 .. _`Date-Time`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/libraries/others/date_time.html
+.. _`Modem Antenna`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/libraries/modem/modem_antenna.html
 .. _`connection manager`: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/connectivity/networking/conn_mgr/main.html
 .. _`Fuel Gauge`: https://docs.nordicsemi.com/bundle/ncs-latest/page/zephyr/hardware/peripherals/fuel_gauge.html
 .. _`BME68X IAQ driver`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/drivers/bme68x_iaq.html
@@ -17,6 +18,10 @@
 .. _`Installing nRF Util`: https://docs.nordicsemi.com/bundle/nrfutil/page/guides/installing.html
 .. _`Connectivity Bridge`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/applications/connectivity_bridge/README.html
 .. _`Thingy:91 X Recovery`: https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/app_dev/device_guides/thingy91x/thingy91x_recover_to_factory_firmware.html
+.. _`%XMIPIRFFECTRL`: https://docs.nordicsemi.com/bundle/ref_at_commands_dect/page/REF/at_commands/sip_pin_configuration/xmipirffectrl.html
+.. _`%XMIPIRFFEDEV`: https://docs.nordicsemi.com/bundle/ref_at_commands_dect/page/REF/at_commands/sip_pin_configuration/xmipirffedev.html
+.. _`%COEXCONFIG`: https://docs.nordicsemi.com/bundle/ref_at_commands_dect/page/REF/at_commands/dect/coexconfig.html
+
 
 .. ### github.com
 
@@ -24,6 +29,7 @@
 .. _`NCS Example Application`: https://github.com/nrfconnect/ncs-example-application
 .. _`sdk-nrf PR #19024`: https://github.com/nrfconnect/sdk-nrf/pull/19024
 .. _`github_release`: https://github.com/hello-nrfcloud/firmware/releases
+.. _`Thingy:91 X nRF9151 board configuration`: https://github.com/nrfconnect/sdk-nrf/blob/6f02c434bada82fec5e26418d5cd1e6c091a46d1/boards/nordic/thingy91x/Kconfig.defconfig.nrf9151#L83
 
 
 .. ### other
@@ -33,6 +39,8 @@
 .. _`Memfault`: https://memfault.com/
 
 .. _`Interactive BOM PCA20065 1.0.0.`: https://htmlpreview.github.io/?https://github.com/hello-nrfcloud/firmware/blob/main/docs/pca20065_1_0_0.html
+
+.. _`Ignion Antenna Technology Powering The-Nordic-Thingy 91 X`: https://ignion.io/files/AN_Ignion-antenna-technology-powering-the-nordic-thingy91x
 
 .. _`nRF5340 application firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-app.hex
 .. _`nRF5340 network firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-net.hex
