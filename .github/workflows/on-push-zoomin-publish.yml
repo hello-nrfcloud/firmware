@@ -10,6 +10,8 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      contents: write
     uses: ./.github/workflows/docs-build-and-publish-zooomin.yml
     with:
       documentation_tag: "latest"
