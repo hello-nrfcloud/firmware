@@ -28,9 +28,7 @@ BLE_CONTROL_MESSAGE_RETRIES = 3
 MAC_ADDR_FLASH_LOCATION = 0x7A000
 
 SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
-SEGGER_NRF91 = os.getenv('SEGGER_NRF91')
 CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID_DUT_2', "")
-
 
 
 @pytest.fixture(scope="function")
