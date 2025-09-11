@@ -106,16 +106,16 @@ jobs:
             ${{ inputs.pytest_path }}
         shell: bash
         env:
-          SEGGER: ${{ secrets.SEGGER_DUT_1 }}
-          SEGGER_NRF53: ${{ secrets.SEGGER_DUT_2_EXT_DBG }}
-          SEGGER_NRF91: ${{ secrets.SEGGER_DUT_2_NRF91 }}
-          IMEI: ${{ secrets.IMEI_DUT_1 }}
-          UART_ID_DUT_2: ${{ secrets.UART_DUT_2 }}
+          SEGGER: ${{ vars.SEGGER_DUT_1 }}
+          SEGGER_NRF53: ${{ vars.SEGGER_DUT_2_EXT_DBG }}
+          SEGGER_NRF91: ${{ vars.SEGGER_DUT_2_NRF91 }}
+          IMEI: ${{ vars.IMEI_DUT_1 }}
+          UART_ID_DUT_2: ${{ vars.UART_DUT_2 }}
           FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
           LOG_FILENAME: oob_uart_test_log
           TEST_REPORT_NAME: OOB Firwmare Test Report
           DUT1_HW_REVISION: ${{ vars.DUT1_HW_REVISION }}
-          SEGGER_PPK: ${{ secrets.SEGGER_DUT_PPK }}
+          SEGGER_PPK: ${{ vars.SEGGER_DUT_PPK }}
           MEMFAULT_ORGANIZATION_TOKEN: ${{ secrets.MEMFAULT_ORGANIZATION_TOKEN }}
           MEMFAULT_ORGANIZATION_SLUG: ${{ vars.MEMFAULT_ORGANIZATION_SLUG }}
           MEMFAULT_PROJECT_SLUG: ${{ vars.MEMFAULT_PROJECT_SLUG }}
