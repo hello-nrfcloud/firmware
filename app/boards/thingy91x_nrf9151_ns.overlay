@@ -25,8 +25,26 @@
 	status = "okay";
 };
 
-
 /* Switch to nrf7000 emulation so that scan-only mode is used. */
 &nrf70 {
 	compatible = "nordic,nrf7000-spi";
+};
+
+&pinctrl {
+	pwm0_default: pwm0_default {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 0, 29)>,
+				<NRF_PSEL(PWM_OUT1, 0, 31)>,
+				<NRF_PSEL(PWM_OUT2, 0, 30)>;
+		};
+	};
+
+	pwm0_sleep: pwm0_sleep {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 0, 29)>,
+				<NRF_PSEL(PWM_OUT1, 0, 31)>,
+				<NRF_PSEL(PWM_OUT2, 0, 30)>;
+			low-power-enable;
+		};
+	};
 };
