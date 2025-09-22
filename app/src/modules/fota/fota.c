@@ -33,8 +33,10 @@ ZBUS_MSG_SUBSCRIBER_DEFINE(fota);
 /* Observe channels */
 ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, fota, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, fota, 0);
+ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, fota, 0);
 
-#define MAX_MSG_SIZE MAX(sizeof(enum trigger_type), sizeof(enum cloud_status))
+#define MAX_MSG_SIZE MAX(MAX(sizeof(enum trigger_type), sizeof(enum cloud_status)), \
+			     sizeof(enum network_status))
 
 /* FOTA support context */
 static void fota_reboot(enum nrf_cloud_fota_reboot_status status);
@@ -48,6 +50,7 @@ static void fota_status(enum nrf_cloud_fota_status status, const char *const sta
  *	STATE_WAIT_FOR_CLOUD: The FOTA module is initialized and waiting for cloud connection.
  *	STATE_WAIT_FOR_TRIGGER: The FOTA module is waiting for a trigger to poll for updates.
  *	STATE_POLL_AND_PROCESS: The FOTA module is polling for updates and processing them.
+ *	STATE_WAIT_FOR_NETWORK_DISCONNECT: Waiting for network to disconnect before applying FMFU.
  *	STATE_REBOOT_PENDING: The nRF Cloud FOTA library has requested a reboot to complete an update.
  */
 enum fota_module_state {
@@ -55,6 +58,7 @@ enum fota_module_state {
 	STATE_WAIT_FOR_CLOUD,
 	STATE_WAIT_FOR_TRIGGER,
 	STATE_POLL_AND_PROCESS,
+	STATE_WAIT_FOR_NETWORK_DISCONNECT,
 	STATE_REBOOT_PENDING,
 };
 
@@ -64,7 +68,10 @@ enum priv_fota_evt {
 	FOTA_PRIV_PROCESSING_DONE,
 	/* FOTA processing is completed, reboot is needed */
 	FOTA_PRIV_REBOOT_PENDING,
+	/* FMFU download complete, need validation of image */
+	FOTA_PRIV_FMFU_VALIDATION_NEEDED
 };
+
 /* User defined state object.
  * Used to transfer data between state changes.
  */
@@ -99,6 +106,8 @@ static void state_wait_for_cloud_run(void *o);
 static void state_wait_for_trigger_run(void *o);
 static void state_poll_and_process_entry(void *o);
 static void state_poll_and_process_run(void *o);
+static void state_wait_for_network_disconnect_entry(void *o);
+static void state_wait_for_network_disconnect_run(void *o);
 static void state_reboot_pending_entry(void *o);
 
 static struct s_object s_obj = {
@@ -121,6 +130,12 @@ static const struct smf_state states[] = {
 				 NULL),
 	[STATE_POLL_AND_PROCESS] =
 		SMF_CREATE_STATE(state_poll_and_process_entry, state_poll_and_process_run,
+				 NULL,
+				 &states[STATE_RUNNING],
+				 NULL),
+	[STATE_WAIT_FOR_NETWORK_DISCONNECT] =
+		SMF_CREATE_STATE(state_wait_for_network_disconnect_entry,
+				 state_wait_for_network_disconnect_run,
 				 NULL,
 				 &states[STATE_RUNNING],
 				 NULL),
@@ -224,9 +239,59 @@ static void state_poll_and_process_run(void *o)
 			/* The FOTA module has requested a reboot to complete an update */
 			STATE_SET(STATE_REBOOT_PENDING);
 			break;
+		case FOTA_PRIV_FMFU_VALIDATION_NEEDED:
+			/* FMFU download is complete, need to validate the image */
+			STATE_SET(STATE_WAIT_FOR_NETWORK_DISCONNECT);
+			break;
 		default:
 			LOG_ERR("Unknown event: %d", evt);
 			break;
+		}
+	}
+}
+
+static void state_wait_for_network_disconnect_entry(void *o)
+{
+	int err;
+	enum network_status network_msg = NETWORK_DISCONNECT_REQUEST;
+
+	ARG_UNUSED(o);
+
+	LOG_DBG("Requesting network disconnect for FMFU application");
+
+	err = zbus_chan_pub(&NETWORK_CHAN, &network_msg, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("zbus_chan_pub, error: %d", err);
+		SEND_FATAL_ERROR();
+	}
+}
+
+static void state_wait_for_network_disconnect_run(void *o)
+{
+	struct s_object *state_object = o;
+	int err;
+
+	if (&NETWORK_CHAN == state_object->chan) {
+		const enum network_status status = MSG_TO_NETWORK_STATUS(state_object->msg_buf);
+
+		if (status == NETWORK_DISCONNECTED) {
+			LOG_DBG("Network disconnected, applying FMFU");
+
+			err = nrf_cloud_fota_poll_update_apply(&state_object->fota_ctx);
+			if (err) {
+				LOG_ERR("nrf_cloud_fota_poll_update_apply, error: %d", err);
+				SEND_FATAL_ERROR();
+				return;
+			}
+		}
+	}
+
+	if (&PRIV_FOTA_CHAN == state_object->chan) {
+		const enum priv_fota_evt evt = *(const enum priv_fota_evt *)state_object->msg_buf;
+
+		if (evt == FOTA_PRIV_REBOOT_PENDING) {
+			STATE_SET(STATE_REBOOT_PENDING);
+			return;
 		}
 	}
 }
@@ -359,6 +424,11 @@ static void fota_status(enum nrf_cloud_fota_status status, const char *const sta
 
 		status_events_notify(FOTA_STATUS_STOP);
 		break;
+	case NRF_CLOUD_FOTA_CANCELED:
+		LOG_WRN("Firmware download canceled");
+
+		status_events_notify(FOTA_STATUS_STOP);
+		break;
 	case NRF_CLOUD_FOTA_TIMED_OUT:
 		LOG_ERR("Firmware download timed out");
 
@@ -369,6 +439,11 @@ static void fota_status(enum nrf_cloud_fota_status status, const char *const sta
 
 		status_events_notify(FOTA_STATUS_STOP);
 		return;
+	case NRF_CLOUD_FOTA_FMFU_VALIDATION_NEEDED:
+		LOG_DBG("Full modem FOTA validation needed");
+
+		evt = FOTA_PRIV_FMFU_VALIDATION_NEEDED;
+		break;
 	default:
 		LOG_ERR("Unknown FOTA status: %d", status);
 		break;

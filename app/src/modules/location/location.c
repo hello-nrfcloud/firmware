@@ -41,7 +41,6 @@ ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, location, 0);
 		         sizeof(enum network_status)))))))
 
 static bool gnss_enabled;
-static bool gnss_initialized;
 
 static void location_event_handler(const struct location_event_data *event_data);
 
@@ -99,22 +98,22 @@ void trigger_location_update(void)
 	}
 }
 
-void handle_network_chan(enum network_status status) {
-	int err = 0;
-
-	if (gnss_initialized) {
-		return;
-	}
+void handle_network_chan(enum network_status status)
+{
+	int err;
 
 	if (status == NETWORK_CONNECTED) {
-		/* GNSS has to be enabled after the modem is initialized and enabled */
 		err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS);
 		if (err) {
 			LOG_ERR("Unable to init GNSS: %d", err);
 			SEND_FATAL_ERROR();
-		} else {
-			gnss_initialized = true;
-			LOG_DBG("GNSS initialized");
+		}
+
+	} else if (status == NETWORK_DISCONNECTED) {
+		err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_DEACTIVATE_GNSS);
+		if (err) {
+			LOG_ERR("Unable to init GNSS: %d", err);
+			SEND_FATAL_ERROR();
 		}
 	}
 }

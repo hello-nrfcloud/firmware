@@ -25,6 +25,7 @@ FAKE_VALUE_FUNC(int, task_wdt_feed, int);
 FAKE_VALUE_FUNC(int, task_wdt_add, uint32_t, task_wdt_callback_t, void *);
 FAKE_VALUE_FUNC(int, lte_lc_conn_eval_params_get, struct lte_lc_conn_eval_params *);
 FAKE_VALUE_FUNC(int, conn_mgr_all_if_connect, bool);
+FAKE_VALUE_FUNC(int, conn_mgr_all_if_disconnect, bool);
 FAKE_VALUE_FUNC(int, conn_mgr_all_if_up, bool);
 FAKE_VOID_FUNC(net_mgmt_add_event_callback, struct net_mgmt_event_callback *);
 
@@ -96,6 +97,14 @@ static void send_trigger(void)
 	TEST_ASSERT_EQUAL(0, err);
 }
 
+static void send_network_disconnect_request(void)
+{
+	enum network_status status = NETWORK_DISCONNECT_REQUEST;
+	int err = zbus_chan_pub(&NETWORK_CHAN, &status, K_SECONDS(1));
+
+	TEST_ASSERT_EQUAL(0, err);
+}
+
 static void wait_for_and_decode_payload(struct conn_info_object *conn_info_obj)
 {
 	const struct zbus_channel *chan;
@@ -138,6 +147,7 @@ void setUp(void)
 	RESET_FAKE(lte_lc_conn_eval_params_get);
 	RESET_FAKE(conn_mgr_all_if_connect);
 	RESET_FAKE(conn_mgr_all_if_up);
+	RESET_FAKE(conn_mgr_all_if_disconnect);
 
 	date_time_now_fake.custom_fake = date_time_now_custom_fake;
 	send_time_available();
@@ -236,6 +246,22 @@ void test_no_events_on_zbus_until_watchdog_timeout(void)
 
 	/* Check if the watchdog was fed atleast once.*/
 	TEST_ASSERT_GREATER_OR_EQUAL(1, task_wdt_feed_fake.call_count);
+}
+
+void test_network_disconnect_request_calls_disconnect_function(void)
+{
+	/* Given */
+	conn_mgr_all_if_disconnect_fake.return_val = 0;
+
+	/* When */
+	send_network_disconnect_request();
+
+	/* Allow the test thread to sleep so that the DUT's thread is allowed to run. */
+	k_sleep(K_MSEC(100));
+
+	/* Then */
+	TEST_ASSERT_EQUAL(1, conn_mgr_all_if_disconnect_fake.call_count);
+	TEST_ASSERT_EQUAL(true, conn_mgr_all_if_disconnect_fake.arg0_val);
 }
 
 /* This is required to be added to each test. That is because unity's
