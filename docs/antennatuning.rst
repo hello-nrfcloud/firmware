@@ -17,7 +17,7 @@ The Thingy:91 X board files define the default AT commands that are sent to the 
 The default values for the Kconfig options used when building firmware for the Thingy:91 X target can be found in the `Thingy:91 X nRF9151 board configuration`_ file.
 
 You can modify the default values to optimize the antenna tuning of the Thingy:91 X for specific usage scenarios.
-Ignion, the manufacturer of the antenna used on the Thingy:91 X, explains in the `Ignion Antenna Technology Powering The-Nordic-Thingy 91 X`_ application note how the antenna tuning can be optimized for specific usage scenarios by adjusting the switching states of the antenna.
+Ignion, the manufacturer of the antenna used on the Thingy:91 X, explains in the `Ignion Antenna Technology Powering The-Nordic-Thingy 91 X`_ design guide how the antenna tuning can be optimized for specific usage scenarios by adjusting the switching states of the antenna.
 
 The antenna switch states can be set in the :file:`prj.conf` file by changing the configuration of the ``%XMIPIRFFECTRL`` AT command or during runtime by issuing the ``AT%XMIPIRFFECTRL=<new_antenna_switch_states>`` AT command.
 

@@ -40,7 +40,7 @@
 
 .. _`Interactive BOM PCA20065 1.0.0.`: https://htmlpreview.github.io/?https://github.com/hello-nrfcloud/firmware/blob/main/docs/pca20065_1_0_0.html
 
-.. _`Ignion Antenna Technology Powering The-Nordic-Thingy 91 X`: https://ignion.io/files/AN_Ignion-antenna-technology-powering-the-nordic-thingy91x
+.. _`Ignion Antenna Technology Powering The-Nordic-Thingy 91 X`: https://ignion.io/whitepapers-and-design-guides/powering-nordic-thingy91x/
 
 .. _`nRF5340 application firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-app.hex
 .. _`nRF5340 network firmware`: https://github.com/hello-nrfcloud/firmware/releases/download/v2.0.1/connectivity-bridge-v2.0.1-thingy91x-nrf53-net.hex
