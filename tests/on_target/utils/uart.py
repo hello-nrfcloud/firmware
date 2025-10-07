@@ -293,4 +293,3 @@ def wait_until_uart_available(name, timeout_seconds=60):
         time.sleep(1)
         timeout_seconds -= 1
     logger.error(f"UART '{name}' not found within {timeout_seconds} seconds")
-    return None

@@ -7,7 +7,6 @@ import os
 from utils.flash_tools import flash_device, reset_device
 import sys
 import pytest
-from utils.flash_tools import flash_device, reset_device
 
 sys.path.append(os.getcwd())
 from utils.logger import get_logger

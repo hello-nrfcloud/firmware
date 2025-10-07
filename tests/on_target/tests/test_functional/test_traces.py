@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 ##########################################################################################
 
-import pytest
 import time
 import os
 from utils.flash_tools import flash_device, reset_device

@@ -4,7 +4,6 @@
 ##########################################################################################
 
 import pytest
-import time
 import os
 from utils.flash_tools import flash_device, reset_device
 import sys

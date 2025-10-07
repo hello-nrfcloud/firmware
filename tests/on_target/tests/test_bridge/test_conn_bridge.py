@@ -4,7 +4,6 @@
 ##########################################################################################
 
 import pytest
-import time
 import os
 import types
 from utils.flash_tools import flash_device, recover_device, dfu_device, get_first_artifact_match
@@ -25,7 +24,6 @@ CB_TIMEOUT = 60
 LINE_LEN = 64
 LINE_COUNT = 64
 BLE_CONTROL_MESSAGE_RETRIES = 3
-MAC_ADDR_FLASH_LOCATION = 0x7A000
 
 SEGGER_NRF53 = os.getenv('SEGGER_NRF53')
 CONNECTIVITY_BRIDGE_UART = "THINGY91X_" + os.getenv('UART_ID_DUT_2', "")

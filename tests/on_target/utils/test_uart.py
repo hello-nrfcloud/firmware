@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 ##########################################################################################
 
-import time
 from unittest.mock import Mock, patch
 
 import pytest
