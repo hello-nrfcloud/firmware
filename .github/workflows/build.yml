@@ -64,7 +64,7 @@ jobs:
       version: ${{ env.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: thingy91x-oob
 
