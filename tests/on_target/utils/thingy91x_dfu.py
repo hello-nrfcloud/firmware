@@ -41,7 +41,7 @@ class Thingy91XDFU:
     """
     A class to handle Device Firmware Update operations for Thingy:91 X devices.
     """
-    def __init__(self, vid, pid, chip, serial_number):
+    def __init__(self, vid=0x1915, pid=0x910a, chip="nrf53", serial_number=None):
         self.vid = vid
         self.pid = pid
         self.chip = chip
@@ -184,7 +184,7 @@ class Thingy91XDFU:
         return next((ep for ep in interface if usb.util.endpoint_direction(ep.bEndpointAddress) == direction), None)
 
     def read_nrf53_version(self):
-        logger.info(f"Reading nRF53 version...")
+        logger.info("Reading nRF53 version...")
         if not self.prepare_bulk_endpoints():
             return None
 
@@ -286,13 +286,13 @@ class Thingy91XDFU:
             if mcuboot_serial_number is None:
                 continue
             if enter_mcuboot and ("THINGY91X" not in mcuboot_serial_number):
-                logger.info(f"nrf53 has entered mcuboot mode")
+                logger.info("nrf53 has entered mcuboot mode")
                 break
             if not enter_mcuboot and ("THINGY91X" in mcuboot_serial_number):
-                logger.info(f"nrf53 has exited mcuboot mode")
+                logger.info("nrf53 has exited mcuboot mode")
                 break
         if mcuboot_serial_number is None:
-            logger.error("Serial port not found, unable to detrmine nrf53 recovery mode")
+            logger.error("Serial port not found, unable to determine nrf53 recovery mode")
             sys.exit(1)
         return mcuboot_serial_number, port_info.device
 
@@ -342,18 +342,20 @@ class Thingy91XDFU:
             digest = digest.hex()
 
             if self.chip == "nrf91":
-                os.system(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image list -t 1 || true")
+                subprocess.run(f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image list -t".split())
 
             commands = [
-                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image list",
-                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image upload {imgfile} -n 2",
-                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image confirm {digest}",
-                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 reset"
+                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image list".split(),
+                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image upload {imgfile} -n 2".split(),
+                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 image confirm {digest}".split(),
+                f"mcumgr --conntype serial --connstring dev={port},baud=1000000 reset".split()
             ]
 
             for cmd in commands:
-                ret = os.system(cmd)
-                if ret != 0:
+                logger.info(f"Executing command: '{" ".join(cmd)}'")
+                ret = subprocess.run(cmd)
+                time.sleep(1)
+                if ret.returncode != 0:
                     logger.error(f"Command failed: {cmd}")
                     sys.exit(1)
 
@@ -361,9 +363,8 @@ class Thingy91XDFU:
                 _ , port = self.wait_for_nrf53_recovery_mode(enter_mcuboot=False)
             if self.chip == "nrf91":
                 time.sleep(5)
-
-            if self.chip == "nrf91":
                 self.reset_device()
+
 
 def detect_family_from_zip(zip_file):
     is_mcuboot = False
