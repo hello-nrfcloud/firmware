@@ -161,6 +161,44 @@ jobs:
             thingy91x-oob/app/build/nrf91-bl-*.hex
             thingy91x-oob/app/build/pmr-nrf91-*.txt
 
+      - name: Build nrf91 firmware with modem trace
+        working-directory: thingy91x-oob/app
+        run: |
+          cp overlay-memfault.conf overlay-memfault-oob.conf
+          echo "CONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"" >> overlay-memfault-oob.conf
+          echo CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y >> overlay-memfault-oob.conf
+          echo CONFIG_MEMFAULT_NCS_FW_VERSION=\"${{ env.VERSION }}\" >> overlay-memfault-oob.conf
+          echo CONFIG_MEMFAULT_NCS_FW_TYPE=\"${{ env.MEMFAULT_SW_TYPE }}\" >> overlay-memfault-oob.conf
+          west build -b thingy91x/nrf9151/ns -p --sysbuild -- \
+            -Dapp_SNIPPET=nrf91-modem-trace-uart
+
+      - name: Rename trace artifacts
+        working-directory: thingy91x-oob/app/build
+        run: |
+          cp ../../../nrf91-bl-*.hex .
+          # Overwrite the bootloader part with the frozen version
+          python3 ../../../zephyr/scripts/build/mergehex.py -o \
+            hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace.hex \
+            merged.hex \
+            nrf91-bl-*.hex \
+            --overlap replace
+          cp app/zephyr/.config hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace.config
+          cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace-update-signed.bin
+          cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace-update-signed.hex
+          cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace.elf
+          cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace-dfu.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        id: artifact-upload-oob-trace
+        with:
+          name: firmware-oob-trace
+          if-no-files-found: error
+          path: |
+            thingy91x-oob/app/build/hello.nrfcloud.com-*.*
+            thingy91x-oob/app/build/nrf91-bl-*.hex
+            thingy91x-oob/app/build/pmr-nrf91-*.txt
+
       # Out-of-box debug firmware build
 
       - name: Build nrf91 debug firmware
