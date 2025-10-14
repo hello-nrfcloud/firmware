@@ -66,8 +66,8 @@ struct s_object {
 };
 
 /* Forward declarations of state handlers */
-static void state_init_run(void *o);
-static void state_sampling_run(void *o);
+static enum smf_state_result state_init_run(void *o);
+static enum smf_state_result state_sampling_run(void *o);
 
 static struct s_object s_obj;
 static const struct smf_state states[] = {
@@ -83,7 +83,7 @@ static const struct smf_state states[] = {
 
 /* State handlers */
 
-static void state_init_run(void *o)
+static enum smf_state_result state_init_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -96,9 +96,11 @@ static void state_init_run(void *o)
 			STATE_SET(STATE_SAMPLING);
 		}
 	}
+
+	return SMF_EVENT_HANDLED;
 }
 
-static void state_sampling_run(void *o)
+static enum smf_state_result state_sampling_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -110,6 +112,8 @@ static void state_sampling_run(void *o)
 			sample();
 		}
 	}
+
+	return SMF_EVENT_HANDLED;
 }
 
 /* End of state handling */

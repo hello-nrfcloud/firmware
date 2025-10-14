@@ -33,17 +33,6 @@ extern "C" {
  */
 #define STATE_SET(_state)		smf_set_state(SMF_CTX(&s_obj), &states[_state])
 
-/** @brief Set the state for a module and handle the event.
- *
- *  @note The macro requires that a state machine object named s_obj is defined and that a
- *	  state array named states is defined.
- *
- *  @param _state State to set.
- *
- *  @return see smf_set_handled().
- */
-#define STATE_EVENT_HANDLED(_state)	smf_set_handled(SMF_CTX(&s_obj))
-
 /** @brief Run the state machine for a module.
  *
  *  @note The macro requires that a state machine object named s_obj is defined.
