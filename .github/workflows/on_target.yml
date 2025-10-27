@@ -58,7 +58,7 @@ jobs:
           path: thingy91x-oob
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: firmware-*
           merge-multiple: true
@@ -139,7 +139,7 @@ jobs:
 
       - name: Create Report Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         id: artifact-report
         with:
           name: test-report
@@ -148,7 +148,7 @@ jobs:
 
       - name: Push log files to artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         id: artifact-upload-test-logs
         with:
           name: test-logs
