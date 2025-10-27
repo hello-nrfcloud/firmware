@@ -13,6 +13,8 @@ from utils.logger import get_logger
 from utils.thingy91x_dfu import detect_family_from_zip, Thingy91XDFU
 from pyocd.core.helpers import ConnectHelper
 from pyocd.flash.file_programmer import FileProgrammer
+from pyocd.flash.eraser import FlashEraser
+from pyocd.commands.commands import ResetCommand
 
 logger = get_logger()
 
@@ -22,7 +24,7 @@ SEGGER = os.getenv("SEGGER")
 def reset_device(serial=SEGGER, reset_kind="RESET_SYSTEM"):
     logger.info(f"Resetting device, segger: {serial}")
     try:
-        result = subprocess.run(
+        subprocess.run(
             [
                 "nrfutil",
                 "device",
@@ -50,7 +52,7 @@ def flash_device(hexfile, serial=SEGGER, extra_args=[]):
         raise ValueError("hexfile cannot be None")
     logger.info(f"Flashing device, segger: {serial}, firmware: {hexfile}")
     try:
-        result = subprocess.run(
+        subprocess.run(
             [
                 "nrfutil",
                 "device",
@@ -72,13 +74,11 @@ def flash_device(hexfile, serial=SEGGER, extra_args=[]):
         logger.info(e.stderr)
         raise
 
-    reset_device(serial)
-
 
 def recover_device(serial=SEGGER, core="Application"):
     logger.info(f"Recovering device, segger: {serial}")
     try:
-        result = subprocess.run(
+        subprocess.run(
             ["nrfutil", "device", "recover", "--serial-number", serial, "--core", core],
             check=True,
             text=True,
@@ -91,9 +91,11 @@ def recover_device(serial=SEGGER, core="Application"):
         logger.info(e.stderr)
         raise
 
+
 def enter_bootloader_mode(serial, chip):
     t91x_dfu = Thingy91XDFU(serial_number=serial, chip=chip)
     t91x_dfu.enter_bootloader_mode()
+
 
 def dfu_reset_device(serial, chip):
     t91x_dfu = Thingy91XDFU(serial_number=serial, chip=chip)
@@ -139,11 +141,29 @@ def dfu_device(
 
 
 def pyocd_flash_device(serial, hexfile, target_type="nrf91"):
+    logger.debug(f"Flashing device, serial: {serial}, hexfile: {hexfile}")
     with ConnectHelper.session_with_chosen_probe(
         unique_id=serial, target_override=target_type
     ) as session:
         programmer = FileProgrammer(session)
         programmer.program(hexfile)
+
+
+def pyocd_erase_device(serial, target_type="nrf91"):
+    logger.debug(f"Erasing device, serial: {serial}")
+    with ConnectHelper.session_with_chosen_probe(
+        unique_id=serial, target_override=target_type
+    ) as session:
+        eraser = FlashEraser(session, FlashEraser.Mode.MASS)
+        eraser.erase()
+
+
+def pyocd_reset_device(serial, target_type="nrf91"):
+    logger.debug(f"Resetting device, serial: {serial}")
+    with ConnectHelper.session_with_chosen_probe(
+        unique_id=serial, target_override=target_type, type="hardware"
+    ) as session:
+        ResetCommand(session)
 
 
 def get_first_artifact_match(pattern):

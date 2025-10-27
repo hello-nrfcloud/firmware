@@ -151,3 +151,15 @@ def hex_file():
             return os.path.join(artifacts_dir, file)
 
     pytest.fail("No matching firmware .hex file found in the artifacts directory")
+
+@pytest.fixture(scope="session")
+def app_dfu_file():
+    # Search for the application firmware dfu .zip file in the artifacts folder
+    artifacts_dir = "artifacts"
+    dfu_pattern = r"hello\.nrfcloud\.com-[0-9a-z\.]+-thingy91x-nrf91-dfu\.zip"
+
+    for file in os.listdir(artifacts_dir):
+        if re.match(dfu_pattern, file):
+            return os.path.join(artifacts_dir, file)
+
+    pytest.fail("No matching firmware dfu .zip file found in the artifacts directory")

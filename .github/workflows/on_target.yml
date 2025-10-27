@@ -111,6 +111,7 @@ jobs:
           SEGGER_NRF91: ${{ vars.SEGGER_DUT_2_NRF91 }}
           IMEI: ${{ vars.IMEI_DUT_1 }}
           UART_ID_DUT_2: ${{ vars.UART_DUT_2 }}
+          UART_ID_PPK: ${{ vars.UART_ID_PPK }}
           FINGERPRINT: ${{ secrets.FINGERPRINT_DUT_1 }}
           LOG_FILENAME: oob_uart_test_log
           TEST_REPORT_NAME: OOB Firwmare Test Report

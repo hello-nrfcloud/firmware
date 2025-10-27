@@ -126,6 +126,8 @@ class Uart:
                     if self._evt.is_set():
                         return
                     time.sleep(5)
+                    if self._evt.is_set():
+                        return
                     try:
                         s = serial.Serial(
                             self.uart,
@@ -221,6 +223,21 @@ class Uart:
         if match:
             return match.groups()
         return None
+
+    def wait_for_str_re(self, pattern: str, error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT, start_pos: int = 0):
+        start_t = time.time()
+        regex = re.compile(pattern)
+
+        while True:
+            match = regex.search(self.log[start_pos:])
+            if match:
+                # Return the first group if groups exist, else the whole match
+                return match.groups() if match.groups() else match.group(0)
+            if start_t + timeout < time.time():
+                raise AssertionError(f"Pattern '{pattern}' not found in UART log. {error_msg}\n")
+            if self._evt.is_set():
+                raise RuntimeError(f"Uart thread stopped, log:\n{self.log}")
+            time.sleep(1)
 
 class UartBinary(Uart):
     def __init__(
