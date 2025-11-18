@@ -54,11 +54,39 @@ on:
     - cron: "0 0 * * *"
 
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      TOOLCHAIN_VERSION: ${{ steps.setup.outputs.TOOLCHAIN_VERSION }}
+    steps:
+      - name: Checkout ATT
+        uses: actions/checkout@v4
+        with:
+          path: att
+      - name: Find NCS SHA
+        run: |
+          NCS_REV=$(cat att/west.yml | grep "revision:" | awk '{print $2}' | xargs)
+          echo "NCS_REV=${NCS_REV}" >> $GITHUB_ENV
+          echo "NCS_REV=${NCS_REV}"
+      - name: Checkout NCS
+        uses: actions/checkout@v4
+        with:
+          path: nrf
+          repository: nrfconnect/sdk-nrf
+          ref: ${{ env.NCS_REV }}
+      - name: Set Toolchain Version
+        id: setup
+        run: |
+          TOOLCHAIN_VERSION=$(./nrf/scripts/print_toolchain_checksum.sh)
+          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}"
+          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-24.04
-    container: ghcr.io/zephyrproject-rtos/ci:v0.27.4
-    env:
-      CMAKE_PREFIX_PATH: /opt/toolchains
+    needs: setup
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.setup.outputs.TOOLCHAIN_VERSION }}
+    defaults:
+      run:
+        shell: bash
     outputs:
       run_id: ${{ github.run_id }}
       version: ${{ env.VERSION }}
