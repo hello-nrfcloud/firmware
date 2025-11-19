@@ -19,13 +19,24 @@ on:
         required: true
 
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      toolchain-version: ${{ steps.setup.outputs.toolchain-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/toolchain
+        id: setup
   analyze:
     name: Static analysis
-    runs-on: ubuntu-latest
-    container: ghcr.io/zephyrproject-rtos/ci:v0.27.4
+    needs: setup
+    runs-on: ubuntu-24.04
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.setup.outputs.toolchain-version }}
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
-      CMAKE_PREFIX_PATH: /opt/toolchains
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,10 +63,13 @@ jobs:
       - name: Unzip update ZIPs
         working-directory: thingy91x-oob/artifacts
         run: |
-          unzip -o -d nrf91-app hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip
-          unzip -o -d nrf91-bootloader hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip
-          unzip -o -d nrf53-app connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip
-          unzip -o -d nrf53-bootloader connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip
+          unzip_file() {
+            python3 -c "import zipfile, sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$1" "$2"
+          }
+          unzip_file hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-dfu.zip nrf91-app
+          unzip_file hello.nrfcloud.com-${{ inputs.artifact_fw_version }}-thingy91x-nrf91-bootloader.zip nrf91-bootloader
+          unzip_file connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-dfu.zip nrf53-app
+          unzip_file connectivity-bridge-${{ inputs.artifact_fw_version }}-thingy91x-nrf53-bootloader.zip nrf53-bootloader
 
       - name: Install dependencies
         run: |

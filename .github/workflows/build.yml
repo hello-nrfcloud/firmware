@@ -57,33 +57,15 @@ jobs:
   setup:
     runs-on: ubuntu-24.04
     outputs:
-      TOOLCHAIN_VERSION: ${{ steps.setup.outputs.TOOLCHAIN_VERSION }}
+      toolchain-version: ${{ steps.setup.outputs.toolchain-version }}
     steps:
-      - name: Checkout ATT
-        uses: actions/checkout@v4
-        with:
-          path: att
-      - name: Find NCS SHA
-        run: |
-          NCS_REV=$(cat att/west.yml | grep "revision:" | awk '{print $2}' | xargs)
-          echo "NCS_REV=${NCS_REV}" >> $GITHUB_ENV
-          echo "NCS_REV=${NCS_REV}"
-      - name: Checkout NCS
-        uses: actions/checkout@v4
-        with:
-          path: nrf
-          repository: nrfconnect/sdk-nrf
-          ref: ${{ env.NCS_REV }}
-      - name: Set Toolchain Version
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/toolchain
         id: setup
-        run: |
-          TOOLCHAIN_VERSION=$(./nrf/scripts/print_toolchain_checksum.sh)
-          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}"
-          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-24.04
     needs: setup
-    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.setup.outputs.TOOLCHAIN_VERSION }}
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.setup.outputs.toolchain-version }}
     defaults:
       run:
         shell: bash

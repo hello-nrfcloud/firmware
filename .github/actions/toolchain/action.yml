@@ -1,0 +1,33 @@
+name: "Toolchain"
+description: "Find NCS toolchain version"
+outputs:
+  toolchain-version:
+    description: The version of the toolchain
+    value: ${{ steps.setup.outputs.TOOLCHAIN_VERSION }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout ATT
+      uses: actions/checkout@v4
+      with:
+        path: att
+    - name: Find NCS SHA
+      shell: bash
+      run: |
+        NCS_REV=$(cat att/west.yml | grep "revision:" | awk '{print $2}' | xargs)
+        echo "NCS_REV=${NCS_REV}" >> $GITHUB_ENV
+        echo "NCS_REV=${NCS_REV}"
+    - name: Checkout NCS
+      uses: actions/checkout@v4
+      with:
+        path: nrf
+        repository: nrfconnect/sdk-nrf
+        ref: ${{ env.NCS_REV }}
+    - name: Set Toolchain Version
+      id: setup
+      shell: bash
+      run: |
+        TOOLCHAIN_VERSION=$(./nrf/scripts/print_toolchain_checksum.sh)
+        echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}"
+        echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}" >> $GITHUB_OUTPUT
