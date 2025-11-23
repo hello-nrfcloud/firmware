@@ -59,7 +59,7 @@ jobs:
     outputs:
       toolchain-version: ${{ steps.setup.outputs.toolchain-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/toolchain
         id: setup
   build:
@@ -74,7 +74,7 @@ jobs:
       version: ${{ env.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: thingy91x-oob
 
