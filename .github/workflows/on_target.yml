@@ -53,7 +53,7 @@ jobs:
         - /opt/setup-jlink:/opt/setup-jlink
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: thingy91x-oob
 
