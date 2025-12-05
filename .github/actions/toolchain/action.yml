@@ -9,7 +9,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout ATT
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: att
     - name: Find NCS SHA
@@ -19,7 +19,7 @@ runs:
         echo "NCS_REV=${NCS_REV}" >> $GITHUB_ENV
         echo "NCS_REV=${NCS_REV}"
     - name: Checkout NCS
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: nrf
         repository: nrfconnect/sdk-nrf

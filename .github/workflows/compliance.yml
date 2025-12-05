@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout the code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: thingy91x-oob
         ref: ${{ github.event.pull_request.head.sha }}
