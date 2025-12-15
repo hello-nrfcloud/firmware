@@ -316,16 +316,16 @@ jobs:
         if: ${{ inputs.build_bl_update }}
         working-directory: thingy91x-oob
         run: |
-          west twister -T . --test app/app.build.bootloader_update -v -p thingy91x/nrf9151/ns --inline-logs
-          cp twister-out/thingy91x_nrf9151_ns/zephyr/app/app.build.bootloader_update/dfu_mcuboot.zip \
-            hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
+          west twister -T app --test app.build.bootloader_update -v -p thingy91x/nrf9151/ns --inline-logs
+          MCUBOOT_ZIP=$(find twister-out -name dfu_mcuboot.zip)
+          cp $MCUBOOT_ZIP hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-bootloader.zip
           rm -rf twister-out
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild \
               -d ../nrf/applications/connectivity_bridge/build-bl-update \
               ../nrf/applications/connectivity_bridge -- \
               -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4
-          cp ../nrf/applications/connectivity_bridge/build-bl-update/dfu_mcuboot.zip \
-            connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
+          MCUBOOT_ZIP=$(find ../nrf/applications/connectivity_bridge/build-bl-update -name dfu_mcuboot.zip)
+          cp $MCUBOOT_ZIP connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
 
       - name: Upload artifact
         if: ${{ inputs.build_bl_update }}

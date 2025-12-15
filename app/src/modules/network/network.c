@@ -71,10 +71,10 @@ struct s_object {
 	uint8_t msg_buf[MAX_MSG_SIZE];
 };
 /* Forward declarations of state handlers */
-static void state_init_run(void *o);
-static void state_sampling_run(void *o);
+static enum smf_state_result state_init_run(void *o);
+static enum smf_state_result state_sampling_run(void *o);
 static void state_disconnected_entry(void *o);
-static void state_wait_for_network_disconnect_run(void *o);
+static enum smf_state_result state_wait_for_network_disconnect_run(void *o);
 
 static struct s_object s_obj;
 static const struct smf_state states[] = {
@@ -109,7 +109,7 @@ static void network_status_notify(enum network_status status)
 }
 
 static void l4_event_handler(struct net_mgmt_event_callback *cb,
-			     uint32_t event,
+			     uint64_t event,
 			     struct net_if *iface)
 {
 	switch (event) {
@@ -128,7 +128,7 @@ static void l4_event_handler(struct net_mgmt_event_callback *cb,
 }
 
 static void connectivity_event_handler(struct net_mgmt_event_callback *cb,
-				       uint32_t event,
+				       uint64_t event,
 				       struct net_if *iface)
 {
 	if (event == NET_EVENT_CONN_IF_FATAL_ERROR) {
@@ -154,7 +154,7 @@ static void lte_lc_evt_handler(const struct lte_lc_evt *const evt)
 		 * to perform any action. The modem will try to re-attach to the LTE network after
 		 * the 30-minute block.
 		 */
-		if (evt->modem_evt == LTE_LC_MODEM_EVT_RESET_LOOP) {
+		if (evt->modem_evt.type == LTE_LC_MODEM_EVT_RESET_LOOP) {
 			LOG_ERR("The modem has detected a reset loop!");
 			SEND_IRRECOVERABLE_ERROR();
 		}
@@ -228,7 +228,7 @@ static void sample_network_quality(void)
 
 /* State handlers */
 
-static void state_init_run(void *obj)
+static enum smf_state_result state_init_run(void *obj)
 {
 	struct s_object const *state_object = obj;
 
@@ -239,12 +239,15 @@ static void state_init_run(void *obj)
 			LOG_DBG("Time available, sampling can start");
 
 			STATE_SET(STATE_SAMPLING);
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 
-static void state_sampling_run(void *obj)
+static enum smf_state_result state_sampling_run(void *obj)
 {
 	struct s_object const *state_object = obj;
 
@@ -274,11 +277,14 @@ static void state_sampling_run(void *obj)
 			}
 
 			STATE_SET(STATE_WAIT_FOR_NETWORK_DISCONNECT);
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
-static void state_wait_for_network_disconnect_run(void *o)
+static enum smf_state_result state_wait_for_network_disconnect_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -289,8 +295,11 @@ static void state_wait_for_network_disconnect_run(void *o)
 			LOG_DBG("Network disconnected, sampling is blocked");
 
 			STATE_SET(STATE_DISCONNECTED);
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 static void state_disconnected_entry(void *obj)

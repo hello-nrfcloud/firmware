@@ -86,8 +86,8 @@ struct s_object {
 
 /* Forward declarations of state handlers */
 static void state_init_entry(void *o);
-static void state_init_run(void *o);
-static void state_sampling_run(void *o);
+static enum smf_state_result state_init_run(void *o);
+static enum smf_state_result state_sampling_run(void *o);
 
 static struct s_object s_obj;
 static const struct smf_state states[] = {
@@ -143,7 +143,7 @@ static void state_init_entry(void *o)
 	}
 }
 
-static void state_init_run(void *o)
+static enum smf_state_result state_init_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -154,11 +154,14 @@ static void state_init_run(void *o)
 			LOG_DBG("Time available, sampling can start");
 
 			STATE_SET(STATE_SAMPLING);
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
-static void state_sampling_run(void *o)
+static enum smf_state_result state_sampling_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -170,6 +173,8 @@ static void state_sampling_run(void *o)
 			sample(&state_object->fuel_gauge_ref_time);
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* End of state handling */
@@ -200,6 +205,10 @@ static int charger_read_sensors(float *voltage, float *current, float *temp, int
 	return 0;
 }
 
+#if defined(CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX)
+#include "memfault/metrics/platform/battery.h"
+#endif /* CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX */
+
 static void sample(int64_t *ref_time)
 {
 	int err;
@@ -213,6 +222,9 @@ static void sample(int64_t *ref_time)
 	struct bat_object bat_object = { 0 };
 	struct payload payload = { 0 };
 	int64_t system_time;
+#if defined(CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX)
+	sMfltPlatformBatterySoc soc;
+#endif /* CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX */
 
 	err = date_time_now(&system_time);
 	if (err) {
@@ -227,6 +239,20 @@ static void sample(int64_t *ref_time)
 		return;
 	}
 
+#if defined(CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX)
+	err = memfault_platform_get_stateofcharge(&soc);
+	if (err) {
+		LOG_ERR("memfault_platform_get_stateofcharge, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
+	state_of_charge = (float)soc.soc / (float)CONFIG_MEMFAULT_METRICS_BATTERY_SOC_PCT_SCALE_VALUE;
+	charging = soc.discharging;
+
+	(void)delta;
+#else /* CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX */
+
 	delta = (float)k_uptime_delta(ref_time) / 1000.f;
 
 	charging = (chg_status & (NPM1300_CHG_STATUS_TC_MASK |
@@ -234,7 +260,7 @@ static void sample(int64_t *ref_time)
 				  NPM1300_CHG_STATUS_CV_MASK)) != 0;
 
 	state_of_charge = nrf_fuel_gauge_process(voltage, current, temp, delta, NULL);
-
+#endif /* CONFIG_MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX */
 	LOG_DBG("State of charge: %f", (double)roundf(state_of_charge));
 	LOG_DBG("The battery is %s", charging ? "charging" : "not charging");
 

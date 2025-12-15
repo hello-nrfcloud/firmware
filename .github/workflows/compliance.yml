@@ -10,7 +10,10 @@ jobs:
   compliance_job:
     runs-on: ubuntu-24.04
     name: Run compliance checks on patch series (PR)
-    container: ghcr.io/zephyrproject-rtos/ci:v0.27.4
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.2.0
+    defaults:
+      run:
+        shell: bash
 
     # Skip job if it was triggered by Renovate Bot
     if: ${{ !contains(github.actor, 'renovate') }}
@@ -26,6 +29,8 @@ jobs:
     - name: Initialize
       working-directory: thingy91x-oob
       run: |
+        apt update
+        apt install -y libmagic-dev
         west init -l .
         west config manifest.group-filter +bsec
         west config build.sysbuild True
@@ -40,6 +45,11 @@ jobs:
         BASE_REF: ${{ github.base_ref }}
       working-directory: thingy91x-oob
       run: |
+        # WARNING: Ugly workaround
+        # git in toolchain doesn't work with check_compliance.py - missing USE_LIBPCRE
+
+        GIT_EXE=$(which git)
+        cp /usr/bin/git $GIT_EXE
         export ZEPHYR_BASE="../zephyr"
         $ZEPHYR_BASE/scripts/ci/check_compliance.py -m Codeowners -m Devicetree -m Gitlint -m Identity -m Nits -m pylint -m checkpatch -m KconfigBasic -c origin/${BASE_REF}..
 

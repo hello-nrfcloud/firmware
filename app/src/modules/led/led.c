@@ -252,7 +252,7 @@ static void on_network_disconnected(void)
 
 /* STATE_RUNNING */
 
-static void running_run(void *o)
+static enum smf_state_result running_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -260,20 +260,22 @@ static void running_run(void *o)
 
 	if (&ERROR_CHAN == user_object->chan) {
 		smf_set_state(SMF_CTX(user_object), &states[STATE_ERROR]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
 
 	if (&NETWORK_CHAN == user_object->chan && user_object->status == NETWORK_DISCONNECTED) {
 		on_network_disconnected();
-		return;
+		return SMF_EVENT_PROPAGATE;
 	}
 
 	if (&NETWORK_CHAN == user_object->chan && user_object->status == NETWORK_CONNECTED) {
 
 		/* If the network is connected, we just reenter the same state */
 		smf_set_state(SMF_CTX(user_object), &states[STATE_RUNNING]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_LED_SET */
@@ -294,7 +296,7 @@ static void led_set_entry(void *o)
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 }
 
-static void led_set_running(void *o)
+static enum smf_state_result led_set_running(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -305,10 +307,10 @@ static void led_set_running(void *o)
 
 		if (user_object->mode == TRIGGER_MODE_NORMAL) {
 			smf_set_state(SMF_CTX(user_object), &states[STATE_NORMAL]);
-			return;
+			return SMF_EVENT_HANDLED;
 		} else if (user_object->mode == TRIGGER_MODE_POLL) {
 			smf_set_state(SMF_CTX(user_object), &states[STATE_POLL]);
-			return;
+			return SMF_EVENT_HANDLED;
 		}
 	}
 
@@ -316,13 +318,15 @@ static void led_set_running(void *o)
 	    !is_rgb_off(user_object->red, user_object->green, user_object->blue)) {
 
 		smf_set_state(SMF_CTX(user_object), &states[STATE_LED_SET]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_LED_NOT_SET */
 
-static void led_not_set_running(void *o)
+static enum smf_state_result led_not_set_running(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -332,7 +336,7 @@ static void led_not_set_running(void *o)
 	    !is_rgb_off(user_object->red, user_object->green, user_object->blue)) {
 
 		smf_set_state(SMF_CTX(user_object), &states[STATE_LED_SET]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
 
 	if (&FOTA_STATUS_CHAN == user_object->chan) {
@@ -340,9 +344,11 @@ static void led_not_set_running(void *o)
 
 		if (*status == FOTA_STATUS_START) {
 			smf_set_state(SMF_CTX(user_object), &states[STATE_FOTA]);
-			return;
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_POLL */
@@ -359,7 +365,7 @@ static void poll_entry(void *o)
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 }
 
-static void poll_running(void *o)
+static enum smf_state_result poll_running(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -367,7 +373,7 @@ static void poll_running(void *o)
 
 	if ((&TRIGGER_MODE_CHAN == user_object->chan) && user_object->mode == TRIGGER_MODE_NORMAL) {
 		smf_set_state(SMF_CTX(user_object), &states[STATE_NORMAL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
 
 	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_STARTED) {
@@ -376,14 +382,16 @@ static void poll_running(void *o)
 		transition_list_append(LED_LOCATION_SEARCHING, HOLD_FOREVER, 0, 0, 0);
 
 		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
-		return;
+		return SMF_EVENT_PROPAGATE;
 	}
 
 	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_DONE) {
 
 		smf_set_state(SMF_CTX(user_object), &states[STATE_POLL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_NORMAL */
@@ -400,7 +408,7 @@ static void normal_entry(void *o)
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 }
 
-static void normal_running(void *o)
+static enum smf_state_result normal_running(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -408,7 +416,7 @@ static void normal_running(void *o)
 
 	if ((&TRIGGER_MODE_CHAN == user_object->chan) && user_object->mode == TRIGGER_MODE_POLL) {
 		smf_set_state(SMF_CTX(user_object), &states[STATE_POLL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
 
 	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_STARTED) {
@@ -417,14 +425,16 @@ static void normal_running(void *o)
 		transition_list_append(LED_LOCATION_SEARCHING, HOLD_FOREVER, 0, 0, 0);
 
 		k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
-		return;
+		return SMF_EVENT_PROPAGATE;
 	}
 
 	if ((&LOCATION_CHAN == user_object->chan) && user_object->location_status == LOCATION_SEARCH_DONE) {
 
 		smf_set_state(SMF_CTX(user_object), &states[STATE_NORMAL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_FOTA */
@@ -441,7 +451,7 @@ static void fota_entry(void *o)
 	k_work_reschedule(&led_pattern_update_work, K_NO_WAIT);
 }
 
-static void fota_running(void *o)
+static enum smf_state_result fota_running(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -452,16 +462,17 @@ static void fota_running(void *o)
 
 		if (*status == FOTA_STATUS_STOP) {
 			smf_set_state(SMF_CTX(user_object), &states[STATE_LED_NOT_SET]);
-			return;
+			return SMF_EVENT_HANDLED;
 		}
 	}
 
 	/* We do not want to change LED pattern while downloading FOTA image */
 	if ((&TRIGGER_MODE_CHAN == user_object->chan) ||
 	    (&LOCATION_CHAN == user_object->chan)) {
-		smf_set_handled(SMF_CTX(&user_object));
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_ERROR */

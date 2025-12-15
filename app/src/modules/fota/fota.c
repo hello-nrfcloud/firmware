@@ -102,12 +102,12 @@ ZBUS_CHAN_DEFINE(PRIV_FOTA_CHAN,
 
 /* Forward declarations */
 static void state_running_entry(void *o);
-static void state_wait_for_cloud_run(void *o);
-static void state_wait_for_trigger_run(void *o);
+static enum smf_state_result state_wait_for_cloud_run(void *o);
+static enum smf_state_result state_wait_for_trigger_run(void *o);
 static void state_poll_and_process_entry(void *o);
-static void state_poll_and_process_run(void *o);
+static enum smf_state_result state_poll_and_process_run(void *o);
 static void state_wait_for_network_disconnect_entry(void *o);
-static void state_wait_for_network_disconnect_run(void *o);
+static enum smf_state_result state_wait_for_network_disconnect_run(void *o);
 static void state_reboot_pending_entry(void *o);
 
 static struct s_object s_obj = {
@@ -167,7 +167,7 @@ static void state_running_entry(void *o)
 	}
 }
 
-static void state_wait_for_cloud_run(void *o)
+static enum smf_state_result state_wait_for_cloud_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -176,11 +176,14 @@ static void state_wait_for_cloud_run(void *o)
 
 		if (status == CLOUD_CONNECTED_READY_TO_SEND) {
 			STATE_SET(STATE_WAIT_FOR_TRIGGER);
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
-static void state_wait_for_trigger_run(void *o)
+static enum smf_state_result state_wait_for_trigger_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -189,6 +192,7 @@ static void state_wait_for_trigger_run(void *o)
 
 		if (trigger_type == TRIGGER_FOTA_POLL) {
 			STATE_SET(STATE_POLL_AND_PROCESS);
+			return SMF_EVENT_HANDLED;
 		}
 	}
 
@@ -197,8 +201,11 @@ static void state_wait_for_trigger_run(void *o)
 
 		if (status == CLOUD_CONNECTED_PAUSED) {
 			STATE_SET(STATE_WAIT_FOR_CLOUD);
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 static void state_poll_and_process_entry(void *o)
@@ -223,7 +230,7 @@ static void state_poll_and_process_entry(void *o)
 	}
 }
 
-static void state_poll_and_process_run(void *o)
+static enum smf_state_result state_poll_and_process_run(void *o)
 {
 	struct s_object *state_object = o;
 
@@ -245,9 +252,12 @@ static void state_poll_and_process_run(void *o)
 			break;
 		default:
 			LOG_ERR("Unknown event: %d", evt);
+			return SMF_EVENT_PROPAGATE;
 			break;
 		}
 	}
+
+	return SMF_EVENT_HANDLED;
 }
 
 static void state_wait_for_network_disconnect_entry(void *o)
@@ -266,7 +276,7 @@ static void state_wait_for_network_disconnect_entry(void *o)
 	}
 }
 
-static void state_wait_for_network_disconnect_run(void *o)
+static enum smf_state_result state_wait_for_network_disconnect_run(void *o)
 {
 	struct s_object *state_object = o;
 	int err;
@@ -281,7 +291,7 @@ static void state_wait_for_network_disconnect_run(void *o)
 			if (err) {
 				LOG_ERR("nrf_cloud_fota_poll_update_apply, error: %d", err);
 				SEND_FATAL_ERROR();
-				return;
+				return SMF_EVENT_PROPAGATE;
 			}
 		}
 	}
@@ -291,9 +301,11 @@ static void state_wait_for_network_disconnect_run(void *o)
 
 		if (evt == FOTA_PRIV_REBOOT_PENDING) {
 			STATE_SET(STATE_REBOOT_PENDING);
-			return;
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 static void state_reboot_pending_entry(void *o)

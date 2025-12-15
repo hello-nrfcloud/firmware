@@ -8,6 +8,7 @@ menu "Sampler"
 
 config APP_BATTERY_THREAD_STACK_SIZE
 	int "Thread stack size"
+	default 2048 if MEMFAULT_NRF_PLATFORM_BATTERY_NPM13XX
 	default 1536
 
 config APP_BATTERY_WATCHDOG_TIMEOUT_SECONDS

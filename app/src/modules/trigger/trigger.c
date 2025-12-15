@@ -215,7 +215,7 @@ static void init_entry(void *o)
 	LOG_DBG("init_entry");
 }
 
-static void init_run(void *o)
+static enum smf_state_result init_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -224,13 +224,14 @@ static void init_run(void *o)
 	if ((user_object->chan == &CLOUD_CHAN) && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
 		LOG_DBG("Cloud connected, going into connected state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
-		return;
 	}
+
+	return SMF_EVENT_HANDLED;
 }
 
 /* STATE_CONNECTED */
 
-static void connected_run(void *o)
+static enum smf_state_result connected_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -241,21 +242,23 @@ static void connected_run(void *o)
 	     (user_object->status == CLOUD_DISCONNECTED))) {
 		LOG_DBG("Cloud disconnected/paused, going into disconnected state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_DISCONNECTED]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
 
 	if (user_object->chan == &FOTA_STATUS_CHAN) {
 		if (user_object->fota_status == FOTA_STATUS_START) {
 			LOG_DBG("FOTA download started, going into FOTA ongoing state");
 			smf_set_state(SMF_CTX(&state_object), &states[STATE_FOTA_ONGOING]);
-			return;
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_HANDLED;
 }
 
 /* STATE_BLOCKED */
 
-static void blocked_run(void *o)
+static enum smf_state_result blocked_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -269,7 +272,7 @@ static void blocked_run(void *o)
 			LOG_DBG("Going into frequent poll state");
 			smf_set_state(SMF_CTX(&state_object), &states[STATE_FREQUENT_POLL]);
 		}
-		return;
+		return SMF_EVENT_HANDLED;
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		/* Frequent poll duration timer expired. Since the current state is BLOCKED,
 		 * continue to remain in this state but only change the trigger mode so that
@@ -277,7 +280,7 @@ static void blocked_run(void *o)
 		 */
 		LOG_DBG("Changing the trigger mode in state object ");
 		user_object->trigger_mode = TRIGGER_MODE_NORMAL;
-		return;
+		return SMF_EVENT_PROPAGATE;
 	} else if (user_object->chan == &BUTTON_CHAN) {
 		LOG_DBG("Button %d pressed in blocked state, restarting duration timer",
 			user_object->button_number);
@@ -293,7 +296,10 @@ static void blocked_run(void *o)
 	} else {
 		LOG_DBG("Message received on channel %s. Ignoring.", zbus_chan_name(user_object->chan));
 		/* Do nothing. Parent state may have handling for this. */
+		return SMF_EVENT_PROPAGATE;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_FREQUENT_POLL */
@@ -337,7 +343,7 @@ static void frequent_poll_entry(void *o)
 	k_work_reschedule(&trigger_poll_work, K_NO_WAIT);
 }
 
-static void frequent_poll_run(void *o)
+static enum smf_state_result frequent_poll_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -347,11 +353,11 @@ static void frequent_poll_run(void *o)
 		LOG_DBG("Location search started, going into blocked state");
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
-		return;
+		return SMF_EVENT_HANDLED;
 	} else if (user_object->chan == &PRIV_TRIGGER_CHAN) {
 		LOG_DBG("Going into normal state");
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_NORMAL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	} else if (user_object->chan == &BUTTON_CHAN) {
 		LOG_DBG("Button %d pressed in frequent poll state, restarting duration timer",
 			user_object->button_number);
@@ -368,6 +374,8 @@ static void frequent_poll_run(void *o)
 		/* Parent state may have handling of this event. */
 		LOG_DBG("Message received on channel %s. Ignoring.", zbus_chan_name(user_object->chan));
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 static void frequent_poll_exit(void *o)
@@ -412,7 +420,7 @@ static void normal_entry(void *o)
 			  K_SECONDS(user_object->poll_interval_used_sec));
 }
 
-static void normal_run(void *o)
+static enum smf_state_result normal_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -422,19 +430,21 @@ static void normal_run(void *o)
 		LOG_DBG("Location search started, going into blocked state");
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_BLOCKED]);
-		return;
+		return SMF_EVENT_HANDLED;
 	} else if (user_object->chan == &BUTTON_CHAN) {
 		LOG_DBG("Button %d pressed in normal state, going into frequent poll state",
 			user_object->button_number);
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_FREQUENT_POLL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	} else if (user_object->chan == &CONFIG_CHAN) {
 		LOG_DBG("Configuration received in normal state, going into frequent poll state");
 
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_FREQUENT_POLL]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 static void normal_exit(void *o)
@@ -463,7 +473,7 @@ static void disconnected_entry(void *o)
 	frequent_poll_duration_timer_stop();
 }
 
-static void disconnected_run(void *o)
+static enum smf_state_result disconnected_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -471,8 +481,10 @@ static void disconnected_run(void *o)
 
 	if (user_object->chan == &CLOUD_CHAN && (user_object->status == CLOUD_CONNECTED_READY_TO_SEND)) {
 		smf_set_state(SMF_CTX(&state_object), &states[STATE_CONNECTED]);
-		return;
+		return SMF_EVENT_HANDLED;
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* STATE_FOTA_ONGOING */
@@ -488,7 +500,7 @@ static void fota_ongoing_entry(void *o)
 	frequent_poll_duration_timer_stop();
 }
 
-static void fota_ongoing_run(void *o)
+static enum smf_state_result fota_ongoing_run(void *o)
 {
 	struct s_object *user_object = o;
 
@@ -503,10 +515,11 @@ static void fota_ongoing_run(void *o)
 			} else {
 				smf_set_state(SMF_CTX(&state_object), &states[STATE_DISCONNECTED]);
 			}
-
-			return;
+			return SMF_EVENT_HANDLED;
 		}
 	}
+
+	return SMF_EVENT_PROPAGATE;
 }
 
 /* Construct state table */
