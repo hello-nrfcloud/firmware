@@ -12,9 +12,9 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-MFW_202_FILEPATH = "artifacts/mfw_nrf91x1_2.0.2.zip"
-DELTA_MFW_BUNDLEID = "MODEM*3471f88e*mfw_nrf91x1_2.0.2-FOTA-TEST"
-FULL_MFW_BUNDLEID = "MDM_FULL*124c2b20*mfw_nrf91x1_full_2.0.2"
+MFW_FILEPATH = "artifacts/mfw_nrf91x1_2.0.4.zip"
+DELTA_MFW_BUNDLEID = "5060efda-fcae-48d1-ab2d-7cfeb7dde8a9"
+FULL_MFW_BUNDLEID = "02fd1b8f-5c06-43e7-8c9c-173a50259456"
 APP_BUNDLEID = "APP*a82b7076*v2.0.1"
 
 APP_FOTA_TIMEOUT = 60 * 10
@@ -85,15 +85,15 @@ def test_delta_mfw_fota(run_fota_fixture):
     '''
     Test delta modem FOTA on nrf9151
     '''
-    # Flash with mfw202
-    flash_device(os.path.abspath(MFW_202_FILEPATH))
+    # Flash with mfw
+    flash_device(os.path.abspath(MFW_FILEPATH))
 
     try:
         # run_fota(DELTA_MFW_BUNDLEID, hex_file)
         run_fota_fixture(DELTA_MFW_BUNDLEID, "delta")
     finally:
-        # Restore mfw202, no matter if test pass/fails
-        flash_device(os.path.abspath(MFW_202_FILEPATH))
+        # Restore mfw, no matter if test pass/fails
+        flash_device(os.path.abspath(MFW_FILEPATH))
 
 @pytest.mark.slow
 def test_full_mfw_fota(run_fota_fixture):
