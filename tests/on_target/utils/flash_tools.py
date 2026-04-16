@@ -147,6 +147,7 @@ def pyocd_flash_device(serial, hexfile, target_type="nrf91"):
     ) as session:
         programmer = FileProgrammer(session)
         programmer.program(hexfile)
+        session.target.reset()
 
 
 def pyocd_erase_device(serial, target_type="nrf91"):
