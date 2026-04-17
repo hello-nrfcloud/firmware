@@ -9,4 +9,4 @@ memfault-cli
 ppk2-api
 pandas
 plotly
-pyocd
+pyocd==0.43.1
