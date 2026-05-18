@@ -25,7 +25,7 @@ jobs:
       - name: Unzip html archive
         working-directory: docs
         run: |
-          OUTDIR=$(awk 'NR==1 { if ($3 ~ /^(latest|PR-[0-9])$/) print $3 }' monitor_*.txt)
+          OUTDIR=$(awk 'NR==1 { if ($3 ~ /^(latest|PR-[0-9]+)$/) print $3 }' monitor_*.txt)
           echo "OUTDIR=$OUTDIR" >> "$GITHUB_ENV"
           unzip legacy-addon-thingy91x_oob*.zip -d $OUTDIR
           find "$OUTDIR" -type l -delete
