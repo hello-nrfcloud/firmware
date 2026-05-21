@@ -64,11 +64,11 @@ jobs:
 
           # Create documentation upload files
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            ARCHIVE="legacy-addon-thingy91x_oob-pr-${{ github.event.number }}.zip"
+            ARCHIVE="legacy-addon-nrfcloud_firmware-pr-${{ github.event.number }}.zip"
             echo "publish2 dev PR-${{ github.event.number }} ${ARCHIVE}" > "${MONITOR}"
             echo "${{ github.event.number }}" > pr.txt
           else
-            ARCHIVE="legacy-addon-thingy91x_oob-${VERSION}.zip"
+            ARCHIVE="legacy-addon-nrfcloud_firmware-${VERSION}.zip"
             echo "publish2 main ${VERSION} ${ARCHIVE}" > "${MONITOR}"
           fi
 
