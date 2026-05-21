@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Antenna Tuning &mdash; hello-nrfcloud firmware 1.0.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="_static/css/nordic.css" />
-      <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
-      <link rel="stylesheet" type="text/css" href="_static/hide-versions.css" />
-
-   
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/nordic.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -24,191 +22,27 @@
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
-<script
-  type="text/javascript"
-  src="_static/js/ncs.js"
-></script>
-<script src="_static/js/bootstrap.bundle.min.js"></script>
+  <script type="text/javascript" src="_static/js/ncs.js"></script>
 
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Troubleshooting" href="troubleshooting.html" />
     <link rel="prev" title="LED indication" href="led_indication.html" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&family=Noto+Sans:wght@300;400;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<link
-  href="_static/css/bootstrap.min.css"
-  rel="stylesheet"
-/>
-<link
-  rel="shortcut icon"
-  href="_static/images/favicon.ico"
-/>
+  <link rel="shortcut icon" href="_static/images/favicon.ico"/>
 
 </head>
 
-<body class="wy-body-for-nav">
-<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
-  <symbol id="ico-prev" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-  </symbol>
-  <symbol id="ico-next" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-  </symbol>
-</svg>
-
-<div class="announcement">
-</div>
-<div class="d-print-none ncs-header">
-  <div class="container-xl ncs-header-top">
-    <div class="row h-100 flex-nowrap">
-      <div class="d-none d-md-block col-2">
-        <div class="bg-white py-4 px-3 ml-2 ncs-header-logo">
-          <a href="https://docs.nordicsemi.com" target="_blank" rel="noopener noreferrer">
-            <img
-              class="ncs-header-logo"
-              src="_static/images/nordic-logo.png"
-              alt=""
-            />
-          </a>
-        </div>
-      </div>
-      <div
-      class="col-8 col-md-6 pr-md-3 d-flex flex-column align-self-center justify-content-center me-auto ncs-header-search-col"
-     >
-     <a href="index.html" class="ncs-techdocs-logo-link d-block mb-2 d-flex align-items-center gap-2">
-      <img class="ncs-techdocs-logo" src="_static/images/ncs-logo.svg" alt="" />
-      <span class="ncs-techdocs-title">nRF Connect Docs</span>
-    </a>
-       <form class="w-100" action="search.html" method="get">
-          <div class="form-group">
-            <input
-              type="text"
-              name="q"
-              class="ncs-search-input form-control"
-              placeholder="Search our developer documentation data"
-            />
-          </div>
-        </form>
-      </div>
-      <div class="col-4 col-md-4 d-md-block px-3 py-3 ps-md-2 d-flex justify-content-end align-items-center flex-nowrap gap-3">
-        <div class="dropdown">
-          <button
-            class="btn dropdown-toggle ncs-btn-versions"
-            type="button"
-            id="dropdownMenuButton1"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            >
-            <span class="ncs-btn-versions-label ncs-label-long">Versions</span>
-            <span class="ncs-btn-versions-label ncs-label-short">Versions</span>
-            <span id="ncsversion" class="ncs-btn-versions-version"></span>
-          </button>
-          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton"></div>
-        </div>
-        <a href="https://nrfconnect.github.io/ncs-app-index/"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="btn ncs-btn-header">
-       <span class="ncs-label-long">nRF Connect SDK Add-ons</span>
-       <span class="ncs-label-short">Add-ons</span>
-       </a>
-        <a href="https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/index.html"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="btn ncs-btn-header">
-          <span class="ncs-label-long">nRF Connect SDK Docs</span>
-          <span class="ncs-label-short">nRF Connect SDK Docs</span>
-        </a>
-      </div>
-    </div>
-  </div>
-  
-  <div class="ncs-header-nav">
-    <div class="container-xl">
-      <div class="row">
-        <div class="col col-12 d-flex justify-content-center">
-          <nav class="navbar navbar-dark navbar-expand-lg p-0">
-            <span class="navbar-brand d-block d-lg-none py-2 pl-1"
-              >Documentation sets</span
-            >
-            <button
-              class="navbar-toggler"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#navbarNavAltMarkup"
-              aria-controls="navbarNavAltMarkup"
-              aria-expanded="false"
-              aria-label="Toggle navigation"
-            >
-              <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-              <ul class="navbar-nav">
-              </ul>
-            </div>
-          </nav>
-        </div>
-      </div>
-    </div>
-  </div></div><div id="ncs-feedback-root" class="ncs-feedback-btn-placeholder" data-config-url="_static/theme-config.json" data-page-title="Antenna Tuning" style="display: none;">  <a href="#" id="ncs-feedback-link" class="ncs-feedback-btn" title="Send feedback">    <span class="ncs-feedback-btn-icon" aria-hidden="true">★</span>    <span class="ncs-feedback-btn-text">Feedback</span>  </a></div><script>
-    (function () {
-      var root = document.getElementById('ncs-feedback-root');
-      if (!root) return;
-      var configUrl = root.getAttribute('data-config-url');
-      if (!configUrl) return;
-      if (configUrl.indexOf('http') !== 0) {
-        configUrl = configUrl.startsWith('/') 
-          ? (window.location.origin + configUrl) 
-          : configUrl;
-      }
-      var link = document.getElementById('ncs-feedback-link');
-      if (!link) return;
-    
-
-    
-      fetch(configUrl, { cache: 'default' })
-        .then(function (res) { return res.ok ? res.json() : Promise.reject(); })
-        .then(function (config) {
-          if (!config.feedback_email) return;
-          var pageTitle = root.getAttribute('data-page-title') || document.title || '';
-          var prefix = 'Customer Feedback - Nordic Developer Documentation Portal: ';
-          var subject = prefix + (pageTitle || 'No title');
-          var pageUrl = window.location.href;
-          var pageTitle = root.getAttribute('data-page-title') || document.title || 'No title';
-          var body = 'Topic is: ' + pageTitle + '\n\nYour comment is: \n\nThis is page URL: ' + pageUrl;
-    
-          var mailto = 'mailto:' + encodeURIComponent(config.feedback_email);
-          var params = [];
-          params.push('subject=' + encodeURIComponent(subject));
-          params.push('body=' + encodeURIComponent(body));
-          mailto += '?' + params.join('&');
-    
-          link.href = mailto;
-          root.style.display = '';
-          link.addEventListener('click', function (e) {
-            e.preventDefault();
-            if (link.href && link.href.indexOf('mailto:') === 0) {
-              window.location.href = link.href;
-            }
-          });
-        })
-        .catch(function () {});
-    })();
-    </script>
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-<a href="index.html">
-  hello-nrfcloud firmware
-</a>
-  <div class="version">
-    
-  </div>
+          
+          
+          <a href="index.html" class="icon icon-home">
+            hello-nrfcloud firmware
+          </a>
 <div id="searchbox" role="search">
   <div class="searchformwrapper">
     <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -219,7 +53,6 @@
   </div>
 </div>
 <script>$('#searchbox').show(0);</script>
-
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
@@ -248,28 +81,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Antenna Tuning</li>
-  <li class="wy-breadcrumbs-aside ncs-breadcrumbs-aside">
-    
-    <span class="ncs-breadcrumb-arrows">
-      
-      <a href="led_indication.html" class="ncs-breadcrumb-nav ncs-breadcrumb-prev" title="LED indication" accesskey="p" rel="prev" aria-label="Previous">
-        <svg class="ncs-breadcrumb-chevron" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-        </svg>
-      </a>
-      
-      
-      <a href="troubleshooting.html" class="ncs-breadcrumb-nav ncs-breadcrumb-next" title="Troubleshooting" accesskey="n" rel="next" aria-label="Next">
-        <svg class="ncs-breadcrumb-chevron" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-        </svg>
-      </a>
-      
-    </span>
-    
-    
-      <a href="_sources/antennatuning.rst.txt" rel="nofollow"> View page source</a>
-  </li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/antennatuning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
   </ul>
   <hr/>
 </div>
@@ -305,6 +119,15 @@ If you have a Thingy:91 X with a modified RF Front-End configuration, you must e
           </div>
           <footer>
   
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="troubleshooting.html" class="btn btn-neutral float-right" title="Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="led_indication.html" class="btn btn-neutral" title="LED indication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
 
   <hr/>
 
@@ -319,36 +142,15 @@ If you have a Thingy:91 X with a modified RF Front-End configuration, you must e
     </p>
 </td>
 <td id="nordiclogo">
-  <a href="https://www.nordicsemi.com/"><img src="_static/images/nordic-logo.png" border="0"/></a>
+  <a href="https://www.nordicsemi.com/"><img src="_static/images/nordic.svg" border="0"/></a>
 </td>
 </tr>
 </table>
-  </div> 
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 
 </footer>
-
-<div id="scroll-container">
-  <button type="button" id="scroll-btn" class="btn">
-    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="#fff"/></svg>
-  </button>
-</div>
-
-<script>
-  const scrollBtn = document.querySelector("#scroll-btn");
-
-  document.addEventListener("scroll", () => {
-    if (window.scrollY > 400) {
-          scrollBtn.style.visibility = "visible";
-      } else {
-          scrollBtn.style.visibility = "hidden";
-      }
-  });
-
-  scrollBtn.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-</script>
         </div>
       </div>
     </section>
