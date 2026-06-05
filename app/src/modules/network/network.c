@@ -358,16 +358,6 @@ static void network_task(void)
 
 	network_status_notify(NETWORK_DISCONNECTED);
 
-	if (IS_ENABLED(CONFIG_LTE_LINK_CONTROL)) {
-		/* Subscribe to modem events */
-		err = lte_lc_modem_events_enable();
-		if (err) {
-			LOG_ERR("lte_lc_modem_events_enable, error: %d", err);
-			SEND_FATAL_ERROR();
-			return;
-		}
-	}
-
 	/* Resend connection status if the sample is built for Native Posix.
 	 * This is necessary because the network interface is automatically brought up
 	 * at SYS_INIT() before main() is called.
