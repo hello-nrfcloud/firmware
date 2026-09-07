@@ -69,9 +69,9 @@ jobs:
           fi
           pip install -r nrf/scripts/requirements-fixed.txt
           apt-get update
-          # native_sim/native builds with -m32; sdk-nrf-toolchain has no host toolchain
-          # (Zephyr CI includes multilib; we install the equivalent here).
-          apt install -y curl ruby-full build-essential gcc-multilib g++-multilib libc6-dev-i386
+          # `make` is required to build native_sim but is not shipped in the
+          # sdk-nrf-toolchain container (unlike the Zephyr CI image).
+          apt install -y curl ruby-full make
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2

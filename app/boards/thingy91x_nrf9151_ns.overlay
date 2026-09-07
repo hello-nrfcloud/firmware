@@ -5,6 +5,7 @@
  */
 
 #include <thingy91x_wifi.dtsi>
+#include "thingy91x_nrf9151_partitions.dtsi"
 
 &bme680 {
 	status = "okay";
@@ -17,6 +18,9 @@
 
 	chosen {
 		nordic,modem-trace-uart = &uart1;
+		nordic,memfault-coredump-partition = &memfault_coredump_partition;
+		nordic,fmfu-storage-partition = &fmfu_storage_partition;
+		zephyr,settings-partition = &settings_storage;
 		zephyr,wifi = &nordic_wlan0;
 	};
 };
@@ -25,8 +29,64 @@
 	status = "okay";
 };
 
-
 /* Switch to nrf7000 emulation so that scan-only mode is used. */
 &nrf70 {
 	compatible = "nordic,nrf7000-spi";
+};
+
+/*
+ * SRAM layout (256 KiB total):
+ *
+ *    0x2000_0000  Secure RAM                    (    8 KiB)
+ *    0x2000_2000  Non-secure RAM                (  248 KiB)
+ *      0x2000_2000  Modem shared area           ( 25832 B)
+ *        0x2000_2000  control                   (  1256 B)
+ *        0x2000_24e8  app -> cell               (  4096 B)
+ *        0x2000_34e8  cell -> app               (  4096 B)
+ *        0x2000_44e8  modem trace               ( 16384 B)
+ *      0x2000_84e8  Application RAM             (~222.8 KiB)
+ */
+
+/delete-node/ &sram0_s;
+/delete-node/ &sram0_ns;
+
+&sram0 {
+	sram0_s: sram@0 {
+		reg = <0x0 0x2000>;
+	};
+
+	sram0_ns: sram@2000 {
+		reg = <0x2000 0x3e000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0x0 0x2000 0x3e000>;
+
+		/* Must be in first 128 kB of RAM. */
+		sram0_ns_modem: sram0_ns@0 {
+			reg = <0x0 0x64e8>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x0 0x0 0x64e8>;
+
+			cpuapp_cpucell_ipc_shm_ctrl: sram0_ns_modem@0 {
+				reg = <0x0 0x4e8>;
+			};
+
+			cpuapp_cpucell_ipc_shm_heap: sram0_ns_modem@4e8 {
+				reg = <0x4e8 0x1000>;
+			};
+
+			cpucell_cpuapp_ipc_shm_heap: sram0_ns_modem@14e8 {
+				reg = <0x14e8 0x1000>;
+			};
+
+			cpucell_cpuapp_ipc_shm_trace: sram0_ns_modem@24e8 {
+				reg = <0x24e8 0x4000>;
+			};
+		};
+
+		sram0_ns_app: sram0_ns@64e8 {
+			reg = <0x64e8 0x37b18>;
+		};
+	};
 };

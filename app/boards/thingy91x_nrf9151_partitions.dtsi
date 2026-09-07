@@ -1,0 +1,153 @@
+/*
+ * Copyright (c) 2026 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/delete-node/ &b0_partition;
+/delete-node/ &s0_partition;
+/delete-node/ &s1_partition;
+/delete-node/ &external_flash_partition;
+/delete-node/ &slot0_partition;
+/delete-node/ &storage_partition;
+
+/*
+ * Internal flash (flash0) layout (1 MiB total):
+ *
+ *    0x0000_0000  b0 / NSIB bootloader          (   32 KiB)
+ *    0x0000_8000  MCUboot slot 0 (s0)           (   80 KiB)
+ *    0x0001_c000  MCUboot slot 1 (s1)           (   80 KiB)
+ *    0x0003_0000  Primary image (image-0)       (  832 KiB)
+ *      0x0003_0000  TF-M secure                 (   32 KiB)
+ *      0x0003_8000  Non-secure                  (  800 KiB)
+ *        0x0003_8000  Application               (  720 KiB)
+ *        0x000e_c000  Memfault coredump         (   64 KiB)
+ *        0x000f_c000  MCUboot trailer           (   16 KiB)
+ *
+ * External flash (flash_ext, GD25LE255E) layout (32 MiB total):
+ *
+ *    0x0000_0000  MCUboot secondary (image-1)   (  832 KiB)
+ *      0x0000_0000  secure                      (   32 KiB)
+ *      0x0000_8000  non-secure                  (  800 KiB)
+ *    0x000d_0000  Full modem FOTA (fmfu)        (    4 MiB)
+ *    0x004d_0000  Settings storage              (    8 KiB)
+ *    0x004d_2000  Modem trace                   ( 1020 KiB)
+ *    0x005d_1000  External flash (user)         (~ 26.2 MiB)
+ */
+&flash0 {
+	partitions {
+		ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		b0_partition: partition@0 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot";
+			reg = <0x00000000 0x8000>;
+		};
+
+		s0_partition: partition@8000 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot-0";
+			reg = <0x00008000 0x14000>;
+		};
+
+		s1_partition: partition@1c000 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot-1";
+			reg = <0x0001c000 0x14000>;
+		};
+
+		slot0_partition: partition@30000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x00030000 0xd0000>;
+			ranges = <0x0 0x00030000 0xd0000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			slot0_s_partition: partition@0 {
+				compatible = "zephyr,mapped-partition";
+				label = "image-0-secure";
+				reg = <0x00000000 0x8000>;
+			};
+
+			slot0_ns_partition: partition@8000 {
+				compatible = "zephyr,mapped-partition";
+				label = "image-0-nonsecure";
+				reg = <0x00008000 0xc8000>;
+				ranges = <0x0 0x00008000 0xc8000>;
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				memfault_coredump_partition: partition@b4000 {
+					compatible = "zephyr,mapped-partition";
+					label = "memfault_coredump_partition";
+					reg = <0x000b4000 0x10000>;
+				};
+
+				/*
+				 * MCUboot computes its trailer offset from the end of
+				 * slot0_partition (flash_area size - boot_trailer_sz()); it
+				 * never reads this node. This partition exists purely to mark
+				 * that region as reserved in the layout. 16 KiB is reserved for
+				 * the trailer, actual size may be smaller (typically ~ 6 KiB).
+				 */
+				trailer_partition: partition@c4000 {
+					compatible = "zephyr,mapped-partition";
+					label = "trailer";
+					reg = <0x000c4000 0x4000>;
+				};
+			};
+		};
+	};
+};
+
+&flash_ext {
+	status = "okay";
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		slot1_partition: partition@0 {
+			compatible = "fixed-subpartitions";
+			label = "image-1";
+			reg = <0x00000000 0xd0000>;
+			ranges = <0x0 0x00000 0xd0000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			slot1_s_partition: partition@0 {
+				label = "image-1-secure";
+				reg = <0x00000000 0x8000>;
+			};
+
+			slot1_ns_partition: partition@8000 {
+				label = "image-1-nonsecure";
+				reg = <0x00008000 0xc8000>;
+			};
+		};
+
+		fmfu_storage_partition: partition@d0000 {
+			label = "fmfu_storage";
+			reg = <0x000d0000 0x00400000>;
+		};
+
+		settings_storage: partition@4d0000 {
+			label = "settings_storage";
+			reg = <0x004d0000 0x00002000>;
+		};
+
+		modem_trace: partition@4d2000 {
+			label = "modem_trace";
+			reg = <0x004d2000 0x000ff000>;
+		};
+
+		external_flash_partition: partition@5d1000 {
+			label = "external_flash";
+			reg = <0x005d1000 0x01a2f000>;
+		};
+	};
+};

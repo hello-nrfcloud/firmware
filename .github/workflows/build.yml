@@ -153,13 +153,6 @@ jobs:
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.elf
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
-      - name: Create partition manager report for nRF91 firmware
-        working-directory: thingy91x-oob/app/build
-        run: |
-          ninja partition_manager_report
-          ninja partition_manager_report > pmr-nrf91-default-${{ env.VERSION }}.txt
-          sed -i '1d' pmr-nrf91-default-${{ env.VERSION }}.txt
-
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         id: artifact-upload-oob
@@ -169,18 +162,12 @@ jobs:
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
             thingy91x-oob/app/build/nrf91-bl-*.hex
-            thingy91x-oob/app/build/pmr-nrf91-*.txt
 
       - name: Build nrf91 firmware with modem trace
         working-directory: thingy91x-oob/app
         run: |
-          cp overlay-memfault.conf overlay-memfault-oob.conf
-          echo "CONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"" >> overlay-memfault-oob.conf
-          echo CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y >> overlay-memfault-oob.conf
-          echo CONFIG_MEMFAULT_NCS_FW_VERSION=\"${{ env.VERSION }}\" >> overlay-memfault-oob.conf
-          echo CONFIG_MEMFAULT_NCS_FW_TYPE=\"${{ env.MEMFAULT_SW_TYPE }}\" >> overlay-memfault-oob.conf
           west build -b thingy91x/nrf9151/ns -p --sysbuild -- \
-            -Dapp_SNIPPET=nrf91-modem-trace-uart
+            -DEXTRA_CONF_FILE="overlay-modem-trace-uart.conf"
 
       - name: Rename trace artifacts
         working-directory: thingy91x-oob/app/build
@@ -207,7 +194,6 @@ jobs:
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
             thingy91x-oob/app/build/nrf91-bl-*.hex
-            thingy91x-oob/app/build/pmr-nrf91-*.txt
 
       # Out-of-box debug firmware build
 
@@ -240,14 +226,6 @@ jobs:
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91.elf
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}+debug-thingy91x-nrf91-dfu.zip
 
-      - name: Create partition manager report for nRF91 debug firmware
-        if: ${{ inputs.build_debug }}
-        working-directory: thingy91x-oob/app/build
-        run: |
-          ninja partition_manager_report
-          ninja partition_manager_report > pmr-nrf91-debug-${{ env.VERSION }}.txt
-          sed -i '1d' pmr-nrf91-debug-${{ env.VERSION }}.txt
-
       - name: Upload artifact
         if: ${{ inputs.build_debug }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -257,7 +235,6 @@ jobs:
           if-no-files-found: error
           path: |
             thingy91x-oob/app/build/hello.nrfcloud.com-*.*
-            thingy91x-oob/app/build/pmr-nrf91-*.txt
 
       # Connectivity Bridge firmware build
 
@@ -266,32 +243,36 @@ jobs:
         run: |
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3
 
-      - name: Create partition manager report for nRF53 firmware
-        working-directory: nrf/applications/connectivity_bridge/build
-        run: |
-          ninja partition_manager_report
-          ninja partition_manager_report > pmr-nrf53-default-${{ env.VERSION }}.txt
-          sed -i '1d' pmr-nrf53-default-${{ env.VERSION }}.txt
-
       - name: Create nrf53 merged_domains HEX file
         run: |
+          BUILD=$(pwd)/nrf/applications/connectivity_bridge/build
           # check that bootloader hex files are present
           ls $(pwd)/nrf53-bl-v*-net.hex $(pwd)/nrf53-bl-v*-app.hex
-          # merge hex files to app, net and merged variants, enforcing the frozen bootloader
           python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/merged_CPUNET.hex \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex \
+            $BUILD/b0n_provision_merged.hex \
+            $BUILD/signed_by_b0_ipc_radio.hex
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex \
             $(pwd)/nrf53-bl-v*-net.hex \
             --overlap replace
           python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/merged.hex \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
+            $BUILD/b0/zephyr/zephyr.hex \
+            $BUILD/signed_by_b0_mcuboot.hex \
+            $BUILD/signed_by_b0_mcuboot_s1_variant.hex \
+            $BUILD/app_provision.hex \
+            $BUILD/connectivity_bridge/zephyr/zephyr.signed.hex
+          python3 zephyr/scripts/build/mergehex.py -o \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
             $(pwd)/nrf53-bl-v*-app.hex \
             --overlap replace
           python3 zephyr/scripts/build/mergehex.py -o \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-merged.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
-            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-merged.hex \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-app.hex \
+            $BUILD/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-net.hex
 
       - name: Copy nrf53 DFU file
         run: |
@@ -308,7 +289,6 @@ jobs:
           path: |
             nrf/applications/connectivity_bridge/build/connectivity-bridge-*.*
             nrf/applications/connectivity_bridge/build/nrf53-bl-*.hex
-            nrf/applications/connectivity_bridge/build/pmr-nrf53-*.txt
 
       # Bootloader update build
 
