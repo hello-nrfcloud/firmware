@@ -24,7 +24,7 @@ extern "C" {
  */
 #define FATAL_ERROR_HANDLE(is_watchdog_timeout) do {				\
 	enum error_type type = ERROR_FATAL;					\
-	(void)zbus_chan_pub(&ERROR_CHAN, &type, K_SECONDS(10));			\
+	(void)zbus_chan_pub(&ERROR_CHAN, &type, K_NO_WAIT);			\
 	LOG_PANIC();								\
 	if (is_watchdog_timeout) {						\
 		IF_ENABLED(CONFIG_MEMFAULT, (MEMFAULT_SOFTWARE_WATCHDOG()));	\
