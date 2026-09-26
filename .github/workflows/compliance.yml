@@ -10,7 +10,7 @@ jobs:
   compliance_job:
     runs-on: ubuntu-24.04
     name: Run compliance checks on patch series (PR)
-    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.2.0
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0
     defaults:
       run:
         shell: bash
@@ -45,13 +45,11 @@ jobs:
         BASE_REF: ${{ github.base_ref }}
       working-directory: thingy91x-oob
       run: |
-        # WARNING: Ugly workaround
-        # git in toolchain doesn't work with check_compliance.py - missing USE_LIBPCRE
-
-        GIT_EXE=$(which git)
-        cp /usr/bin/git $GIT_EXE
-        export ZEPHYR_BASE="../zephyr"
-        $ZEPHYR_BASE/scripts/ci/check_compliance.py -m Codeowners -m Devicetree -m Gitlint -m Identity -m Nits -m pylint -m checkpatch -m KconfigBasic -c origin/${BASE_REF}..
+        PYTHON_EXE="$(command -v python3)"
+        export PATH="/usr/bin:$PATH"
+        unset PERL5LIB PERL5OPT PERLLIB
+        export ZEPHYR_BASE="$(realpath ../zephyr)"
+        "$PYTHON_EXE" $ZEPHYR_BASE/scripts/ci/check_compliance.py -m Codeowners -m Devicetree -m Gitlint -m Identity -m Nits -m pylint -m checkpatch -m KconfigBasic -c origin/${BASE_REF}..
 
     - name: check-warns
       working-directory: thingy91x-oob

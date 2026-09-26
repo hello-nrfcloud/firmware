@@ -70,13 +70,35 @@ class Uart:
             if start + 10 < time.time():
                 raise UartLogTimeout(f"AT command \"{cmd}\" timed out")
 
+    def _at_cmd_expect_ok(self, cmd: str, timeout: float = 3.0) -> bool:
+        """Send an AT command once and return True if "OK" is seen, False on "ERROR"/timeout."""
+        log_index = len(self.log)
+        self.write(cmd.encode("utf-8") + b"\r\n")
+        start = time.time()
+        while start + timeout > time.time() and not self._evt.is_set():
+            if "OK" in self.log[log_index:]:
+                return True
+            if "ERROR" in self.log[log_index:]:
+                return False
+            time.sleep(0.2)
+        return False
+
     def xfactoryreset(self) -> None:
         try:
             self.at_cmd_write("at AT")
-            self.at_cmd_write("at AT+CFUN=4")
-            self.at_cmd_write("at AT%XFACTORYRESET=0")
         except UartLogTimeout:
             logger.error("AT FACTORYRESET failed, continuing")
+            return
+
+        # The running application re-activates the modem (CFUN=1) shortly after
+        # boot, and %XFACTORYRESET is rejected unless the modem is deactivated.
+        # Re-issue CFUN=4 immediately before each attempt to win the race.
+        for _ in range(10):
+            self._at_cmd_expect_ok("at AT+CFUN=4")
+            if self._at_cmd_expect_ok("at AT%XFACTORYRESET=0"):
+                return
+            time.sleep(0.5)
+        logger.error("AT FACTORYRESET failed, continuing")
 
     def _uart(self) -> None:
         data = None

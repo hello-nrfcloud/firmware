@@ -611,9 +611,9 @@ void trigger_callback(const struct zbus_channel *chan)
 
 		state_object.fota_status = *fota_status;
 	} else if (&BUTTON_CHAN == chan) {
-		const int *button_number = zbus_chan_const_msg(chan);
+		const uint8_t *button_number = zbus_chan_const_msg(chan);
 
-		state_object.button_number = (uint8_t)*button_number;
+		state_object.button_number = *button_number;
 	} else if (&LOCATION_CHAN == chan) {
 		const enum location_status *location_status = zbus_chan_const_msg(chan);
 
