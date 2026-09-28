@@ -8,6 +8,7 @@ on:
       - "docs/**"
   pull_request:
     paths:
+      - '.github/workflows/sonarcloud.yml'
       - '**/*.c'
       - '**/*.h'
       - west.yml
@@ -55,7 +56,9 @@ jobs:
           if [ -d $MATTER_IDL_PATH ]; then
             pip install -e $MATTER_IDL_PATH
           fi
-          pip install -r nrf/scripts/requirements-fixed.txt
+          pip install -r nrf/scripts/requirements-build.txt
+          pip install -r zephyr/scripts/requirements-build-test.txt
+          pip install -r zephyr/scripts/requirements-run-test.txt
           apt-get update
           apt install -y curl ruby-full
 
