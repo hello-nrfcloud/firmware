@@ -16,22 +16,33 @@ on:
       - '**/Kconfig*'
       - '**/prj.conf'
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      toolchain-version: ${{ steps.setup.outputs.toolchain-version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/toolchain
+        id: setup
   build:
     name: Build and analyze
+    needs: setup
     runs-on: self-hosted
-    container: ghcr.io/zephyrproject-rtos/ci:v0.28.7
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.setup.outputs.toolchain-version }}
+    defaults:
+      run:
+        shell: bash
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
-      CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
           path: thingy91x-oob
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request'
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
@@ -56,11 +67,11 @@ jobs:
           if [ -d $MATTER_IDL_PATH ]; then
             pip install -e $MATTER_IDL_PATH
           fi
-          pip install -r nrf/scripts/requirements-build.txt
-          pip install -r zephyr/scripts/requirements-build-test.txt
-          pip install -r zephyr/scripts/requirements-run-test.txt
+          pip install -r nrf/scripts/requirements-fixed.txt
           apt-get update
-          apt install -y curl ruby-full
+          # native_sim/native builds with -m32; sdk-nrf-toolchain has no host toolchain
+          # (Zephyr CI includes multilib; we install the equivalent here).
+          apt install -y curl ruby-full build-essential gcc-multilib g++-multilib libc6-dev-i386
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
