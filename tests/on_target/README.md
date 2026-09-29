@@ -67,7 +67,12 @@ export UART_ID_DUT_2=<your_dut_uart_id>
 ```
 pytest -s -v -m "slow" tests/test_bridge/test_serial_dfu.py::test_dfu
 pytest -s -v -m "slow" tests/test_bridge/test_conn_bridge.py::test_conn_bridge
+pytest -s -v -m "slow" tests/test_bridge/test_oob_to_att_dfu.py
 ```
+
+The OOB-to-ATT DFU test pulls the latest standard Thingy:91 X ATT application DFU bundle from
+[Asset Tracker Template releases](https://github.com/nrfconnect/Asset-Tracker-Template/releases)
+via Python (`utils/att_release.py`) before DFU. Set `GITHUB_TOKEN` if GitHub rate limits apply.
 
 ### PPK test
 
