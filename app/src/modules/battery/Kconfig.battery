@@ -21,6 +21,18 @@ config APP_BATTERY_EXEC_TIME_SECONDS_MAX
 	help
 	  Maximum time allowed for a single execution of the module thread loop.
 
+config APP_BATTERY_SAMPLE_INTERVAL_MS
+	int "Fuel gauge sample interval"
+	default 1000
+	help
+	  Interval in milliseconds for periodic fuel gauge sampling while the device is active.
+
+config APP_BATTERY_IDLE_CURRENT_NA
+	int "Idle current in nanoamperes"
+	help
+	  Board idle current in nanoamperes used by the fuel gauge idle estimation when the
+	  modem is in sleep. This is a board property and must be set per board.
+
 module = APP_BATTERY
 module-str = Battery
 source "subsys/logging/Kconfig.template.log_config"
