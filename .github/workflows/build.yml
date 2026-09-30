@@ -241,7 +241,12 @@ jobs:
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3
+          # MCUBOOT_NRF53_MULTI_IMAGE_UPDATE keeps the net core as MCUboot image 1 (slots 3/4),
+          # as expected by the deployed bootloader. NCS v3.4.1 defaults to sequential updates
+          # through the application slot when this is not set.
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- \
+            -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3 \
+            -DSB_CONFIG_MCUBOOT_NRF53_MULTI_IMAGE_UPDATE=y
 
       - name: Create nrf53 merged_domains HEX file
         run: |
@@ -303,7 +308,8 @@ jobs:
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild \
               -d ../nrf/applications/connectivity_bridge/build-bl-update \
               ../nrf/applications/connectivity_bridge -- \
-              -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4
+              -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4 \
+              -DSB_CONFIG_MCUBOOT_NRF53_MULTI_IMAGE_UPDATE=y
           MCUBOOT_ZIP=$(find ../nrf/applications/connectivity_bridge/build-bl-update -name dfu_mcuboot.zip)
           cp $MCUBOOT_ZIP connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
 

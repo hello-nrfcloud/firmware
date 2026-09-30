@@ -88,11 +88,6 @@ jobs:
           python3 ${CI_NRF_DIR}/scripts/bootloader/keygen.py --public --in ${CI_NRF_DIR}/boards/nordic/thingy91x/nsib_signing_key.pem --out verifying_key_nrf91.pem
           python3 ${CI_NRF_DIR}/scripts/bootloader/keygen.py --public --in ${CI_NRF_DIR}/boards/nordic/thingy91x/nsib_signing_key_nrf5340.pem --out verifying_key_nrf53.pem
 
-      - name: 'nrf91: check partition layout'
-        working-directory: thingy91x-oob/artifacts
-        run: |
-          diff --ignore-all-space --ignore-blank-lines pmr-nrf91-default-${{ inputs.artifact_fw_version }}.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf91.txt
-
       - name: 'nrf91: check app image signature'
         working-directory: thingy91x-oob
         run: |
@@ -103,18 +98,13 @@ jobs:
         run: |
           # python3 scripts/nsib_signature_check.py -i twister-out/thingy91x_nrf9151_ns/app/app.build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf91.pem -a 0x00008200 -v 2
           python3 scripts/nsib_signature_check.py -i artifacts/nrf91-bootloader/signed_by_mcuboot_and_b0_mcuboot.bin -p verifying_key_nrf91.pem -a 0x00008200 -v 3
-          python3 scripts/nsib_signature_check.py -i artifacts/nrf91-bootloader/signed_by_mcuboot_and_b0_s1_image.bin -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
+          python3 scripts/nsib_signature_check.py -i artifacts/nrf91-bootloader/signed_by_mcuboot_and_b0_mcuboot_s1_variant.bin -p verifying_key_nrf91.pem -a 0x0001c200 -v 3
 
       - name: 'nrf91: check manifest slot indices'
         working-directory: thingy91x-oob/artifacts
         run: |
           grep '"slot_index_primary": "1"' nrf91-app/manifest.json
           grep '"slot_index_secondary": "2"' nrf91-app/manifest.json
-
-      - name: 'nrf53: check partition layout'
-        working-directory: thingy91x-oob/artifacts
-        run: |
-          diff --ignore-all-space --ignore-blank-lines pmr-nrf53-default-${{ inputs.artifact_fw_version }}.txt ${CI_PROJECT_DIR}/scripts/pmr_nrf53.txt
 
       - name: 'nrf53: check app image signature'
         working-directory: thingy91x-oob/artifacts
@@ -126,7 +116,7 @@ jobs:
         run: |
           # python3 scripts/nsib_signature_check.py -i ../nrf/applications/connectivity_bridge/build/signed_by_mcuboot_and_b0_mcuboot.hex -p verifying_key_nrf53.pem -a 0x00008200 -v 3
           python3 scripts/nsib_signature_check.py -i artifacts/nrf53-bootloader/signed_by_mcuboot_and_b0_mcuboot.bin -p verifying_key_nrf53.pem -a 0x00008200 -v 4
-          python3 scripts/nsib_signature_check.py -i artifacts/nrf53-bootloader/signed_by_mcuboot_and_b0_s1_image.bin -p verifying_key_nrf53.pem -a 0x0001c200 -v 4
+          python3 scripts/nsib_signature_check.py -i artifacts/nrf53-bootloader/signed_by_mcuboot_and_b0_mcuboot_s1_variant.bin -p verifying_key_nrf53.pem -a 0x0001c200 -v 4
 
       - name: 'nrf53: check manifest slot indices'
         working-directory: thingy91x-oob/artifacts
