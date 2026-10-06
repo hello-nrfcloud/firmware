@@ -1,0 +1,13 @@
+# Partitions that must not move, as deployed devices depend on them for
+# bootloader and application DFU.
+#
+# flash      partition                offset      size
+flash0       b0_partition             0x0         0x8000
+flash0       s0_partition             0x8000      0x14000
+flash0       s1_partition             0x1c000     0x14000
+flash0       slot0_partition          0x30000     0xd0000
+flash0       slot0_s_partition        0x30000     0x8000
+flash0       slot0_ns_partition       0x38000     0xc8000
+flash_ext    slot1_partition          0x0         0xd0000
+flash_ext    fmfu_storage_partition   0xd0000     0x400000
+flash_ext    settings_storage         0x4d0000    0x2000

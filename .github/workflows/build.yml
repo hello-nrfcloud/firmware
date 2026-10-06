@@ -151,6 +151,7 @@ jobs:
           cp app/zephyr/zephyr.signed.bin hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-update-signed.bin
           cp app/zephyr/zephyr.signed.hex hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-update-signed.hex
           cp app/zephyr/zephyr.elf hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.elf
+          cp app/zephyr/zephyr.dts hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91.dts
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
       - name: Upload artifact
@@ -241,7 +242,9 @@ jobs:
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
-          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3
+          west build -b thingy91x/nrf5340/cpuapp -p --sysbuild -- \
+              -DSB_CONFIG_MCUBOOT_NRF53_MULTI_IMAGE_UPDATE=y \
+              -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=3
 
       - name: Create nrf53 merged_domains HEX file
         run: |
@@ -278,6 +281,8 @@ jobs:
         run: |
           cp $(pwd)/nrf/applications/connectivity_bridge/build/dfu_application.zip \
             $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-dfu.zip
+          cp $(pwd)/nrf/applications/connectivity_bridge/build/connectivity_bridge/zephyr/zephyr.dts \
+            $(pwd)/nrf/applications/connectivity_bridge/build/connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53.dts
           cp nrf53-bl-*.hex $(pwd)/nrf/applications/connectivity_bridge/build/
 
       - name: Upload artifact
@@ -303,6 +308,7 @@ jobs:
           west build -b thingy91x/nrf5340/cpuapp -p --sysbuild \
               -d ../nrf/applications/connectivity_bridge/build-bl-update \
               ../nrf/applications/connectivity_bridge -- \
+              -DSB_CONFIG_MCUBOOT_NRF53_MULTI_IMAGE_UPDATE=y \
               -Dmcuboot_CONFIG_FW_INFO_FIRMWARE_VERSION=4
           MCUBOOT_ZIP=$(find ../nrf/applications/connectivity_bridge/build-bl-update -name dfu_mcuboot.zip)
           cp $MCUBOOT_ZIP connectivity-bridge-${{ env.VERSION }}-thingy91x-nrf53-bootloader.zip
