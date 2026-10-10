@@ -155,7 +155,7 @@ jobs:
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-dfu.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: artifact-upload-oob
         with:
           name: firmware-oob
@@ -187,7 +187,7 @@ jobs:
           cp dfu_application.zip hello.nrfcloud.com-${{ env.VERSION }}-thingy91x-nrf91-trace-dfu.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: artifact-upload-oob-trace
         with:
           name: firmware-oob-trace
@@ -229,7 +229,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ inputs.build_debug }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: artifact-upload-oob-debug
         with:
           name: firmware-oob-debug
@@ -286,7 +286,7 @@ jobs:
           cp nrf53-bl-*.hex $(pwd)/nrf/applications/connectivity_bridge/build/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: artifact-upload-connectivity-bridge
         with:
           name: firmware-connectivity-bridge
@@ -315,7 +315,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ inputs.build_bl_update }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: artifact-upload-bl-update
         with:
           name: firmware-bl-update
