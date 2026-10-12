@@ -239,6 +239,15 @@ jobs:
 
       # Connectivity Bridge firmware build
 
+      # Remove once the NCS revision includes the sdk-nrf fix for the dp0 reset polarity
+      - name: Patch connectivity bridge nRF91 reset polarity
+        working-directory: nrf/applications/connectivity_bridge
+        run: |
+          OVERLAY=boards/thingy91x_nrf5340_cpuapp.overlay
+          sed -i '/dp0 {/,/};/s/reset-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>/reset-gpios = <\&gpio1 7 GPIO_ACTIVE_LOW>/' $OVERLAY
+          sed -n '/dp0 {/,/};/p' $OVERLAY | grep -q "reset-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>"
+          grep -n "reset-gpios" $OVERLAY
+
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
