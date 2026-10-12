@@ -15,6 +15,7 @@ from utils.flash_tools import (
     flash_device,
     recover_device,
     pyocd_flash_device,
+    pyocd_erase_device,
     dfu_device,
     get_first_artifact_match,
 )
@@ -88,10 +89,8 @@ def test_02_setup_nrf91():
     setup nrf91, flash bootloader only
     """
     wait_until_uart_available(CONN_BRIDGE_SERIAL)
-    try:
-        pyocd_flash_device(serial=CONN_BRIDGE_SERIAL, hexfile=NRF91_BOOTLOADER)
-    except Exception as e:
-        logger.error(f"Error flashing bootloader: {e}")
+    pyocd_erase_device(serial=CONN_BRIDGE_SERIAL)
+    pyocd_flash_device(serial=CONN_BRIDGE_SERIAL, hexfile=NRF91_BOOTLOADER)
 
 
 def test_03_dfu_app_nrf91():
