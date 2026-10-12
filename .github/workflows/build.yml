@@ -239,6 +239,13 @@ jobs:
 
       # Connectivity Bridge firmware build
 
+      - name: TEMP set dp0 reset to GPIO_ACTIVE_LOW
+        working-directory: nrf/applications/connectivity_bridge
+        run: |
+          sed -i '0,/reset-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>/s//reset-gpios = <\&gpio1 7 GPIO_ACTIVE_LOW>/' \
+            boards/thingy91x_nrf5340_cpuapp.overlay
+          grep -n "reset-gpios" boards/thingy91x_nrf5340_cpuapp.overlay
+
       - name: Build nrf53 firmware
         working-directory: nrf/applications/connectivity_bridge
         run: |
