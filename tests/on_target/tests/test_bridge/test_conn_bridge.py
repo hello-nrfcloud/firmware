@@ -12,6 +12,7 @@ from utils.flash_tools import (
     recover_device,
     get_first_artifact_match,
     pyocd_flash_device,
+    pyocd_erase_device,
 )
 from utils.uart import Uart, wait_until_uart_available
 from tests.conftest import get_uarts
@@ -75,6 +76,8 @@ def uarts():
     wait_until_uart_available(CONNECTIVITY_BRIDGE_UART)
 
     logger.info("nRF53 initialized successfully")
+    logger.info("Erasing nRF91")
+    pyocd_erase_device(serial=CONNECTIVITY_BRIDGE_UART)
     pyocd_flash_device(serial=CONNECTIVITY_BRIDGE_UART, hexfile=BRIDGE_TEST_APP)
 
     all_uarts = get_uarts(CONNECTIVITY_BRIDGE_UART)
