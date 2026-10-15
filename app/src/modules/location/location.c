@@ -15,7 +15,6 @@
 #include <date_time.h>
 
 #include "message_channel.h"
-#include "modem/lte_lc.h"
 
 #include <net/nrf_cloud.h>
 
@@ -32,13 +31,11 @@ ZBUS_MSG_SUBSCRIBER_DEFINE(location);
 ZBUS_CHAN_ADD_OBS(TRIGGER_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(CLOUD_CHAN, location, 0);
 ZBUS_CHAN_ADD_OBS(CONFIG_CHAN, location, 0);
-ZBUS_CHAN_ADD_OBS(NETWORK_CHAN, location, 0);
 
 #define MAX_MSG_SIZE \
 	(MAX(sizeof(enum trigger_type), \
 		 (MAX(sizeof(enum cloud_status), \
-		     (MAX(sizeof(struct configuration), \
-		         sizeof(enum network_status)))))))
+		     sizeof(struct configuration)))))
 
 static bool gnss_enabled;
 
@@ -95,26 +92,6 @@ void trigger_location_update(void)
 		LOG_WRN("Location request already in progress");
 	} else if (err) {
 		LOG_ERR("Unable to send location request: %d", err);
-	}
-}
-
-void handle_network_chan(enum network_status status)
-{
-	int err;
-
-	if (status == NETWORK_CONNECTED) {
-		err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS);
-		if (err) {
-			LOG_ERR("Unable to init GNSS: %d", err);
-			SEND_FATAL_ERROR();
-		}
-
-	} else if (status == NETWORK_DISCONNECTED) {
-		err = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_DEACTIVATE_GNSS);
-		if (err) {
-			LOG_ERR("Unable to init GNSS: %d", err);
-			SEND_FATAL_ERROR();
-		}
 	}
 }
 
@@ -203,11 +180,6 @@ void location_task(void)
 			LOG_ERR("zbus_sub_wait, error: %d", err);
 			SEND_FATAL_ERROR();
 			return;
-		}
-
-		if (&NETWORK_CHAN == chan) {
-			LOG_DBG("Network status received");
-			handle_network_chan(MSG_TO_NETWORK_STATUS(&msg_buf));
 		}
 
 		if (&TRIGGER_CHAN == chan) {
