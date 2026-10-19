@@ -5,7 +5,7 @@
 
 import os
 import requests
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 import time
 from utils.flash_tools import flash_device, reset_device
 from utils.logger import get_logger
@@ -16,74 +16,46 @@ MEMFAULT_PROJ = os.getenv('MEMFAULT_PROJECT_SLUG')
 IMEI = os.getenv('IMEI')
 MEMFAULT_TIMEOUT = 5 * 60
 
+# Memfault chunks are relayed through nRF Cloud CoAP and attributed to the nRF Cloud device ID
+DEVICE_SERIALS = (f"oob-{IMEI}", IMEI)
+
 logger = get_logger()
 
 url = "https://api.memfault.com/api/v0"
 auth = ("", MEMFAULT_ORG_TOKEN)
 
-def get_chronicler_events(
-        device_serial=None,
-        device_id=None,
-        event_types=("ReceivedDataRebootEvent", "ReceivedDataHeartbeatEvent", "ReceivedDataTraceEvent"),
-        levels=("INFO", "ERROR"),
-        start=None, end=None
-):
-    if not start:
-        start = datetime.now(timezone.utc) - timedelta(hours=1)
-    if not end:
-        end = datetime.now(timezone.utc)
-
-    params = {
-        "device_id": device_id,
-        "device_serial": device_serial,
-        "event_types": event_types,
-        "levels": levels,
-        "start": datetime.isoformat(start),
-        "end": datetime.isoformat(end)
-    }
-    
+def get_traces(family):
     r = requests.get(
-        f"{url}/organizations/{MEMFAULT_ORG}/projects/{MEMFAULT_PROJ}/chronicler-logs",
+        f"{url}/organizations/{MEMFAULT_ORG}/projects/{MEMFAULT_PROJ}/traces",
         auth=auth,
-        params=params,
         timeout=10
     )
     r.raise_for_status()
-    return r.json()["data"]
-    
-def get_latest_heartbeat_events(device_serial):
-    return get_chronicler_events(
-        device_serial=device_serial,
-        event_types=["ReceivedDataHeartbeatEvent"]
-    )
+    return [x for x in r.json()["data"] if x["source_type"] == family]
 
-def timestamp(event):
-    return datetime.fromisoformat(event["event_data"]["received_event"]["captured_date"])
+def timestamp(trace):
+    return datetime.fromisoformat(trace["captured_date"].replace("Z", "+00:00"))
 
-def wait_for_heartbeat(timestamp_old_heartbeat_evt):
-    new_heartbeat_found = False
+def get_latest_coredump_traces():
+    coredumps = get_traces("coredump")
+    device_coredumps = [x for x in coredumps if x["device"]["device_serial"] in DEVICE_SERIALS]
+    if not device_coredumps:
+        serials = {x["device"]["device_serial"] for x in coredumps}
+        logger.debug(f"No coredumps for {DEVICE_SERIALS}, recent coredump serials: {serials}")
+    return sorted(device_coredumps, key=timestamp, reverse=True)
+
+def wait_for_coredump(timestamp_old_coredump):
     start = time.time()
     while time.time() - start < MEMFAULT_TIMEOUT:
-        logger.debug("Looking for latest heartbeat events")
         time.sleep(5)
-        new_heartbeat_events = get_latest_heartbeat_events(IMEI)
-        if not new_heartbeat_events:
+        coredumps = get_latest_coredump_traces()
+        if not coredumps:
             continue
-        try:
-            unexpected_reboot_count = new_heartbeat_events[0]["event_data"]["received_event"]["event_info"]["metrics"]["MemfaultSdkMetric_UnexpectedRebootCount"]
-        except (KeyError, ValueError):
-            continue
-        if unexpected_reboot_count < 1:
-            continue
-        # Check that we have heartbeat event with newer timestamp
-        if not timestamp_old_heartbeat_evt:
-            new_heartbeat_found = True
-        elif timestamp(new_heartbeat_events[0]) > timestamp_old_heartbeat_evt and not new_heartbeat_found:
-            new_heartbeat_found = True
-        if new_heartbeat_found:
-            break
-    else:
-        raise AssertionError("No new heartbeat event observed")
+        logger.debug(f"Latest coredump: {coredumps[0]['device']['device_serial']} "
+                     f"captured {coredumps[0]['captured_date']}")
+        if not timestamp_old_coredump or timestamp(coredumps[0]) > timestamp_old_coredump:
+            return
+    raise AssertionError("No new coredump observed")
 
 def test_memfault(t91x_board, hex_file):
     flash_device(os.path.abspath(hex_file))
@@ -94,15 +66,16 @@ def test_memfault(t91x_board, hex_file):
             "memfault: memfault_task: Cloud status received",
     ]
 
-    # Save timestamp of latest heartbeat event
-    heartbeat_events = get_latest_heartbeat_events(IMEI)
-    timestamp_old_heartbeat_evt = timestamp(heartbeat_events[0]) if heartbeat_events else  None
+    # Save timestamp of latest coredump
+    coredumps = get_latest_coredump_traces()
+    timestamp_old_coredump = timestamp(coredumps[0]) if coredumps else None
+    logger.debug(f"Timestamp old coredump: {timestamp_old_coredump}")
 
     t91x_board.uart.flush()
     reset_device()
     t91x_board.uart.wait_for_str(patterns_memfault, timeout=120)
 
-    # Trigger bus fault to generate memfault event
+    # Trigger bus fault to generate coredump
     t91x_board.uart.write("mflt test busfault\r\n")
 
-    wait_for_heartbeat(timestamp_old_heartbeat_evt)
+    wait_for_coredump(timestamp_old_coredump)
