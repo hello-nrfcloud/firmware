@@ -15,7 +15,10 @@ from utils.flash_tools import (
     dfu_device,
     flash_device,
     get_first_artifact_match,
+    pyocd_erase_device,
     pyocd_flash_device,
+    pyocd_halt_device,
+    pyocd_reset_device,
     recover_device,
 )
 from utils.logger import get_logger
@@ -54,6 +57,9 @@ def uart():
     all_uarts = get_uarts(CONN_BRIDGE_SERIAL)
     if not all_uarts:
         pytest.fail("No UARTs found")
+    # The bridge starts UART RX when the port is opened and never restarts it after a
+    # framing error, so open the port while the nRF91 is halted and its TX line is idle.
+    pyocd_halt_device(serial=CONN_BRIDGE_SERIAL)
     uart = Uart(all_uarts[0])
     yield uart
     uart.stop()
@@ -92,10 +98,8 @@ def test_02_setup_oob_nrf91():
     if not OOB_NRF91_DFU_ZIP:
         pytest.fail("OOB nRF91 DFU artifact not found")
     wait_until_uart_available(CONN_BRIDGE_SERIAL)
-    try:
-        pyocd_flash_device(serial=CONN_BRIDGE_SERIAL, hexfile=NRF91_BOOTLOADER)
-    except Exception as e:
-        logger.error(f"Error flashing bootloader: {e}")
+    pyocd_erase_device(serial=CONN_BRIDGE_SERIAL)
+    pyocd_flash_device(serial=CONN_BRIDGE_SERIAL, hexfile=NRF91_BOOTLOADER)
     dfu_device(OOB_NRF91_DFU_ZIP, serial=CONN_BRIDGE_SERIAL)
 
 
@@ -108,8 +112,9 @@ def test_03_verify_oob_boot(uart):
         "*** Booting Hello, nRF Cloud",
     ]
     time.sleep(2)
-    uart.write("kernel reboot cold\r\n")
-    uart.wait_for_str(expected_lines, timeout=120)
+    boot_pos = uart.get_size()
+    pyocd_reset_device(serial=CONN_BRIDGE_SERIAL)
+    uart.wait_for_str(expected_lines, timeout=120, start_pos=boot_pos)
 
 
 def test_04_dfu_oob_to_att(att_dfu_zip):
@@ -131,5 +136,6 @@ def test_05_verify_att_boot(uart):
         "cloud: cloud_module_thread: Cloud module task started",
     ]
     time.sleep(2)
-    uart.write("kernel reboot cold\r\n")
-    uart.wait_for_str(expected_lines, timeout=120)
+    boot_pos = uart.get_size()
+    pyocd_reset_device(serial=CONN_BRIDGE_SERIAL)
+    uart.wait_for_str(expected_lines, timeout=120, start_pos=boot_pos)

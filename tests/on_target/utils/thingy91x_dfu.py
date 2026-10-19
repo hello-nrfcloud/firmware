@@ -317,6 +317,8 @@ class Thingy91XDFU:
         if self.chip == "nrf91":
             self.reset_device()
 
+        return result.returncode == 0
+
     def perform_bootloader_dfu(self, image, slot=1):
         logger.info(f"Performing MCUBoot DFU on {self.chip.upper()} with firmware: {image}")
         port = None
@@ -424,8 +426,8 @@ def main():
             logger.info(f"{chip} on {serial_number} is in bootloader mode")
             if is_mcuboot:
                 dfu.perform_bootloader_dfu(args.image, args.bootloader_slot)
-            else:
-                dfu.perform_dfu(args.image)
+            elif not dfu.perform_dfu(args.image):
+                sys.exit(1)
     finally:
         dfu.release_device()
 

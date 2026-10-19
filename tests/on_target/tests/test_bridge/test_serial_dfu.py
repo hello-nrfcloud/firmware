@@ -16,6 +16,8 @@ from utils.flash_tools import (
     recover_device,
     pyocd_flash_device,
     pyocd_erase_device,
+    pyocd_halt_device,
+    pyocd_reset_device,
     dfu_device,
     get_first_artifact_match,
 )
@@ -53,6 +55,9 @@ def uart():
     all_uarts = get_uarts(CONN_BRIDGE_SERIAL)
     if not all_uarts:
         pytest.fail("No UARTs found")
+    # The bridge starts UART RX when the port is opened and never restarts it after a
+    # framing error, so open the port while the nRF91 is halted and its TX line is idle.
+    pyocd_halt_device(serial=CONN_BRIDGE_SERIAL)
     uart = Uart(all_uarts[0])
     yield uart
     uart.stop()
@@ -110,8 +115,9 @@ def test_04_dfu_nrf91_app_output(uart):
         "*** Booting Hello, nRF Cloud",
     ]
     time.sleep(2)
-    uart.write("kernel reboot cold\r\n")
-    uart.wait_for_str(expected_lines, timeout=5)
+    boot_pos = uart.get_size()
+    pyocd_reset_device(serial=CONN_BRIDGE_SERIAL)
+    uart.wait_for_str(expected_lines, timeout=30, start_pos=boot_pos)
 
 
 def test_05_dfu_app_nrf53():
@@ -133,5 +139,6 @@ def test_06_dfu_nrf53_app_output(uart):
         "*** Booting Hello, nRF Cloud",
     ]
     time.sleep(2)
-    uart.write("kernel reboot cold\r\n")
-    uart.wait_for_str(expected_lines, timeout=5)
+    boot_pos = uart.get_size()
+    pyocd_reset_device(serial=CONN_BRIDGE_SERIAL)
+    uart.wait_for_str(expected_lines, timeout=30, start_pos=boot_pos)
