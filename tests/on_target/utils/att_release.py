@@ -56,6 +56,20 @@ def _download_asset(url: str, destination: str) -> None:
             out.write(chunk)
 
 
+def _newest_cached_att_dfu_zip(artifacts_dir: str):
+    if not os.path.isdir(artifacts_dir):
+        return None
+    versions = []
+    for name in os.listdir(artifacts_dir):
+        match = STANDARD_ATT_DFU_PATTERN.match(name)
+        if match:
+            version = tuple(int(part) for part in match.group(1)[1:].split(".") if part)
+            versions.append((version, name))
+    if not versions:
+        return None
+    return os.path.join(artifacts_dir, max(versions)[1])
+
+
 def download_latest_standard_att_dfu_zip(artifacts_dir: str = "artifacts") -> str:
     """
     Fetch the latest standard Thingy:91 X ATT application DFU zip from GitHub releases.
@@ -63,7 +77,17 @@ def download_latest_standard_att_dfu_zip(artifacts_dir: str = "artifacts") -> st
     Always checks the latest release tag; downloads when the matching file is not
     already present under artifacts_dir.
     """
-    name, tag, url = _latest_standard_att_dfu_asset()
+    try:
+        name, tag, url = _latest_standard_att_dfu_asset()
+    except urllib.error.URLError as err:
+        cached = _newest_cached_att_dfu_zip(artifacts_dir)
+        if cached:
+            logger.warning("ATT release lookup failed (%s), using cached %s", err, cached)
+            return cached
+        raise RuntimeError(
+            f"ATT release lookup failed: {err}. "
+            "Set GITHUB_TOKEN if GitHub API rate limits apply."
+        ) from err
     os.makedirs(artifacts_dir, exist_ok=True)
     destination = os.path.join(artifacts_dir, name)
 

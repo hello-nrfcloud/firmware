@@ -14,8 +14,6 @@ from utils.thingy91x_dfu import detect_family_from_zip, Thingy91XDFU
 from pyocd.core.helpers import ConnectHelper
 from pyocd.flash.file_programmer import FileProgrammer
 from pyocd.flash.eraser import FlashEraser
-from pyocd.commands.commands import ResetCommand
-
 logger = get_logger()
 
 SEGGER = os.getenv("SEGGER")
@@ -129,7 +127,7 @@ def dfu_device(
         command.append("--check-nrf53-version")
 
     try:
-        result = subprocess.run(command)
+        result = subprocess.run(command, check=True)
         logger.info("Output from dfu script:")
         logger.info(result.stdout)
         return result.stdout
@@ -162,9 +160,19 @@ def pyocd_erase_device(serial, target_type="nrf91"):
 def pyocd_reset_device(serial, target_type="nrf91"):
     logger.debug(f"Resetting device, serial: {serial}")
     with ConnectHelper.session_with_chosen_probe(
-        unique_id=serial, target_override=target_type, type="hardware"
+        unique_id=serial, target_override=target_type
     ) as session:
-        ResetCommand(session)
+        session.target.reset()
+
+
+def pyocd_halt_device(serial, target_type="nrf91"):
+    logger.debug(f"Halting device, serial: {serial}")
+    with ConnectHelper.session_with_chosen_probe(
+        unique_id=serial,
+        target_override=target_type,
+        options={"resume_on_disconnect": False},
+    ) as session:
+        session.target.halt()
 
 
 def get_first_artifact_match(pattern):

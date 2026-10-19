@@ -200,7 +200,6 @@ class Uart:
     def get_size(self) -> int:
         # Return the current size of the log
         return len(self.log)
-
     def wait_for_str_ordered(
         self, msgs: list, error_msg: str = "", timeout: int = DEFAULT_WAIT_FOR_STR_TIMEOUT
     ) -> None:
