@@ -11,6 +11,7 @@ import glob
 sys.path.append(os.getcwd())
 from utils.logger import get_logger
 from utils.thingy91x_dfu import detect_family_from_zip, Thingy91XDFU
+from pyocd.core.exceptions import TransferError
 from pyocd.core.helpers import ConnectHelper
 from pyocd.flash.file_programmer import FileProgrammer
 from pyocd.flash.eraser import FlashEraser
@@ -138,14 +139,24 @@ def dfu_device(
         raise e
 
 
-def pyocd_flash_device(serial, hexfile, target_type="nrf91"):
-    logger.debug(f"Flashing device, serial: {serial}, hexfile: {hexfile}")
-    with ConnectHelper.session_with_chosen_probe(
-        unique_id=serial, target_override=target_type
-    ) as session:
-        programmer = FileProgrammer(session)
-        programmer.program(hexfile)
-        session.target.reset()
+def pyocd_flash_device(serial, hexfile, target_type="nrf91", retries=3):
+    # The first flash after erasing an nRF91 that was running an application can hit a
+    # RAM transfer fault in the flash algorithm; erasing and flashing again succeeds.
+    for attempt in range(retries + 1):
+        logger.debug(f"Flashing device, serial: {serial}, hexfile: {hexfile}")
+        try:
+            with ConnectHelper.session_with_chosen_probe(
+                unique_id=serial, target_override=target_type
+            ) as session:
+                programmer = FileProgrammer(session)
+                programmer.program(hexfile)
+                session.target.reset()
+            return
+        except TransferError as e:
+            if attempt == retries:
+                raise
+            logger.warning(f"pyOCD flashing failed ({e}), erasing and retrying")
+            pyocd_erase_device(serial=serial, target_type=target_type)
 
 
 def pyocd_erase_device(serial, target_type="nrf91"):
