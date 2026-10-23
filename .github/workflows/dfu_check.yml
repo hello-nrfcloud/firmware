@@ -20,7 +20,7 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       toolchain-version: ${{ steps.setup.outputs.toolchain-version }}
     steps:
@@ -30,7 +30,7 @@ jobs:
   analyze:
     name: Static analysis
     needs: setup
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.setup.outputs.toolchain-version }}
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
