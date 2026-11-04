@@ -217,19 +217,27 @@ def test_power(dut):
 
     Current consumption is measured and report generated.
     """
-    for _ in range(5):
+    attempts = 5
+    uart_output_seen = False
+    for attempt in range(1, attempts + 1):
+        start_pos = dut.uart.get_size()
         try:
-            dut.uart.wait_for_str("Connected to Cloud", timeout=30)
+            dut.uart.wait_for_str("Connected to Cloud", timeout=30, start_pos=start_pos)
             break
         except AssertionError:
-            logger.error("Device unable to connect to cloud, reset and retry")
+            if dut.uart.get_size() > start_pos:
+                uart_output_seen = True
+                logger.error(f"Device not connected to cloud (attempt {attempt}/{attempts}), power cycling")
+            else:
+                logger.error(f"No UART output from device (attempt {attempt}/{attempts}), power cycling")
             dut.ppk2.toggle_DUT_power("OFF")
             time.sleep(1)
             dut.ppk2.toggle_DUT_power("ON")
             time.sleep(1)
-            continue
     else:
-        pytest.skip("Device unable to connect to cloud, skipping test")
+        if not uart_output_seen:
+            pytest.fail(f"No UART output from device after {attempts} power cycles")
+        pytest.fail(f"Device unable to connect to cloud after {attempts} power cycles")
 
     # Disable uart for {POWER_TIMEOUT} seconds
     dut.uart.write(f"uart disable {POWER_TIMEOUT}\r\n")
