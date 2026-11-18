@@ -43,6 +43,13 @@ export IMEI=<your_imei>
 export FINGERPRINT=<your_fingerprint>
 ```
 
+The application FOTA test flashes the latest GitHub release and updates it to the firmware under test.
+It uploads the `*-update-signed.bin` from `artifacts/` as a temporary bundle to nRF Cloud, and deletes it when the test is done.
+This needs an nRF Cloud API key for the account the FOTA device belongs to:
+```shell
+export NRF_CLOUD_API_KEY=<your_api_key>
+```
+
 Run desired tests, example commands
 ```shell
 pytest -s -v -m "not slow" tests

@@ -15,7 +15,6 @@ logger = get_logger()
 MFW_202_FILEPATH = "artifacts/mfw_nrf91x1_2.0.2.zip"
 DELTA_MFW_BUNDLEID = "MODEM*3471f88e*mfw_nrf91x1_2.0.2-FOTA-TEST"
 FULL_MFW_BUNDLEID = "MDM_FULL*124c2b20*mfw_nrf91x1_full_2.0.2"
-APP_BUNDLEID = "APP*a82b7076*v2.0.1"
 
 APP_FOTA_TIMEOUT = 60 * 10
 FULL_MFW_FOTA_TIMEOUT = 60 * 30
@@ -49,8 +48,9 @@ def run_fota_resumption(t91x_fota, fota_type):
 
 @pytest.fixture
 def run_fota_fixture(t91x_fota, hex_file):
-    def _run_fota(bundleId, fota_type, fotatimeout=APP_FOTA_TIMEOUT, test_fota_resumption=False):
-        flash_device(os.path.abspath(hex_file))
+    def _run_fota(bundleId, fota_type, fotatimeout=APP_FOTA_TIMEOUT, test_fota_resumption=False,
+                  start_hex_file=hex_file):
+        flash_device(os.path.abspath(start_hex_file))
         t91x_fota.uart.xfactoryreset()
         t91x_fota.uart.flush()
         reset_device()
@@ -74,11 +74,17 @@ def run_fota_fixture(t91x_fota, hex_file):
 
     return _run_fota
 
-def test_app_fota(run_fota_fixture):
+def test_app_fota(app_bundle_id, latest_release_hex, t91x_fota, run_fota_fixture):
     '''
-    Test application FOTA on nrf9151
+    Test application FOTA on nrf9151 from the latest release to the firmware under test
     '''
-    run_fota_fixture(bundleId=APP_BUNDLEID, fota_type="app", test_fota_resumption=True)
+    run_fota_fixture(bundleId=app_bundle_id, fota_type="app", test_fota_resumption=True,
+                     start_hex_file=latest_release_hex.path)
+
+    booted_version = t91x_fota.uart.extract_value(r"\*\*\* Booting Hello, nRF Cloud (\S+)")
+    assert booted_version, "No boot banner found after FOTA"
+    assert not booted_version[0].startswith(latest_release_hex.tag), \
+        f"Device still runs release {latest_release_hex.tag} after FOTA: {booted_version[0]}"
 
 
 def test_delta_mfw_fota(run_fota_fixture):
