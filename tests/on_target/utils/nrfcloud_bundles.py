@@ -6,12 +6,23 @@
 import io
 import json
 import os
+import re
 import zipfile
 from urllib.parse import quote
 
 import requests
 
 NRF_CLOUD_API_URL = "https://api.nrfcloud.com/v1"
+FW_VERSION_PATTERN = re.compile(r"^[a-zA-Z0-9._-]{1,60}$")
+
+
+def _raise_for_status(response: requests.Response) -> None:
+    if not response.ok:
+        raise requests.HTTPError(
+            f"{response.status_code} {response.reason} for {response.request.method} "
+            f"{response.url}: {response.text}",
+            response=response,
+        )
 
 
 class NrfCloudFirmwareBundles():
@@ -34,12 +45,17 @@ class NrfCloudFirmwareBundles():
         Zip an application update image with a manifest and upload it as a firmware bundle.
 
         :param update_bin_path: Path to the signed application update image (*-update-signed.bin)
-        :param fw_version: Firmware version to give the bundle, must be unique in the account
+        :param fw_version: Firmware version to give the bundle, must be unique in the account and
+                           match FW_VERSION_PATTERN (1-60 characters of a-z, A-Z, 0-9, '.', '_', '-')
         :return: Bundle ID of the uploaded bundle, e.g. "APP*1a2b3c4d*<fw_version>"
-        :raises requests.HTTPError: If nRF Cloud rejects the upload
+        :raises ValueError: If fw_version doesn't match FW_VERSION_PATTERN
+        :raises requests.HTTPError: If nRF Cloud rejects the upload, with the response body in the message
         :raises RuntimeError: If the response has no bundle ID
         :raises OSError: If the update image can't be read
         """
+        if not FW_VERSION_PATTERN.fullmatch(fw_version):
+            raise ValueError(f"fw_version '{fw_version}' doesn't match {FW_VERSION_PATTERN.pattern}")
+
         file_name = os.path.basename(update_bin_path)
         manifest = {
             "name": f"hello.nrfcloud.com {fw_version}",
@@ -69,7 +85,7 @@ class NrfCloudFirmwareBundles():
             data=bundle_zip.getvalue(),
             timeout=self.timeout,
         )
-        response.raise_for_status()
+        _raise_for_status(response)
 
         bundle_id = response.json().get("bundleId")
         if not bundle_id:
@@ -82,11 +98,11 @@ class NrfCloudFirmwareBundles():
         Delete a firmware bundle.
 
         :param bundle_id: Bundle ID returned by upload_app_bundle()
-        :raises requests.HTTPError: If nRF Cloud rejects the deletion
+        :raises requests.HTTPError: If nRF Cloud rejects the deletion, with the response body in the message
         """
         response = requests.delete(
             f"{NRF_CLOUD_API_URL}/firmwares/{quote(bundle_id, safe='')}",
             headers={"Authorization": f"Bearer {self.api_key}"},
             timeout=self.timeout,
         )
-        response.raise_for_status()
+        _raise_for_status(response)
