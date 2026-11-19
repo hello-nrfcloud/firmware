@@ -44,7 +44,8 @@ export FINGERPRINT=<your_fingerprint>
 ```
 
 The application FOTA test flashes the latest GitHub release and updates it to the firmware under test.
-It uploads the `*-update-signed.bin` from `artifacts/` as a temporary bundle to nRF Cloud, and deletes it when the test is done.
+It uploads the `*-update-signed.bin` from `artifacts/` as a temporary bundle to nRF Cloud and creates the FOTA job for the device with `IMEI` directly in nRF Cloud.
+When the test is done, it cancels the job if it hasn't finished and deletes the bundle.
 This needs an nRF Cloud API key for the account the FOTA device belongs to:
 ```shell
 export NRF_CLOUD_API_KEY=<your_api_key>
