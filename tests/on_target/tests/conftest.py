@@ -188,7 +188,7 @@ def app_bundle_id(app_update_bin):
     try:
         bundle_id = bundles.upload_app_bundle(app_update_bin.path, fw_version)
     except Exception as e:
-        pytest.fail(f"Failed to upload {app_update_bin.path} to nRF Cloud: {e}")
+        pytest.fail(f"Failed to upload {app_update_bin.path} to nRF Cloud as version {fw_version}: {e}")
     logger.info(f"Uploaded firmware under test as bundle {bundle_id}")
 
     yield bundle_id
