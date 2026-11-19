@@ -183,7 +183,7 @@ def app_bundle_id(app_update_bin):
         pytest.fail("NRF_CLOUD_API_KEY must be set to upload the firmware under test to nRF Cloud")
 
     bundles = NrfCloudFirmwareBundles(api_key=NRF_CLOUD_API_KEY)
-    fw_version = f"{app_update_bin.version}+ci.{time.strftime('%Y%m%d%H%M%S', time.gmtime())}"
+    fw_version = f"{app_update_bin.version}-ci.{time.strftime('%Y%m%d%H%M%S', time.gmtime())}"
 
     try:
         bundle_id = bundles.upload_app_bundle(app_update_bin.path, fw_version)
