@@ -9,15 +9,14 @@ import os
 import re
 import time
 import zipfile
-from typing import Iterator, Optional
+from typing import Optional
 from urllib.parse import quote
 
 import requests
 
 NRF_CLOUD_API_URL = "https://api.nrfcloud.com/v1"
 FW_VERSION_PATTERN = re.compile(r"^[a-zA-Z0-9._-]{1,60}$")
-APP_BUNDLE_ID_PATTERN = re.compile(r"^APP\*[0-9a-zA-Z]{8}\*.+$")
-BUNDLE_LOOKUP_TIMEOUT_S = 300
+BUNDLE_LOOKUP_TIMEOUT_S = 120
 BUNDLE_LOOKUP_INTERVAL_S = 5
 
 
@@ -53,9 +52,7 @@ class NrfCloudFirmwareBundles():
         :param fw_version: Firmware version to give the bundle, must be unique in the account and
                            match FW_VERSION_PATTERN (1-60 characters of a-z, A-Z, 0-9, '.', '_', '-')
         nRF Cloud processes uploads asynchronously and doesn't return the bundle ID, so this
-        waits until a bundle with fw_version and an ID matching APP_BUNDLE_ID_PATTERN appears in
-        the account's firmware list. While processing, the list can hold an entry for fw_version
-        whose ID is a bare UUID, which hello.nrfcloud.com rejects in FOTA jobs.
+        waits until a bundle with fw_version appears in the account's firmware list.
 
         :return: Bundle ID of the uploaded bundle, e.g. "APP*1a2b3c4d*<fw_version>"
         :raises ValueError: If fw_version doesn't match FW_VERSION_PATTERN
@@ -106,12 +103,9 @@ class NrfCloudFirmwareBundles():
             if bundle_id:
                 return bundle_id
             if time.monotonic() > deadline:
-                pending_ids = [item.get("bundleId") for item in self.list_bundles()
-                               if item.get("version") == fw_version]
                 raise TimeoutError(
-                    f"No bundle with version {fw_version} and an APP bundle ID in the nRF Cloud "
-                    f"firmware list {BUNDLE_LOOKUP_TIMEOUT_S} s after upload, "
-                    f"IDs listed for this version: {pending_ids}"
+                    f"Bundle with version {fw_version} not in the nRF Cloud firmware list "
+                    f"{BUNDLE_LOOKUP_TIMEOUT_S} s after upload"
                 )
             time.sleep(BUNDLE_LOOKUP_INTERVAL_S)
 
@@ -120,22 +114,8 @@ class NrfCloudFirmwareBundles():
         Look up the bundle ID of an application firmware bundle by its version.
 
         :param fw_version: Firmware version the bundle was uploaded with
-        :return: Bundle ID matching APP_BUNDLE_ID_PATTERN, or None if the account has no such
-                 bundle with this version yet
+        :return: Bundle ID, or None if no bundle in the account has this version
         :raises requests.HTTPError: If the firmware list request fails, with the response body in the message
-        """
-        for item in self.list_bundles():
-            bundle_id = item.get("bundleId") or ""
-            if item.get("version") == fw_version and APP_BUNDLE_ID_PATTERN.fullmatch(bundle_id):
-                return bundle_id
-        return None
-
-    def list_bundles(self) -> Iterator[dict]:
-        """
-        List all firmware bundles in the account, following pagination.
-
-        :return: Iterator over the ListFirmware items (dicts with "bundleId", "version", "type", ...)
-        :raises requests.HTTPError: If a firmware list request fails, with the response body in the message
         """
         params = {"pageLimit": 100}
         while True:
@@ -148,11 +128,13 @@ class NrfCloudFirmwareBundles():
             _raise_for_status(response)
             page = response.json()
 
-            yield from page.get("items", [])
+            for item in page.get("items", []):
+                if item.get("version") == fw_version and item.get("bundleId"):
+                    return item["bundleId"]
 
             next_token = page.get("pageNextToken")
             if not next_token:
-                return
+                return None
             params["pageNextToken"] = next_token
 
     def delete_bundle(self, bundle_id: str) -> None:
