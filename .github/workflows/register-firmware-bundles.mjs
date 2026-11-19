@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import yazl from "yazl";
+import { fwversionFor } from "./lib/fwversion.mjs";
 import { nameRegEx } from "./lib/nameRegEx.mjs";
 
 const version = (process.argv[process.argv.length - 1] ?? "").trim();
@@ -20,14 +21,24 @@ if (assets.length === 0) {
   process.exit(1);
 }
 
+const bundles = [];
 for (const asset of assets) {
   const {
     groups: { configuration },
   } = filenameRegEx.exec(asset);
+  try {
+    bundles.push({
+      asset,
+      configuration,
+      fwversion: fwversionFor(version, configuration),
+    });
+  } catch (error) {
+    console.error(`${asset}: ${error.message}`);
+    process.exit(1);
+  }
+}
 
-  const fwversion = `${version}${
-    configuration !== undefined ? `+${configuration}` : ""
-  }`;
+const createBundleZip = async ({ asset, configuration, fwversion }) => {
   const fwName = `hello.nrfcloud.com ${fwversion}`;
   console.log(fwName);
   const manifest = {
@@ -60,15 +71,18 @@ for (const asset of assets) {
 
   const zipFileName = path.join(tempDir, `${asset}.zip`);
 
-  await new Promise((resolve) => {
+  await new Promise((resolve, reject) => {
     zipfile.outputStream
       .pipe(createWriteStream(zipFileName))
-      .on("close", () => {
-        resolve();
-      });
+      .on("close", resolve)
+      .on("error", reject);
     zipfile.end();
   });
 
+  return zipFileName;
+};
+
+const uploadBundle = async (zipFileName) => {
   const createFirmwareRes = await fetch(
     "https://api.nrfcloud.com/v1/firmwares",
     {
@@ -82,10 +96,28 @@ for (const asset of assets) {
   );
 
   if (createFirmwareRes.status !== 200) {
-    console.error(
-      `Failed to upload firmware bundle: ${await createFirmwareRes.text()}`
+    throw new Error(
+      `HTTP ${createFirmwareRes.status}: ${await createFirmwareRes.text()}`
     );
-  } else {
-    console.log(JSON.stringify(await createFirmwareRes.json(), null, 2));
   }
+  console.log(JSON.stringify(await createFirmwareRes.json(), null, 2));
+};
+
+const failedAssets = [];
+for (const bundle of bundles) {
+  try {
+    await uploadBundle(await createBundleZip(bundle));
+  } catch (error) {
+    console.error(
+      `Failed to upload firmware bundle for ${bundle.asset}: ${error.message}`
+    );
+    failedAssets.push(bundle.asset);
+  }
+}
+
+if (failedAssets.length > 0) {
+  console.error(
+    `${failedAssets.length} of ${bundles.length} firmware bundles failed to upload: ${failedAssets.join(", ")}`
+  );
+  process.exit(1);
 }
