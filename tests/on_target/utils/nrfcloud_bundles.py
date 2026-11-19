@@ -7,13 +7,17 @@ import io
 import json
 import os
 import re
+import time
 import zipfile
+from typing import Optional
 from urllib.parse import quote
 
 import requests
 
 NRF_CLOUD_API_URL = "https://api.nrfcloud.com/v1"
 FW_VERSION_PATTERN = re.compile(r"^[a-zA-Z0-9._-]{1,60}$")
+BUNDLE_LOOKUP_TIMEOUT_S = 120
+BUNDLE_LOOKUP_INTERVAL_S = 5
 
 
 def _raise_for_status(response: requests.Response) -> None:
@@ -47,10 +51,16 @@ class NrfCloudFirmwareBundles():
         :param update_bin_path: Path to the signed application update image (*-update-signed.bin)
         :param fw_version: Firmware version to give the bundle, must be unique in the account and
                            match FW_VERSION_PATTERN (1-60 characters of a-z, A-Z, 0-9, '.', '_', '-')
+        nRF Cloud processes uploads asynchronously and doesn't return the bundle ID, so this
+        waits until a bundle with fw_version appears in the account's firmware list.
+
         :return: Bundle ID of the uploaded bundle, e.g. "APP*1a2b3c4d*<fw_version>"
         :raises ValueError: If fw_version doesn't match FW_VERSION_PATTERN
-        :raises requests.HTTPError: If nRF Cloud rejects the upload, with the response body in the message
-        :raises RuntimeError: If the response has no bundle ID
+        :raises requests.HTTPError: If nRF Cloud rejects the upload or the firmware list request,
+                                    with the response body in the message
+        :raises TimeoutError: If the bundle doesn't show up in the firmware list within
+                              BUNDLE_LOOKUP_TIMEOUT_S. The bundle may still exist and must then be
+                              deleted by version.
         :raises OSError: If the update image can't be read
         """
         if not FW_VERSION_PATTERN.fullmatch(fw_version):
@@ -87,11 +97,45 @@ class NrfCloudFirmwareBundles():
         )
         _raise_for_status(response)
 
-        bundle_id = response.json().get("bundleId")
-        if not bundle_id:
-            raise RuntimeError(f"nRF Cloud upload response has no bundleId: {response.text}")
+        deadline = time.monotonic() + BUNDLE_LOOKUP_TIMEOUT_S
+        while True:
+            bundle_id = self.find_bundle_id(fw_version)
+            if bundle_id:
+                return bundle_id
+            if time.monotonic() > deadline:
+                raise TimeoutError(
+                    f"Bundle with version {fw_version} not in the nRF Cloud firmware list "
+                    f"{BUNDLE_LOOKUP_TIMEOUT_S} s after upload"
+                )
+            time.sleep(BUNDLE_LOOKUP_INTERVAL_S)
 
-        return bundle_id
+    def find_bundle_id(self, fw_version: str) -> Optional[str]:
+        """
+        Look up the bundle ID of an application firmware bundle by its version.
+
+        :param fw_version: Firmware version the bundle was uploaded with
+        :return: Bundle ID, or None if no bundle in the account has this version
+        :raises requests.HTTPError: If the firmware list request fails, with the response body in the message
+        """
+        params = {"pageLimit": 100}
+        while True:
+            response = requests.get(
+                f"{NRF_CLOUD_API_URL}/firmwares",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                params=params,
+                timeout=self.timeout,
+            )
+            _raise_for_status(response)
+            page = response.json()
+
+            for item in page.get("items", []):
+                if item.get("version") == fw_version and item.get("bundleId"):
+                    return item["bundleId"]
+
+            next_token = page.get("pageNextToken")
+            if not next_token:
+                return None
+            params["pageNextToken"] = next_token
 
     def delete_bundle(self, bundle_id: str) -> None:
         """
