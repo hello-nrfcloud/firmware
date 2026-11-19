@@ -95,7 +95,7 @@ const uploadBundle = async (zipFileName) => {
     }
   );
 
-  if (createFirmwareRes.status !== 200) {
+  if (!createFirmwareRes.ok) {
     throw new Error(
       `HTTP ${createFirmwareRes.status}: ${await createFirmwareRes.text()}`
     );
