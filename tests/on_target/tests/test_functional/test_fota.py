@@ -22,7 +22,7 @@ FULL_MFW_FOTA_TIMEOUT = 60 * 30
 def post_job(t91x_fota, bundle_id, fota_type):
     result = t91x_fota.fota.post_fota_job(type=fota_type, bundle_id=bundle_id)
     if not result:
-        pytest.skip("Failed to post FOTA job")
+        pytest.fail(f"Failed to post {fota_type} FOTA job for bundle {bundle_id}")
     t91x_fota.uart.flush()
     return
 

@@ -35,7 +35,7 @@ def save_badge_data(average):
     badge_filename = "power_badge.json"
     logger.info(f"Minimum average current measured: {average}uA")
     if average < 0:
-        pytest.skip(f"current cant be negative, current average: {average}")
+        pytest.fail(f"Current can't be negative, current average: {average}")
     elif average <= 10:
         color = "green"
     elif average <= 50:
@@ -116,7 +116,7 @@ def check_shell_operational(s):
         except Exception:
             continue
     else:
-        pytest.skip("PPK device is not responding, skipping test")
+        pytest.fail("PPK device is not responding")
 
 
 def get_ppk2_serials():
@@ -131,9 +131,9 @@ def get_ppk2_serials():
         logger.info(f"Found PPK2 at port: {ppk2_port}, serial: {ppk2_serial}")
         return ppk2_port, ppk2_serial
     elif len(ppk2s_connected) == 0:
-        pytest.skip("No ppk found")
+        pytest.fail("No PPK found")
     else:
-        pytest.skip(f"PPK should list 2 ports, but found {ppk2s_connected}")
+        pytest.fail(f"PPK should list 2 ports, but found {ppk2s_connected}")
 
 
 @pytest.fixture(scope="module")
@@ -161,7 +161,7 @@ def dut(app_dfu_file):
         uptime = shell.wait_for_str_re("Uptime: (.*) ms", timeout=2)
         device_uptime_ms = int(uptime[0])
         if device_uptime_ms > 20000:
-            pytest.skip("PPK device was not rebooted, skipping test")
+            pytest.fail("PPK device was not rebooted")
     except Exception as e:
         logger.error(f"Exception when rebooting PPK device: {e}")
     finally:
@@ -178,7 +178,7 @@ def dut(app_dfu_file):
             logger.error(f"Failed to get modifiers: {e}")
             time.sleep(5)
     else:
-        pytest.skip("Failed to get ppk modifiers after 10 attempts")
+        pytest.fail("Failed to get PPK modifiers after 15 attempts")
 
     ppk2_dev.set_source_voltage(3300)
     ppk2_dev.use_ampere_meter()  # set ampere meter mode
@@ -197,7 +197,7 @@ def dut(app_dfu_file):
             time.sleep(1)
             continue
     else:
-        pytest.skip("NO uart seen after 10 seconds")
+        pytest.fail("No UART seen after 10 seconds")
 
     flash_device(app_dfu_file, UART_ID)
     time.sleep(1)
@@ -272,7 +272,7 @@ def test_power(dut):
             interval_sleeper.sleep()
         except Exception as e:
             logger.error(f"Catching exception: {e}")
-            pytest.skip("Something went wrong, unable to perform power measurements")
+            pytest.fail(f"Unable to perform power measurements: {e}")
     # Save measurement data and generate HTML report
     save_badge_data(rolling_average.min_rolling_average)
     save_measurement_data(rolling_average.samples)
