@@ -5,6 +5,7 @@
 
 import os
 import re
+import time
 import types
 import pytest
 import subprocess
@@ -12,6 +13,8 @@ from pytest_metadata.plugin import metadata_key
 from utils.flash_tools import recover_device
 from utils.uart import Uart, UartBinary
 from utils.hellonrfcloud_fota import HelloNrfCloudFOTA
+from utils.nrfcloud_fota import NrfCloudFota, FOTA_JOB_ACTIVE_STATUSES
+from utils.oob_release import download_latest_release_hex
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -22,6 +25,10 @@ SEGGER = os.getenv('SEGGER')
 UART_ID = SEGGER
 FOTADEVICE_IMEI = os.getenv('IMEI')
 FOTADEVICE_FINGERPRINT = os.getenv('FINGERPRINT')
+NRF_CLOUD_API_KEY = os.getenv('NRF_CLOUD_API_KEY')
+
+ARTIFACTS_DIR = "artifacts"
+LATEST_RELEASE_DIR = os.path.join(ARTIFACTS_DIR, "latest_release")
 
 def pytest_html_report_title(report):
     report.title = os.getenv("TEST_REPORT_NAME", "OOB Test Report")
@@ -151,6 +158,71 @@ def hex_file():
             return os.path.join(artifacts_dir, file)
 
     pytest.fail("No matching firmware .hex file found in the artifacts directory")
+
+@pytest.fixture(scope="session")
+def app_update_bin():
+    update_bin_pattern = r"hello\.nrfcloud\.com-([0-9a-z\.]+)-thingy91x-nrf91-update-signed\.bin"
+
+    for file in os.listdir(ARTIFACTS_DIR):
+        match = re.fullmatch(update_bin_pattern, file)
+        if match:
+            return types.SimpleNamespace(path=os.path.join(ARTIFACTS_DIR, file), version=match.group(1))
+
+    pytest.fail("No matching update-signed .bin file found in the artifacts directory")
+
+@pytest.fixture(scope="session")
+def latest_release_hex():
+    try:
+        return download_latest_release_hex(LATEST_RELEASE_DIR)
+    except Exception as e:
+        pytest.fail(f"Failed to get the latest release hex: {e}")
+
+@pytest.fixture(scope="session")
+def nrfcloud_fota():
+    if not NRF_CLOUD_API_KEY:
+        pytest.fail("NRF_CLOUD_API_KEY must be set to use nRF Cloud FOTA directly")
+    return NrfCloudFota(api_key=NRF_CLOUD_API_KEY)
+
+@pytest.fixture(scope="function")
+def app_bundle_id(app_update_bin, nrfcloud_fota):
+    fw_version = f"{app_update_bin.version}-ci.{time.strftime('%Y%m%d%H%M%S', time.gmtime())}"
+
+    try:
+        bundle_id = nrfcloud_fota.upload_app_bundle(app_update_bin.path, fw_version)
+    except Exception as e:
+        pytest.fail(f"Failed to upload {app_update_bin.path} to nRF Cloud as version {fw_version}: {e}")
+    logger.info(f"Uploaded firmware under test as bundle {bundle_id}")
+
+    yield bundle_id
+
+    try:
+        nrfcloud_fota.delete_bundle(bundle_id)
+        logger.info(f"Deleted bundle {bundle_id}")
+    except Exception as e:
+        logger.error(f"Failed to delete bundle {bundle_id} from nRF Cloud: {e}")
+
+@pytest.fixture(scope="function")
+def nrfcloud_fota_job(nrfcloud_fota):
+    if not FOTADEVICE_IMEI:
+        pytest.fail("IMEI must be set to create FOTA jobs for the FOTA device")
+    device_id = f"oob-{FOTADEVICE_IMEI}"
+    job_ids = []
+
+    def create_job(bundle_id):
+        job_id = nrfcloud_fota.create_fota_job(device_id, bundle_id)
+        job_ids.append(job_id)
+        return job_id
+
+    yield create_job
+
+    for job_id in job_ids:
+        try:
+            status = nrfcloud_fota.get_fota_job_status(job_id)
+            if status in FOTA_JOB_ACTIVE_STATUSES:
+                nrfcloud_fota.cancel_fota_job(job_id)
+                logger.info(f"Cancelled nRF Cloud FOTA job {job_id} in status {status}")
+        except Exception as e:
+            logger.error(f"Failed to cancel nRF Cloud FOTA job {job_id}: {e}")
 
 @pytest.fixture(scope="session")
 def app_dfu_file():
