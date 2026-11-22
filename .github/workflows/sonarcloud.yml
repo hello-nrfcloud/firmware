@@ -69,9 +69,10 @@ jobs:
           fi
           pip install -r nrf/scripts/requirements-fixed.txt
           apt-get update
-          # `make` is required to build native_sim but is not shipped in the
-          # sdk-nrf-toolchain container (unlike the Zephyr CI image).
-          apt install -y curl ruby-full make
+          # `make` is required to build native_sim and `gnupg` is required by the
+          # SonarQube scan action to verify the scanner signature. Neither is
+          # shipped in the sdk-nrf-toolchain container (unlike the Zephyr CI image).
+          apt install -y curl ruby-full make gnupg
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
