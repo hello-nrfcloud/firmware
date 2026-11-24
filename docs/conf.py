@@ -3,6 +3,15 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+
+import os
+import sys
+from pathlib import Path
+
+DOC_BASE = Path(__file__).resolve().parent
+
+sys.path.insert(0, str(DOC_BASE / "_utils"))
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -36,3 +45,8 @@ html_theme_options = {'docsets': {},"addons_url": "https://nrfconnect.github.io/
 rst_epilog = """
 .. include:: /links.txt
 """
+
+def setup(app):
+    from kapa import add_kapa_search
+
+    add_kapa_search(app)

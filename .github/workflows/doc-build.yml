@@ -44,7 +44,11 @@ jobs:
       - name: Build
         working-directory: docs
         run: |
-          sphinx-build -M html . build
+          KAPA_TAG=""
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            KAPA_TAG="-t kapa"
+          fi
+          sphinx-build -M html . build ${KAPA_TAG}
 
       - name: Check version
         run: |
